@@ -1,8 +1,14 @@
 name: Integration validation
 on:
+  workflow_call:
+    inputs:
+      ref:
+        description: Exact commit to validate when called by the release workflow
+        type: string
+        required: false
+  workflow_dispatch:
   push:
   pull_request:
-  workflow_dispatch:
 permissions:
   contents: read
 jobs:
@@ -10,6 +16,9 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
       - name: Validate local integration
         run: >-
           docker run --rm -v "$GITHUB_WORKSPACE:/github/workspace:ro"

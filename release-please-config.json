@@ -1,0 +1,21 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "python",
+  "include-component-in-tag": false,
+  "include-v-in-tag": true,
+  "draft": true,
+  "force-tag-creation": false,
+  "bump-minor-pre-major": true,
+  "packages": {
+    ".": {
+      "package-name": "hapatchy",
+      "extra-files": [
+        {
+          "type": "json",
+          "path": "custom_components/hapatchy/manifest.json",
+          "jsonpath": "$.version"
+        }
+      ]
+    }
+  }
+}

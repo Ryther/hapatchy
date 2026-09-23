@@ -36,4 +36,55 @@ separate fsync transaction spanning HA storage and the target file.
 Tests cover decisions independently and exercise native flows, sensors, service
 permissions, watcher threads and filesystem failures. End-to-end HACS update
 acceptance is a separate release gate; synthetic filesystem events do not replace
-it. See the release procedure for the remaining external checks.
+it. See the release guide for the manual checks that complement CI.
+
+## Working on the project
+
+Start with the [Dev Container guide](../.devcontainer/README.md). Opening the
+container starts its own HA on forwarded port 8123; it does not need your existing
+installation. The browser runtime and test environment use separate virtual
+environments. Product tests create temporary HA objects/configuration directories.
+
+Inside the container, from the repository root:
+
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+.venv/bin/mypy --python-version 3.14
+python3 -m unittest discover -s .devcontainer/tests -v
+```
+
+CI repeats product tests in the separate minimum HA/Python environment. Do not
+install its lock over the running recent HA environment. Use temporary files and
+fake network/GitHub boundaries in tests; no test should need household HA, a real
+GitHub token, or publication permissions.
+
+## Packaging and release boundaries
+
+`script/build_release.py` validates the three version files and builds a tracked-file
+ZIP/checksum. It has no network or publication responsibility.
+`script/release_github.py` owns the GitHub draft lifecycle, checks commit/tag/asset
+identity and delegates packaging to the builder. Its narrow GitHub adapter is
+substituted in offline tests. YAML workflows orchestrate these helpers and reuse
+the same test/validation jobs; they do not contain a second implementation of
+version selection or archive building. Release Please owns version proposals and
+changelog updates. See [versioning and releases](releasing.md).
+
+The primary language is Python; support files use Bash, Dockerfile, JSON, YAML,
+TOML, INI and Markdown, plus PNG captures/branding and text/unified-diff examples.
+There is no repository-owned JavaScript frontend or Node package dependency.
+GitHub's Release Please action runs its own bundled Node runtime on the runner.
+
+## Contributing without publishing local data
+
+The `.gitignore` starts with a default deny rule. Add narrow exceptions for new
+owned paths, keeping explicit private/generated exclusions after them. Check
+`git status --untracked-files=all` and `git check-ignore --no-index <path>` before
+staging; do not force-add files to bypass the policy. HA state, `.storage`, venvs,
+`.env`, caches, `dist` and local planning evidence must stay out of commits.
+
+Use Conventional Commit messages and include behavior tests with code changes.
+Update the user guides when visible behavior changes. Keep credentials out of
+examples and diagnostics captures. See [the release guide](releasing.md) for
+version/changelog ownership; a feature PR should not independently bump one of
+the version files while leaving the others behind.
