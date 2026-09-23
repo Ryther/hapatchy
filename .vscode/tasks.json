@@ -1,0 +1,12 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {"label": "HA: bootstrap", "type": "shell", "command": "bash .devcontainer/scripts/bootstrap.sh", "problemMatcher": []},
+    {"label": "HA: start", "type": "shell", "command": "bash .devcontainer/scripts/start-ha.sh", "problemMatcher": []},
+    {"label": "HA: stop", "type": "shell", "command": "bash .devcontainer/scripts/stop-ha.sh", "problemMatcher": []},
+    {"label": "HA: restart", "type": "shell", "command": "bash .devcontainer/scripts/restart-ha.sh", "problemMatcher": []},
+    {"label": "HA: status", "type": "shell", "command": "bash .devcontainer/scripts/status-ha.sh", "problemMatcher": []},
+    {"label": "HA: readiness", "type": "shell", "command": "bash .devcontainer/scripts/wait-ha.sh", "problemMatcher": []},
+    {"label": "HA: logs", "type": "shell", "command": "tail -n 100 -f .devcontainer/state/ha/ha.log", "problemMatcher": []}
+  ]
+}
