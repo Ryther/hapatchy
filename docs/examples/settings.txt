@@ -1,0 +1,2 @@
+mode=demo
+interval=30

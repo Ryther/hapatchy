@@ -1,0 +1,6 @@
+--- a/hapatchy_demo/settings.txt
++++ b/hapatchy_demo/settings.txt
+@@ -1,2 +1,2 @@
+ mode=demo
+-interval=30
++interval=5

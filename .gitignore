@@ -51,6 +51,15 @@
 !/docs/images/
 !/docs/images/integration.png
 
+# User guides and executable example.
+!/docs/installation.md
+!/docs/first-patch.md
+!/docs/reference.md
+!/docs/troubleshooting.md
+!/docs/examples/
+!/docs/examples/settings.txt
+!/docs/examples/interval.patch
+
 # Generated and private state remains excluded even within admitted directories.
 /_test/
 /_tmp/
