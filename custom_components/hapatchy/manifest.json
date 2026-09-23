@@ -1,0 +1,13 @@
+{
+  "domain": "hapatchy",
+  "name": "HAPatchY",
+  "codeowners": ["@Ryther"],
+  "config_flow": true,
+  "documentation": "https://github.com/Ryther/hapatchy",
+  "integration_type": "service",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/Ryther/hapatchy/issues",
+  "requirements": ["patch-ng==1.19.1", "watchdog==6.0.0"],
+  "single_config_entry": true,
+  "version": "0.1.0"
+}

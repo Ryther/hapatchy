@@ -1,0 +1,385 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HAPatchY",
+        "description": "Manage exact single-file patches within the Home Assistant configuration."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one instance is allowed.",
+      "already_configured": "Already configured."
+    }
+  },
+  "config_subentries": {
+    "patch": {
+      "entry_type": "Patch",
+      "step": {
+        "user": {
+          "title": "Configure patch",
+          "description": "Choose one file and a UTF-8 unified diff. HA and HAPatchY internal files are protected.",
+          "data": {
+            "name": "Name",
+            "target_path": "Target path (relative to HA configuration)",
+            "watch_root": "Watch directory (relative to HA configuration)",
+            "watch_pattern": "Watch pattern (optional)",
+            "source_type": "Source type",
+            "source": "Local path or direct HTTPS URL"
+          }
+        },
+        "options": {
+          "title": "Behavior and verification",
+          "description": "Disabling backups removes the recovery copy for apply operations. Revert always creates a backup.",
+          "data": {
+            "source_sha256": "Expected source SHA-256 (optional)",
+            "enabled": "Enabled",
+            "auto_apply": "Apply compatible patches automatically",
+            "reconcile_on_startup": "Check at Home Assistant startup",
+            "backup_before_apply": "Back up before applying",
+            "debounce_seconds": "Wait after file events (seconds)"
+          }
+        },
+        "confirm_backup_disabled": {
+          "title": "Confirm configuration",
+          "description": "Backup before apply is disabled. You may be unable to recover the original bytes. Revert always creates a backup. No file has been changed.",
+          "data": {
+            "confirm": "I understand and confirm"
+          }
+        },
+        "confirm_conflict": {
+          "title": "Confirm configuration",
+          "description": "The patch does not uniquely match the current file. Nothing will be changed until the conflict is resolved. If you disabled backups, future apply operations will not create recovery copies.",
+          "data": {
+            "confirm": "I understand and confirm"
+          }
+        },
+        "confirm_missing_target": {
+          "title": "Confirm configuration",
+          "description": "The target file is missing. The patch will wait for it to appear. If you disabled backups, future apply operations will not create recovery copies.",
+          "data": {
+            "confirm": "I understand and confirm"
+          }
+        }
+      },
+      "error": {
+        "invalid_patch_id": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "source_unavailable": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_boolean": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unanchored_hunk": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "parser_rejected": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "duplicate_target": "This target already has a patch, possibly disabled.",
+        "invalid_newline_marker": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "pattern_misses_target": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unsupported_encoding": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_debounce": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "disabled_patch": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "required_field": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unsafe_directory": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "size_limit": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "no_change": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "protected_path": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "parser_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unsafe_path": "Use relative paths without traversal or symbolic links.",
+        "backup_prune_failed": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_hunk": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "source_hash_mismatch": "Source contents do not match the expected SHA-256.",
+        "source_is_target": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "durability_unconfirmed": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "overlapping_hunks": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "runtime_reloading": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_local_source": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "backup_failed": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_headers": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "directory_changed": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "target_outside_watch_root": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "header_target_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "source_too_large": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "missing_target": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "hunk_count_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_source_hash": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_hunk_body": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unterminated_diff": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_source_url": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "invalid_retention": "Enter an integer from 1 to 100.",
+        "invalid_source_type": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "source_http_error": "The HTTPS source must return HTTP 200 directly, without redirects.",
+        "runtime_closing": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "target_changed": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unknown_patch": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "mixed_endings": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "no_hunks": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "unsafe_file": "The patch or configuration is invalid. Check paths, patch contents and context."
+      },
+      "abort": {
+        "reconfigure_successful": "Configuration updated."
+      },
+      "initiate_flow": {
+        "user": "Add patch",
+        "reconfigure": "Reconfigure patch"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Backup",
+        "data": {
+          "backup_retention": "Backups retained per patch"
+        }
+      }
+    },
+    "error": {
+      "invalid_retention": "Enter an integer from 1 to 100."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "patch_status": {
+        "name": "Patch status",
+        "state": {
+          "unknown": "Not checked",
+          "disabled": "Disabled",
+          "applicable": "Applicable",
+          "applied": "Applied",
+          "conflict": "Conflict",
+          "missing_target": "Missing target",
+          "source_error": "Source error",
+          "invalid_patch": "Invalid patch",
+          "security_error": "Unsafe path",
+          "apply_error": "Write error"
+        }
+      }
+    }
+  },
+  "services": {
+    "reconcile": {
+      "name": "Reconcile",
+      "description": "Check enabled patches and honor auto_apply. Omit the ID to check all enabled patches.",
+      "fields": {
+        "patch_id": {
+          "name": "Patch ID",
+          "description": "The patch_id attribute of the status sensor."
+        }
+      }
+    },
+    "apply": {
+      "name": "Apply",
+      "description": "Apply a compatible patch even when auto_apply is off. Never forces conflicts.",
+      "fields": {
+        "patch_id": {
+          "name": "Patch ID",
+          "description": "The patch_id attribute of the status sensor."
+        }
+      }
+    },
+    "revert": {
+      "name": "Revert",
+      "description": "Disable auto_apply and revert only an exact reverse match, with a mandatory backup.",
+      "fields": {
+        "patch_id": {
+          "name": "Patch ID",
+          "description": "The patch_id attribute of the status sensor."
+        }
+      }
+    },
+    "refresh_source": {
+      "name": "Refresh source",
+      "description": "Reload and inspect the source without changing the target.",
+      "fields": {
+        "patch_id": {
+          "name": "Patch ID",
+          "description": "The patch_id attribute of the status sensor."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_patch_id": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "source_unavailable": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_boolean": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unanchored_hunk": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "parser_rejected": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "duplicate_target": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_newline_marker": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "context_not_unique": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "not_applied": {
+      "message": "The patch is not applied; the target was not changed. Auto_apply remains disabled."
+    },
+    "pattern_misses_target": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unsupported_encoding": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_debounce": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "disabled_patch": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "required_field": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unsafe_directory": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "size_limit": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "no_change": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "protected_path": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "parser_mismatch": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unsafe_path": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "backup_prune_failed": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_hunk": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "source_hash_mismatch": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "source_is_target": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "durability_unconfirmed": {
+      "message": "The file was replaced, but durability is unconfirmed. No automatic rollback was performed."
+    },
+    "overlapping_hunks": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "runtime_reloading": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_local_source": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "backup_failed": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_headers": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "metadata_save_failed": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "directory_changed": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "target_outside_watch_root": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "header_target_mismatch": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "source_too_large": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "missing_target": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "hunk_count_mismatch": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_source_hash": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_hunk_body": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unterminated_diff": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_source_url": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_retention": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "invalid_source_type": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "source_http_error": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "runtime_closing": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "target_changed": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unknown_patch": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "mixed_endings": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "no_hunks": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "unsafe_file": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "filesystem_error": {
+      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    }
+  },
+  "issues": {
+    "conflict": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nContext changed or is not unique. Update the patch; do not blindly restore an old file.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "missing_target": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nThe expected file is missing. Check the target path and watch directory.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "source_error": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nCheck the source, hash and HTTPS availability. Old patch contents are never reused.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "invalid_patch": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nUse a valid UTF-8 single-file unified diff with distinguishing context.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "security_error": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nThe path or file type is unsafe. Do not use symbolic or hard links.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "apply_error": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nThe write did not complete successfully. Check disk, permissions and backups before retrying.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "durability_unconfirmed": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nReplacement occurred but fsync did not confirm durability. Reconciliation will retry synchronization without rewriting the file.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "watch_unavailable": {
+      "title": "Patch needs attention",
+      "description": "{target}\n\nThe watch directory is unavailable. HAPatchY retries every 60 seconds.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    }
+  }
+}

@@ -1,0 +1,28 @@
+reconcile:
+  fields:
+    patch_id:
+      required: false
+      example: "01J00000000000000000000000"
+      selector:
+        text:
+apply:
+  fields:
+    patch_id:
+      required: true
+      example: "01J00000000000000000000000"
+      selector:
+        text:
+revert:
+  fields:
+    patch_id:
+      required: true
+      example: "01J00000000000000000000000"
+      selector:
+        text:
+refresh_source:
+  fields:
+    patch_id:
+      required: true
+      example: "01J00000000000000000000000"
+      selector:
+        text:

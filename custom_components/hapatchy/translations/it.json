@@ -1,0 +1,385 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "HAPatchY",
+        "description": "Gestisci patch esatte per singoli file nella configurazione di Home Assistant."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "È consentita una sola istanza.",
+      "already_configured": "Già configurata."
+    }
+  },
+  "config_subentries": {
+    "patch": {
+      "entry_type": "Patch",
+      "step": {
+        "user": {
+          "title": "Configura patch",
+          "description": "Seleziona un singolo file e una patch unified diff UTF-8. I file interni di HA e HAPatchY sono protetti.",
+          "data": {
+            "name": "Nome",
+            "target_path": "Percorso del file (relativo alla configurazione HA)",
+            "watch_root": "Cartella da monitorare (relativa alla configurazione HA)",
+            "watch_pattern": "Pattern di monitoraggio (facoltativo)",
+            "source_type": "Tipo di sorgente",
+            "source": "Percorso locale o URL HTTPS diretto"
+          }
+        },
+        "options": {
+          "title": "Comportamento e verifica",
+          "description": "Disabilitare il backup elimina la copia di recupero per le applicazioni. Il ripristino crea sempre un backup.",
+          "data": {
+            "source_sha256": "SHA-256 atteso della sorgente (facoltativo)",
+            "enabled": "Abilitata",
+            "auto_apply": "Applica automaticamente le patch compatibili",
+            "reconcile_on_startup": "Controlla all’avvio di Home Assistant",
+            "backup_before_apply": "Crea un backup prima di applicare",
+            "debounce_seconds": "Attesa dopo eventi sui file (secondi)"
+          }
+        },
+        "confirm_backup_disabled": {
+          "title": "Conferma configurazione",
+          "description": "Il backup prima di applicare è disabilitato. Potresti non recuperare i byte originali. Il ripristino crea sempre un backup. Nessun file è stato modificato.",
+          "data": {
+            "confirm": "Comprendo e confermo"
+          }
+        },
+        "confirm_conflict": {
+          "title": "Conferma configurazione",
+          "description": "La patch non corrisponde univocamente al file attuale. Nessun file verrà modificato finché il conflitto non sarà risolto. Se hai disabilitato i backup, le future applicazioni non creeranno copie di recupero.",
+          "data": {
+            "confirm": "Comprendo e confermo"
+          }
+        },
+        "confirm_missing_target": {
+          "title": "Conferma configurazione",
+          "description": "Il file da modificare non esiste. La patch attenderà la sua creazione. Se hai disabilitato i backup, le future applicazioni non creeranno copie di recupero.",
+          "data": {
+            "confirm": "Comprendo e confermo"
+          }
+        }
+      },
+      "error": {
+        "invalid_patch_id": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "source_unavailable": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_boolean": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unanchored_hunk": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "parser_rejected": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "duplicate_target": "Esiste già una patch per questo file, anche se disabilitata.",
+        "invalid_newline_marker": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "pattern_misses_target": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unsupported_encoding": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_debounce": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "disabled_patch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "required_field": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unsafe_directory": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "size_limit": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "no_change": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "protected_path": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "parser_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unsafe_path": "Usa percorsi relativi senza risalite o link simbolici.",
+        "backup_prune_failed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_hunk": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "source_hash_mismatch": "Il contenuto non corrisponde allo SHA-256 atteso.",
+        "source_is_target": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "durability_unconfirmed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "overlapping_hunks": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "runtime_reloading": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_local_source": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "backup_failed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_headers": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "directory_changed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "target_outside_watch_root": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "header_target_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "source_too_large": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "missing_target": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "hunk_count_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_source_hash": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_hunk_body": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unterminated_diff": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_source_url": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "invalid_retention": "Inserisci un numero intero da 1 a 100.",
+        "invalid_source_type": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "source_http_error": "La sorgente HTTPS deve rispondere direttamente con HTTP 200, senza reindirizzamenti.",
+        "runtime_closing": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "target_changed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unknown_patch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "mixed_endings": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "no_hunks": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "unsafe_file": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch."
+      },
+      "abort": {
+        "reconfigure_successful": "Configurazione aggiornata."
+      },
+      "initiate_flow": {
+        "user": "Aggiungi patch",
+        "reconfigure": "Riconfigura patch"
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Backup",
+        "data": {
+          "backup_retention": "Backup conservati per patch"
+        }
+      }
+    },
+    "error": {
+      "invalid_retention": "Inserisci un numero intero da 1 a 100."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "patch_status": {
+        "name": "Stato patch",
+        "state": {
+          "unknown": "Non verificata",
+          "disabled": "Disabilitata",
+          "applicable": "Applicabile",
+          "applied": "Applicata",
+          "conflict": "Conflitto",
+          "missing_target": "File mancante",
+          "source_error": "Errore sorgente",
+          "invalid_patch": "Patch non valida",
+          "security_error": "Percorso non sicuro",
+          "apply_error": "Errore di scrittura"
+        }
+      }
+    }
+  },
+  "services": {
+    "reconcile": {
+      "name": "Riconcilia",
+      "description": "Verifica le patch abilitate e rispetta auto_apply. Senza ID verifica tutte le patch abilitate.",
+      "fields": {
+        "patch_id": {
+          "name": "ID patch",
+          "description": "Attributo patch_id del sensore di stato."
+        }
+      }
+    },
+    "apply": {
+      "name": "Applica",
+      "description": "Applica una patch compatibile, anche se auto_apply è disabilitato. Non forza conflitti.",
+      "fields": {
+        "patch_id": {
+          "name": "ID patch",
+          "description": "Attributo patch_id del sensore di stato."
+        }
+      }
+    },
+    "revert": {
+      "name": "Ripristina",
+      "description": "Disabilita auto_apply e ripristina solo tramite corrispondenza inversa esatta, creando un backup.",
+      "fields": {
+        "patch_id": {
+          "name": "ID patch",
+          "description": "Attributo patch_id del sensore di stato."
+        }
+      }
+    },
+    "refresh_source": {
+      "name": "Verifica sorgente",
+      "description": "Ricarica e verifica la sorgente senza modificare il file.",
+      "fields": {
+        "patch_id": {
+          "name": "ID patch",
+          "description": "Attributo patch_id del sensore di stato."
+        }
+      }
+    }
+  },
+  "exceptions": {
+    "invalid_patch_id": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "source_unavailable": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_boolean": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unanchored_hunk": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "parser_rejected": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "duplicate_target": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_newline_marker": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "context_not_unique": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "not_applied": {
+      "message": "La patch non risulta applicata; il file non è stato modificato. Auto_apply rimane disabilitato."
+    },
+    "pattern_misses_target": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unsupported_encoding": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_debounce": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "disabled_patch": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "required_field": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unsafe_directory": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "size_limit": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "no_change": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "protected_path": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "parser_mismatch": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unsafe_path": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "backup_prune_failed": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_hunk": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "source_hash_mismatch": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "source_is_target": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "durability_unconfirmed": {
+      "message": "Il file è stato sostituito, ma la durabilità non è confermata. Non è stato eseguito un rollback automatico."
+    },
+    "overlapping_hunks": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "runtime_reloading": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_local_source": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "backup_failed": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_headers": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "metadata_save_failed": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "directory_changed": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "target_outside_watch_root": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "header_target_mismatch": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "source_too_large": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "missing_target": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "hunk_count_mismatch": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_source_hash": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_hunk_body": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unterminated_diff": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_source_url": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_retention": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "invalid_source_type": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "source_http_error": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "runtime_closing": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "target_changed": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unknown_patch": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "mixed_endings": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "no_hunks": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "unsafe_file": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "filesystem_error": {
+      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    }
+  },
+  "issues": {
+    "conflict": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nContesto non univoco o modificato. Aggiorna la patch; non ripristinare ciecamente un vecchio file.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "missing_target": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nIl file atteso non esiste. Verifica il percorso e la cartella monitorata.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "source_error": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nVerifica sorgente, hash e raggiungibilità HTTPS. Non vengono riutilizzate vecchie copie della patch.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "invalid_patch": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nUsa un unified diff UTF-8 valido per un solo file, con contesto distintivo.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "security_error": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nIl percorso o il tipo di file non è consentito. Non usare link simbolici o hard link.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "apply_error": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nLa scrittura non è stata completata correttamente. Verifica disco, permessi e backup prima di riprovare.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "durability_unconfirmed": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nLa sostituzione è avvenuta ma fsync non ha confermato la durabilità. Una nuova verifica tenterà la sincronizzazione senza riscrivere il file.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "watch_unavailable": {
+      "title": "Patch da verificare",
+      "description": "{target}\n\nLa cartella monitorata non è disponibile. HAPatchY ricontrolla ogni 60 secondi.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    }
+  }
+}
