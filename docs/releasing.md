@@ -41,7 +41,10 @@ to initialize the workflow.
 
 ## Configure GitHub once
 
-1. Use **`main`** as the default branch and enable Actions.
+1. Use **`main`** as the default branch and enable Actions. In repository
+   **Settings → Releases**, enable **release immutability** before the first
+   publication. The draft/upload/publish sequence supports it, but the current
+   workflow does not check whether that GitHub setting is enabled.
 2. Add the repository Actions secret **`RELEASE_PLEASE_TOKEN`**: a fine-grained
    personal access token for this repository with **Contents**, **Pull requests**
    and **Issues** read/write permissions. Release Please uses it to create PRs,
@@ -61,17 +64,18 @@ See [GitHub's trigger rules](https://docs.github.com/en/actions/how-tos/write-wo
 
 ## Commit messages and version ownership
 
-[.cz.yaml](../.cz.yaml) configures standard Conventional Commits. To write or
-check a message locally, install the same version used by CI in a separate tool
-environment, then run:
+[.cz.yaml](../.cz.yaml) configures standard Conventional Commits. The
+[Dev Container](../.devcontainer/README.md) includes **Python Commitizen 4.19.0**,
+the same version used by the commit-message workflow. Inside it:
 
 ```bash
-python -m venv .venv-cz
-.venv-cz/bin/python -m pip install commitizen==4.19.0
-.venv-cz/bin/cz commit
+.venv/bin/cz commit
 # Or check a message without committing:
-.venv-cz/bin/cz check --message "fix: preserve the patch status"
+.venv/bin/cz check --message "fix: preserve the patch status"
 ```
+
+The editor/CLI remote environment puts `.venv/bin` on PATH, so `cz` is also
+available directly after reopening the container.
 
 CI checks both the PR title and its commits. Title edits rerun the check. On
 `main`, CI checks the committed history; merge commits are exempt, temporary

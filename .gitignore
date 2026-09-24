@@ -4,10 +4,12 @@
 !/.cz.yaml
 !/.github/workflows/commits.yaml
 !/README.md
+!/CONTRIBUTING.md
 !/LICENSE
 !/pyproject.toml
 !/hacs.json
 !/.github/
+!/.github/pull_request_template.md
 !/.github/workflows/
 !/.github/workflows/tests.yaml
 !/tests/

@@ -76,10 +76,13 @@ For help, start with [troubleshooting](docs/troubleshooting.md). When opening a
 [GitHub issue](https://github.com/Ryther/hapatchy/issues), include versions, the
 sensor status and a small sanitized example. Review diagnostics before sharing.
 
-For contributors: [development and architecture](docs/architecture.md),
+For contributors: [contribution rules](CONTRIBUTING.md),
+[development and architecture](docs/architecture.md),
 [Dev Container guide](.devcontainer/README.md), and
 [versioning and releases](docs/releasing.md). The container starts an isolated HA;
-automated tests do not need access to your household installation.
+automated tests do not need access to your household installation. Problems with
+external PRs must be reproduced in this Dev Container before being attributed
+to the contribution.
 
 ## License
 

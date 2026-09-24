@@ -1,161 +1,138 @@
-# Development environment
+# Develop in the Dev Container
 
-This environment starts a disposable development Home Assistant alongside the
-editor. It does not connect to an existing HA installation. Open the repository
-with VS Code Dev Containers and select **Reopen in Container**. Alternatively,
-with a Dev Containers CLI already installed:
+The container supplies the project's development tools and starts its own Home
+Assistant. It does not need or connect to your household HA installation.
+For contribution and review requirements, read [CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Open the environment
+
+On the host, install Docker and VS Code with the Dev Containers extension.
+Open this repository and run **Dev Containers: Reopen in Container**. The initial
+start installs the pinned Python environments before starting HA; wait for the
+post-start readiness check to finish.
+
+Open forwarded port **8123** to complete HA onboarding with disposable credentials.
+Forwarding binds locally. If that host port is occupied, select another local port
+in VS Code's Ports panel. No privileged container, Docker socket, host networking
+or household configuration mount is required.
+
+With a Dev Containers CLI already installed on the host, the equivalent commands
+are:
 
 ```bash
 devcontainer up --workspace-folder .
 devcontainer exec --workspace-folder . bash .devcontainer/scripts/status-ha.sh
 ```
 
-Use VS Code's forwarded port 8123 to open HA. Forwarding binds locally; choose a
-different local port if 8123 is occupied. CLI users must arrange local forwarding
-separately. No host network, privileged container, Docker socket, home directory
-or production configuration mount is required. The workspace user is `vscode`,
-with UID adjustment enabled for bind-mount ownership.
+CLI users must arrange local port forwarding separately. The workspace user is
+`vscode`; Dev Containers adjusts its UID for bind-mount ownership.
 
-## Processes and commands
+**When Dockerfile, tool locks or Dev Container configuration change, use
+Rebuild and Reopen in Container.** Reopening also loads the terminal PATH setting.
+HA state survives a rebuild. Do not repair a stale environment by installing
+packages into the running container's managed virtual environments.
 
-The entrypoint prepares `.venv` (tools and Supervisor) and `.venv-ha` (HA runtime)
-before starting Supervisor. HA autostarts once per container start. Editor
-attaches and repeated bootstrap calls do not start additional HA processes.
-Explicitly stopping HA leaves it stopped until a start command or container
-restart. Crashes remain visible; there is no automatic restart loop.
+## Included tools
 
-Run these commands **inside the container**, from the workspace root:
+| Tool | Purpose |
+| --- | --- |
+| Git, Bash and native build dependencies | Source control, scripts and Python package installation |
+| Python Commitizen **4.19.0** (`cz`) | Guided Conventional Commits and message validation; same version as commit-message CI |
+| pytest **9.0.3** and HA pytest plugin **0.13.363** | Isolated integration/unit tests |
+| Ruff **0.16.8** | Python linting and formatting |
+| mypy **2.3.1** | Type checking |
+| Supervisor **4.3.0** | Manage the separate browser HA process |
+| Python standard library | Version validation and release ZIP/checksum generation |
+
+Commitizen is the Python package from `commitizen-tools`; no npm Commitizen
+installation is needed. Its complete resolved dependencies are pinned in
+[requirements-tools.txt](requirements-tools.txt). Release Please executes as a
+GitHub Action; it does not need a local daemon. The publishing helper uses the
+GitHub CLI on GitHub's runner; local development checks never require publication
+credentials or the `gh` executable.
+
+The editor/Dev Containers CLI remote PATH starts with `.venv/bin`. Run `cz version`
+or `.venv/bin/cz version` to inspect the installed version. Explicit `.venv/bin/`
+commands also work in a plain `docker exec`, which does not apply editor settings.
+
+## Run the checks
+
+From the repository root **inside the container**:
+
+```bash
+.venv/bin/python -m pytest -q
+.venv/bin/ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+.venv/bin/mypy --python-version 3.14
+.venv/bin/python -m unittest discover -s .devcontainer/tests -v
+.venv/bin/cz check --rev-range HEAD
+.venv/bin/python script/build_release.py
+```
+
+Use `.venv/bin/cz commit` to write a commit interactively. Release Please owns
+versions and changelog updates, so **do not run `cz bump`**.
+
+VS Code's **Tasks: Run Task** offers each check, **Checks: all** (sequential) and
+**Commit: guided message**, as well as the HA lifecycle tasks below.
+
+Tests create temporary HA objects/configuration directories. They do not make
+requests to the browser HA or to a household installation. The container runs
+the recent baseline, **HA 2026.9.0 / Python 3.14.7**. CI also tests
+**HA 2025.3.0 / Python 3.13.12** with its separate lock. Passing this container's
+checks is not proof that a minimum-lane-specific failure is fixed.
+
+## Investigate a PR failure
+
+**Reproducing problems with external PRs in this Dev Container is mandatory.**
+Check out the exact PR commit in a disposable checkout, inspect its changes,
+rebuild/reopen, verify bootstrap and rerun the failing command. Record the commit,
+versions and result in the review. This separates dependency/tooling mismatches
+from code defects. The full policy and minimum-lane caveat are in
+[CONTRIBUTING.md](../CONTRIBUTING.md).
+
+## Control development Home Assistant
+
+Run these commands inside the container:
 
 ```bash
 bash .devcontainer/scripts/bootstrap.sh
-bash .devcontainer/scripts/start-ha.sh
-bash .devcontainer/scripts/stop-ha.sh
-bash .devcontainer/scripts/restart-ha.sh
 bash .devcontainer/scripts/status-ha.sh
+bash .devcontainer/scripts/stop-ha.sh
+bash .devcontainer/scripts/start-ha.sh
+bash .devcontainer/scripts/restart-ha.sh
 bash .devcontainer/scripts/wait-ha.sh
 tail -n 100 -f .devcontainer/state/ha/ha.log
-python3 -m unittest discover -s .devcontainer/tests -v
 ```
 
-The same operations are available as VS Code tasks. Status exits nonzero unless
-the managed HA process owns port 8123 and responds over HTTP. Initial dependency
-setup has a bounded 30-minute wait; after Supervisor starts, HTTP readiness has
-a separate 120-second deadline. Download or startup failures remain errors.
-Inspect container logs for bootstrap failures and `ha.log` for HA failures.
-Container shutdown gives Supervisor 40 seconds to drain HA (HA's stop grace is
-30 seconds). Only an owner-protected Unix socket exposes process control.
+HA autostarts once per container start. Editor attaches and repeated bootstrap do
+not start duplicates. An explicitly stopped or crashed HA stays stopped until a
+start command or container restart. Status succeeds only when the managed process
+owns port 8123 and responds over HTTP. Startup preparation has a 30-minute bound;
+HA readiness then has its own 120-second deadline. Failures remain visible in
+container logs and `.devcontainer/state/ha/ha.log`.
 
-## State and dependencies
+## State and dependency ownership
 
-HA configuration lives in `.devcontainer/state/ha`. Bootstrap creates
-`configuration.yaml` only when absent. Rebuilds preserve the entire state
-directory, including onboarding, credentials and backups. Never commit it or
-copy household credentials into fixtures. Remove state only as an intentional
-manual reset after preserving anything you need.
+- `.venv` contains development/test tools and Supervisor.
+- `.venv-ha` contains the browser HA runtime, started with `--skip-pip`.
+- `.devcontainer/state/ha` contains configuration, onboarding and backups. Bootstrap
+  creates `configuration.yaml` only if absent and links the integration source
+  into `custom_components`. Conflicting files/links are preserved and rejected.
+- A cold start rebuilds a venv when its lock, interpreter, platform, architecture
+  or image identity changes. It verifies installed pins and `pip check` before
+  writing a success marker. A live bootstrap checks and refuses changed inputs;
+  it never reinstalls packages underneath HA or Supervisor.
 
-When `custom_components/hapatchy` exists, cold bootstrap links it into this HA
-configuration. A conflicting path is rejected and preserved. Restart the
-container after first creating the source tree. Ordinary Python integration
-changes generally require an HA restart.
+Both locks include complete resolved dependency pins. To add a dependency, resolve
+it separately, preserve existing pins unless an upgrade is intended, update the
+owned lock and rebuild/reopen. Never install the minimum CI lock over these recent
+environments. Python integration changes generally need an HA restart.
 
-Both requirements files contain complete resolved pins. Markers include their
-SHA-256, Python version/implementation/cache tag, platform, architecture and image
-identity. Changed inputs recreate only the affected development venv at cold
-bootstrap. Existing HA configuration is preserved. Missing/incomplete markers
-never certify successful setup. Package mismatches fail visibly.
+The base Python image is pinned by digest; OS packages are installed from Debian
+repositories during build. This is not a fully hermetic OS build. HA stops with
+its normal grace period when the container stops. An owner-protected Unix socket
+controls Supervisor; there is no public process-control endpoint.
 
-Do not run `pip install` into either environment while Supervisor is running.
-Resolve dependency changes separately, update the owned requirements file and
-restart the container. An explicit bootstrap during service operation verifies
-the current installation and refuses changed inputs. Concurrent bootstrap calls
-serialize. Changes to the Dockerfile require a container rebuild. The base image
-is digest-pinned; Debian packages are installed from its configured repositories
-at build time, so this is not a fully hermetic OS package build.
-
-## Baseline and handoff
-
-The initial baseline uses Linux/amd64 and
-`python:3.14.7-slim-bookworm@sha256:82bc3c539b8813ada9d68c63b40158fa002f7f33de9bf3312a3dfdc0620dff56`.
-The image records the Dockerfile SHA-256 and base reference in
-`/usr/local/share/hapatchy-image.json`. Python is CPython 3.14.7 (`cpython-314`),
-HA 2026.9.0, frontend 20260826.4, Supervisor 4.3.0, pytest 9.1.1,
-Ruff 0.16.8 and mypy 2.3.1. These are development pins, not product support claims.
-
-Authored configuration is in `Dockerfile`, `devcontainer.json`,
-`configuration.yaml`, `supervisord.conf`, `requirements-ha.txt`,
-`requirements-tools.txt`, `scripts/`, `tests/` and `../.vscode/tasks.json`.
-Technical acceptance logs and local UI captures remain in ignored planning
-storage. The integration phase owns its independent Python 3.13 test environment
-and may amend the recent tools lock before restarting the container. Bootstrap
-never installs a minimum-lane test lock into these recent environments.
-
-Environment checks are separate from integration tests. A successful container
-build or onboarding screen does not validate patch behavior or HACS installation.
-
-### Environment acceptance — 2026-09-23
-
-The initial Linux/amd64 build and CLI attach passed as a non-root user. Both
-resolved environments passed `pip check`. Automatic startup displayed the real
-HA onboarding screen (a loopback-only acceptance mapping used local port 18123).
-Stop/start/restart, duplicate start, crash visibility/manual recovery, graceful
-container stop, replacement of the container and preserved state all passed.
-Concurrent and repeated bootstrap preserved configuration; changed live pins
-were rejected. An unavailable package with networking disabled failed without a
-success marker. Thirteen environment tests cover source links, preservation,
-PID reuse and lock/interpreter/platform/image invalidation. Whitelist checks and
-README links passed. These cover the environment gates DC0–DC4/DC-T01–DC-T15;
-no product behavior or Python 3.13 support is certified by this receipt.
-
-Initial lock SHA-256 values (later tool-lock changes require fresh checks):
-
-- HA: `f0ed2f0257b23eacf0067e9f4be2cd8f8ea35e4f7f3712a8b84ddbf5096f4f3f`
-- Tools: `ad4096960fac060a91f4dbf3c760c89620324ef67d537e851fd931ad5adb4a80`
-
-Reproduce the source-level environment checks with the unittest command above,
-then exercise the lifecycle commands in a disposable container. Detailed build,
-resolver, lifecycle, fault-injection and painted UI evidence is retained locally;
-it is intentionally excluded from the public source tree.
-
-### Integration test environment amendment
-
-The recent tools environment now includes HA 2026.9.0 and
-`pytest-homeassistant-custom-component==0.13.363`; its compatible pytest is 9.0.3.
-At P0 the independent browser runtime remained unchanged (see the subsequent UI amendment below). The amended lock was resolved,
-installed at cold container restart and verified with `pip check` and API imports.
-The separate minimum test lock uses HA 2025.3.0/plugin 0.13.221 on Python 3.13.12.
-Run product tests with `.venv/bin/python -m pytest -q`; they create temporary HA
-objects and do not use the browser instance. This preliminary dependency check
-is not a completed product compatibility certification.
-
-### Authenticated UI runtime amendment
-
-Product acceptance also exercises the authenticated frontend and native service
-catalogue. In HA2026.9.0, serializing that catalogue imports base entity domains
-(including conversation, camera/stream and TTS) even in this minimal configuration.
-The HA lock therefore includes their pinned import dependencies and the image
-includes `libturbojpeg0` and `ffmpeg`. Additional pins cover HA's base infrared/radio-frequency domains and the Supervisor client imported by
-analytics after onboarding. No household devices are configured.
-Testing only the unauthenticated onboarding page did not expose these imports.
-
-The product requires patch-ng1.19.1 and Watchdog6.0.0. These are installed into
-the separate HA runtime as well as the test environment. Every dependency/image
-amendment uses cold bootstrap; state and onboarding are preserved. The runtime
-still uses `--skip-pip`: no live opportunistic installation is used to hide gaps.
-The final lock/image identities are:
-
-Run `.venv/bin/mypy --python-version 3.14` for the recent environment; mypy must
-parse HA's own 3.14 source syntax. The minimum lane and Ruff continue to target
-Python3.13 and run the same integration code. This does not raise the product
-minimum to Python3.14.
-
-- `requirements-ha.txt` SHA-256: `7c6e1f4d72cb8eb3ba70d263de84730eef756b05821a209a9a0ae286e37ab14e`
-- `requirements-tools.txt` SHA-256: `60abfa5ea7620fe58eb32ca5c04d77ce2527aff22cee8cecf8d55040d6401f56`
-- `Dockerfile` SHA-256: `b3c521e6e5ced73824a3a88adfddb206de3f97b29702279a7508d82ad8b6ba62`
-
-Final local acceptance (2026-09-23): the amended image rebuilt successfully,
-non-root cold bootstrap installed both full locks and `pip check` passed in each.
-A repeat bootstrap verified the environments without restarting managed services.
-HA started without errors, retained onboarding/configuration and the example
-patch, served the authenticated service catalogue and native options, and rendered
-the integration page in Chromium. The README screenshot is from this isolated
-manual development installation. HACS installation/release acceptance is pending.
+State, virtual environments, caches and `dist/` stay ignored. Back up any disposable
+state you want to retain before intentionally resetting it. A successful container
+startup does not certify HACS installation; actual product UI evidence and its
+limits are recorded in [verification.md](../docs/verification.md).

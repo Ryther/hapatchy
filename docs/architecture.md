@@ -40,6 +40,9 @@ it. See the release guide for the manual checks that complement CI.
 
 ## Working on the project
 
+Follow [the contribution rules](../CONTRIBUTING.md), including mandatory Dev
+Container reproduction when investigating problems with an external PR.
+
 Start with the [Dev Container guide](../.devcontainer/README.md). Opening the
 container starts its own HA on forwarded port 8123; it does not need your existing
 installation. The browser runtime and test environment use separate virtual
