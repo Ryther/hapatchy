@@ -12,6 +12,35 @@ on:
 permissions:
   contents: read
 jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - name: Validate local HACS metadata
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+
+          hacs = json.loads(Path("hacs.json").read_text(encoding="utf-8"))
+          manifest = json.loads(
+              Path("custom_components/hapatchy/manifest.json").read_text(encoding="utf-8")
+          )
+          if not isinstance(hacs, dict):
+              raise SystemExit("hacs.json must contain an object")
+          if not isinstance(hacs.get("name"), str) or not hacs["name"].strip():
+              raise SystemExit("hacs.json must contain a nonempty name")
+          minimum = hacs.get("homeassistant")
+          if not isinstance(minimum, str) or not minimum.strip():
+              raise SystemExit("hacs.json must contain a Home Assistant minimum version")
+          if not isinstance(manifest, dict) or manifest.get("domain") != "hapatchy":
+              raise SystemExit("integration manifest must declare the hapatchy domain")
+          if not isinstance(manifest.get("version"), str) or not manifest["version"].strip():
+              raise SystemExit("integration manifest must contain a version")
+          PY
   hassfest:
     runs-on: ubuntu-24.04
     steps:
@@ -24,6 +53,7 @@ jobs:
           docker run --rm -v "$GITHUB_WORKSPACE:/github/workspace:ro"
           ghcr.io/home-assistant/hassfest@sha256:66b55a8ce14cdcf0c200dd4dab1f3228ac8d3f6e0404ec710a0d8a79b296eba4
   hacs:
+    if: ${{ github.event.repository.private == false }}
     runs-on: ubuntu-24.04
     steps:
       - name: Validate published repository with HACS
