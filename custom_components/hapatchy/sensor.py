@@ -34,6 +34,10 @@ class PatchStatusSensor(SensorEntity):
     def extra_state_attributes(self):
         state = asdict(self.runtime.states[self.patch_id])
         state.pop("status")
+        if self.runtime.states[self.patch_id].status == Status.SECURITY_ERROR:
+            state.pop("target_sha256", None)
+            state.pop("patch_sha256", None)
+            return state
         state["target_path"] = self.runtime.definitions[self.patch_id].target_path
         state["patch_id"] = self.patch_id
         return state

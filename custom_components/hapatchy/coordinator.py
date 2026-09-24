@@ -19,6 +19,7 @@ from .reconciler import Reconciler, ReconcileResult
 from .repairs import IssueManager
 from .state_store import StateStore
 from .watcher import PatchWatcher
+from .yaml_policy import policy_for_hass
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,9 +42,11 @@ class PatchManagerRuntime:
             key: PatchRuntimeState(status=Status.UNKNOWN if definition.enabled else Status.DISABLED)
             for key, definition in self.definitions.items()
         }
+        self._suppress_reapply: set[str] = set()
         self.store = StateStore(hass, entry.entry_id)
         self.issues = IssueManager(hass)
-        self.reconciler = Reconciler(Path(hass.config.config_dir))
+        self.path_policy = policy_for_hass(hass)
+        self.reconciler = Reconciler(Path(hass.config.config_dir), self.path_policy)
         self.source = PatchSourceClient(
             Path(hass.config.config_dir), async_get_clientsession(hass), self.run_io
         )
@@ -68,10 +71,17 @@ class PatchManagerRuntime:
 
     async def async_load(self):
         await self.store.load(self.states)
+        self._suppress_reapply.update(
+            key for key, state in self.states.items()
+            if state.last_error == "revert_metadata_unavailable"
+        )
         restart = self.hass.data[DOMAIN]["restart_required"]
         for key, state in self.states.items():
             state.restart_may_be_required = key in restart
-            if state.last_error == "durability_unconfirmed" and self.definitions[key].enabled:
+            if state.last_error in (
+                "durability_unconfirmed",
+                "revert_metadata_unavailable",
+            ) and self.definitions[key].enabled:
                 state.status = Status.APPLY_ERROR
                 self.issues.update(self.definitions[key], state)
 
@@ -82,7 +92,7 @@ class PatchManagerRuntime:
                 self.schedule(key)
 
     def schedule(self, patch_id: str):
-        if self.closing:
+        if self.closing or patch_id in self._suppress_reapply:
             return
         task = self.hass.async_create_background_task(
             self.async_action(patch_id, "reconcile"), f"{DOMAIN} reconcile"
@@ -122,15 +132,20 @@ class PatchManagerRuntime:
         )
 
     def _disable_auto_apply(self, patch_id: str):
-        definition = replace(self.definitions[patch_id], auto_apply=False)
+        previous = self.definitions[patch_id]
+        definition = replace(previous, auto_apply=False)
         self.definitions[patch_id] = definition
         data = asdict(definition)
         data.pop("patch_id")
         # Native config persistence, not an ephemeral runtime flag. The update
         # listener sees this synchronized definition and does not reload mid-action.
-        self.hass.config_entries.async_update_subentry(
-            self.entry, self.entry.subentries[patch_id], data=data
-        )
+        try:
+            self.hass.config_entries.async_update_subentry(
+                self.entry, self.entry.subentries[patch_id], data=data
+            )
+        except Exception:
+            self.definitions[patch_id] = previous
+            raise
 
     def _validate_current(self, patch_id: str):
         if patch_id not in self.definitions:
@@ -155,6 +170,8 @@ class PatchManagerRuntime:
         if self.closing:
             raise PatchError("runtime_closing")
         self._validate_current(patch_id)
+        if action == "reconcile" and patch_id in self._suppress_reapply:
+            raise PatchError("revert_metadata_unavailable", Status.APPLY_ERROR)
         task = self.hass.async_create_background_task(
             self._execute_action(patch_id, action), f"{DOMAIN} admitted action"
         )
@@ -171,13 +188,12 @@ class PatchManagerRuntime:
                 # Configuration can change while admitted work waits its turn.
                 self._validate_current(patch_id)
                 self._busy.add(patch_id)
-                if action == "revert":
-                    self._disable_auto_apply(patch_id)
                 definition, state = self.definitions[patch_id], self.states[patch_id]
                 if not definition.enabled:
                     raise PatchError("disabled_patch")
                 pending = state.last_error == "durability_unconfirmed"
                 try:
+                    await self.run_io(partial(self.path_policy.check_definition, definition))
                     source = await self.source.load(definition)
                     result = await self.run_io(
                         partial(
@@ -187,14 +203,33 @@ class PatchManagerRuntime:
                 except PatchError as error:
                     status, reason = (
                         (Status.APPLY_ERROR, "durability_unconfirmed")
-                        if pending
+                        if pending and error.status != Status.SECURITY_ERROR
                         else (error.status, error.reason)
                     )
                     result = ReconcileResult(
                         PatchInspection(status, reason), "", service_error=reason
                     )
+                if action == "revert" and result.inspection.status != Status.SECURITY_ERROR:
+                    try:
+                        self._disable_auto_apply(patch_id)
+                    except (OSError, RuntimeError, ValueError):
+                        self._suppress_reapply.add(patch_id)
+                        result = ReconcileResult(
+                            PatchInspection(Status.APPLY_ERROR, "revert_metadata_unavailable"),
+                            result.source_sha256,
+                            result.target_sha256,
+                            result.mutated,
+                            "revert_metadata_unavailable",
+                        )
+                    else:
+                        self._suppress_reapply.discard(patch_id)
                 state.status = result.inspection.status
-                state.last_error = result.inspection.reason
+                # Policy denial must not erase an outstanding fsync retry.
+                state.last_error = (
+                    "durability_unconfirmed"
+                    if pending and result.inspection.status == Status.SECURITY_ERROR
+                    else result.inspection.reason
+                )
                 state.last_checked_at = datetime.now(UTC).isoformat()
                 state.target_sha256 = result.target_sha256
                 state.patch_sha256 = result.source_sha256 or None

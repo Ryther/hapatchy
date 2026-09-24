@@ -3,10 +3,13 @@
 import asyncio
 import threading
 from pathlib import Path
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from tests.policy_helpers import grant_directories
 
 DATA = {
     "name": "Example",
@@ -24,6 +27,7 @@ async def setup(hass, tmp_path, changes=None):
         "Runtime lifecycle is missing"
     )
     hass.config.config_dir = str(tmp_path)
+    grant_directories(tmp_path, hass=hass)
     (tmp_path / "scripts").mkdir(exist_ok=True)
     (tmp_path / "patches").mkdir(exist_ok=True)
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
@@ -43,7 +47,8 @@ async def setup(hass, tmp_path, changes=None):
         ],
     )
     entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
+    with patch("custom_components.hapatchy.async_setup", new=AsyncMock(return_value=True)):
+        assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     return entry, entry.runtime_data, next(iter(entry.subentries))
 
@@ -237,6 +242,7 @@ async def test_durability_flag_survives_reload(hass, tmp_path, monkeypatch, hass
 async def test_corrupt_metadata_rebuild_preserves_backups(hass, tmp_path, hass_storage, caplog):
     assert Path("custom_components/hapatchy/coordinator.py").exists()
     hass.config.config_dir = str(tmp_path)
+    grant_directories(tmp_path, hass=hass)
     (tmp_path / "scripts").mkdir()
     (tmp_path / "patches").mkdir()
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
@@ -261,7 +267,8 @@ async def test_corrupt_metadata_rebuild_preserves_backups(hass, tmp_path, hass_s
     entry.add_to_hass(hass)
     key = f"hapatchy.{entry.entry_id}"
     hass_storage[key] = {"version": 1, "minor_version": 1, "key": key, "data": "do-not-log-secret"}
-    assert await hass.config_entries.async_setup(entry.entry_id)
+    with patch("custom_components.hapatchy.async_setup", new=AsyncMock(return_value=True)):
+        assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done(wait_background_tasks=True)
     pid = next(iter(entry.subentries))
     assert entry.runtime_data.states[pid].status == "applied"
@@ -278,6 +285,7 @@ async def test_failed_setup_releases_runtime_for_retry(hass, tmp_path, monkeypat
     from custom_components.hapatchy.coordinator import PatchManagerRuntime
 
     hass.config.config_dir = str(tmp_path)
+    grant_directories(tmp_path, hass=hass)
     entry = MockConfigEntry(domain="hapatchy", version=1, data={})
     entry.add_to_hass(hass)
     started = []

@@ -15,8 +15,9 @@ from .models import PatchError, relative_parts
 from .safe_io import GuardedDirectory
 
 
-def _root_identity(config_dir: Path, root: str):
+def _root_identity(config_dir: Path, root: str, policy):
     try:
+        policy.check_path(root, directory=True)
         with GuardedDirectory(config_dir, relative_parts(root)) as directory:
             info = os.fstat(directory.fd)
             return info.st_dev, info.st_ino
@@ -76,7 +77,9 @@ class PatchWatcher:
             if self._closed:
                 return
             for root in sorted(self.roots):
-                identity = await self.runtime.run_io(partial(_root_identity, self.config_dir, root))
+                identity = await self.runtime.run_io(
+                    partial(_root_identity, self.config_dir, root, self.runtime.path_policy)
+                )
                 previous = self._watches.get(root)
                 if previous is not None and previous[1] == identity:
                     continue
@@ -139,7 +142,7 @@ class PatchWatcher:
                 self._debounce(key)
 
     def _debounce(self, patch_id: str):
-        if self._closed:
+        if self._closed or patch_id in self.runtime._suppress_reapply:
             return
         if handle := self._pending.pop(patch_id, None):
             handle.cancel()

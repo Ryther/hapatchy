@@ -23,6 +23,7 @@ class AtomicFileWriter:
         output: bytes,
         *,
         before_replace: Callable[[], object] | None = None,
+        before_commit: Callable[[], None] | None = None,
     ) -> None:
         """Caller serializes mutations and keeps the executor transaction tracked."""
         name = f".hapatchy-{uuid4().hex}.tmp"
@@ -54,6 +55,8 @@ class AtomicFileWriter:
                 except (OSError, PatchError):
                     raise CommitError("backup_failed") from None
             target.verify_snapshot(snapshot)
+            if before_commit is not None:
+                before_commit()
             # This check and replace are not compare-and-swap. External updaters
             # must be quiescent during this final interval; see user documentation.
             os.replace(name, target.name, src_dir_fd=target.parent_fd, dst_dir_fd=target.parent_fd)

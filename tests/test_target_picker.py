@@ -2,11 +2,13 @@
 
 import os
 
+from tests.policy_helpers import grant_directories
+
 
 def candidates(root):
     from custom_components.hapatchy.target_picker import list_targets
 
-    return list_targets(root)
+    return list_targets(root, grant_directories(root, ("scripts", "custom_components")))
 
 
 def test_lists_targets_but_not_protected_or_linked_paths(tmp_path):

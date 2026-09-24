@@ -7,6 +7,8 @@ import pytest
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from tests.policy_helpers import grant_directories
+
 DOMAIN = "hapatchy"
 DATA = {
     "name": "Example",
@@ -39,6 +41,7 @@ def require_flow():
 @pytest.fixture
 def files(hass, tmp_path):
     hass.config.config_dir = str(tmp_path)
+    grant_directories(tmp_path, hass=hass)
     (tmp_path / "scripts").mkdir()
     (tmp_path / "patches").mkdir()
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
@@ -386,7 +389,7 @@ async def test_upload_is_reviewed_before_persisting(hass, files):
     result = await configure(hass, result["flow_id"], {"file": file_id})
     assert result["step_id"] == "editor"
     assert result["data_schema"]({})["patch_text"] == DIFF.decode()
-    assert not entry.subentries and not (files / ".hapatchy").exists()
+    assert not entry.subentries and not (files / ".hapatchy/patches").exists()
     assert not (uploads / file_id).exists()
     result = await configure(hass, result["flow_id"], {"patch_text": DIFF.decode()})
     result = await configure(hass, result["flow_id"], {"auto_apply": False})

@@ -5,6 +5,7 @@ import stat
 from pathlib import Path
 
 from .models import PatchError, relative_parts
+from .path_policy import PathPolicy
 from .safe_io import GuardedDirectory
 
 MAX_SUGGESTIONS = 1000
@@ -12,7 +13,8 @@ MAX_ENTRIES = 10000
 MAX_DEPTH = 16
 
 
-def list_targets(root: Path) -> list[str]:
+def list_targets(root: Path, policy: PathPolicy) -> list[str]:
+    grants = policy.load_directories()
     results: list[str] = []
     remaining = MAX_ENTRIES
 
@@ -38,11 +40,17 @@ def list_targets(root: Path) -> list[str]:
                         if stat.S_ISDIR(info.st_mode):
                             visit(path)
                         elif parts and stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
-                            results.append("/".join(path))
+                            candidate = "/".join(path)
+                            try:
+                                policy.check_path(candidate)
+                            except PatchError:
+                                continue
+                            results.append(candidate)
                 directory.verify()
         except (OSError, PatchError):
             # A disappearing/inaccessible directory is not a reason to block manual input.
             return
 
-    visit(())
-    return sorted(results)
+    for grant in grants:
+        visit(tuple(grant.split("/")))
+    return sorted(set(results))

@@ -3,6 +3,8 @@
 from dataclasses import asdict
 from urllib.parse import urlsplit
 
+from .models import Status
+
 
 async def async_get_config_entry_diagnostics(hass, entry):
     runtime = getattr(entry, "runtime_data", None)
@@ -10,6 +12,21 @@ async def async_get_config_entry_diagnostics(hass, entry):
         return {"entry_id": entry.entry_id, "loaded": False}
     patches = []
     for key, definition in runtime.definitions.items():
+        if runtime.states[key].status == Status.SECURITY_ERROR:
+            state = asdict(runtime.states[key])
+            state.pop("target_sha256", None)
+            state.pop("patch_sha256", None)
+            patches.append(
+                {
+                    "patch_id": key,
+                    "definition": {
+                        "source_type": definition.source_type,
+                        "enabled": definition.enabled,
+                    },
+                    "state": state,
+                }
+            )
+            continue
         patches.append(
             {
                 "patch_id": key,

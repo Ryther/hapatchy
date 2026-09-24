@@ -17,7 +17,7 @@
       "step": {
         "user": {
           "title": "Configura patch",
-          "description": "Scegli il file da modificare, poi come fornire la patch. I suggerimenti escludono file protetti, nascosti e collegamenti. Puoi anche digitare un percorso relativo.",
+          "description": "Seleziona un file autorizzato da entrambi gli elenchi di cartelle. Configura allowlist_external_dirs di Home Assistant e hapatchy.allowed_directories in {policy_path}, poi riavvia Home Assistant. HAPatchY non modifica queste autorizzazioni. Puoi digitare un percorso se non compare nei suggerimenti.",
           "data": {
             "name": "Nome",
             "target_path": "File da modificare",
@@ -141,7 +141,15 @@
         "upload_unavailable": "Il caricamento non è disponibile. Seleziona di nuovo il file.",
         "revert_before_edit": "Questa patch è applicata. Annulla il modulo, esegui Revert e poi riconfigurala.",
         "configuration_changed": "La configurazione è cambiata. Annulla e riapri il modulo.",
-        "ambiguous_direction": "Il file contiene sia il contesto originale sia quello modificato. Usa un contesto univoco."
+        "ambiguous_direction": "Il file contiene sia il contesto originale sia quello modificato. Usa un contesto univoco.",
+        "hapatchy_path_not_allowed": "Il file o la cartella da monitorare non è in hapatchy.allowed_directories di configuration.yaml. Chiedi al gestore di aggiornarlo e riavviare Home Assistant.",
+        "ha_path_not_allowed": "Il file o la cartella da monitorare non è autorizzato da allowlist_external_dirs di Home Assistant. Aggiorna la configurazione e riavvia HA.",
+        "configuration_source_unavailable": "Impossibile leggere in sicurezza la configurazione di Home Assistant. Controlla configuration.yaml e i file inclusi, poi riavvia Home Assistant.",
+        "configuration_source_changed": "I file di configurazione di Home Assistant sono cambiati dopo l’avvio. Riavvia Home Assistant per caricare e verificare le autorizzazioni correnti.",
+        "configuration_mismatch": "La configurazione caricata da Home Assistant non corrisponde alle autorizzazioni YAML. Controlla packages e inclusioni, poi riavvia Home Assistant.",
+        "hapatchy_yaml_invalid": "La sezione hapatchy in configuration.yaml non è valida. Usa allowed_directories con un elenco di cartelle relative.",
+        "revert_metadata_unavailable": "Il file è stato ripristinato, ma Home Assistant non ha salvato la disattivazione della riapplicazione automatica. La riapplicazione automatica è sospesa; controlla lo storage e riprova Revert.",
+        "hapatchy_package_forbidden": "Le autorizzazioni delle cartelle nei packages di Home Assistant non sono accettate. Metti hapatchy.allowed_directories nella sezione principale di configuration.yaml e riavvia Home Assistant."
       },
       "abort": {
         "reconfigure_successful": "Configurazione aggiornata."
@@ -178,7 +186,7 @@
           "missing_target": "File mancante",
           "source_error": "Errore sorgente",
           "invalid_patch": "Patch non valida",
-          "security_error": "Percorso non sicuro",
+          "security_error": "Accesso negato",
           "apply_error": "Errore di scrittura"
         }
       }
@@ -400,6 +408,30 @@
     },
     "revert_before_edit": {
       "message": "Questa patch è applicata. Annulla il modulo, esegui Revert e poi riconfigurala."
+    },
+    "hapatchy_path_not_allowed": {
+      "message": "Il file o la cartella da monitorare non è in hapatchy.allowed_directories di configuration.yaml. Chiedi al gestore di aggiornarlo e riavviare Home Assistant."
+    },
+    "ha_path_not_allowed": {
+      "message": "Il file o la cartella da monitorare non è autorizzato da allowlist_external_dirs di Home Assistant. Aggiorna la configurazione e riavvia HA."
+    },
+    "configuration_source_unavailable": {
+      "message": "Impossibile leggere in sicurezza la configurazione di Home Assistant. Controlla configuration.yaml e i file inclusi, poi riavvia Home Assistant."
+    },
+    "configuration_source_changed": {
+      "message": "I file di configurazione di Home Assistant sono cambiati dopo l’avvio. Riavvia Home Assistant per caricare e verificare le autorizzazioni correnti."
+    },
+    "configuration_mismatch": {
+      "message": "La configurazione caricata da Home Assistant non corrisponde alle autorizzazioni YAML. Controlla packages e inclusioni, poi riavvia Home Assistant."
+    },
+    "hapatchy_yaml_invalid": {
+      "message": "La sezione hapatchy in configuration.yaml non è valida. Usa allowed_directories con un elenco di cartelle relative."
+    },
+    "revert_metadata_unavailable": {
+      "message": "Il file è stato ripristinato, ma Home Assistant non ha salvato la disattivazione della riapplicazione automatica. La riapplicazione automatica è sospesa; controlla lo storage e riprova Revert."
+    },
+    "hapatchy_package_forbidden": {
+      "message": "Le autorizzazioni delle cartelle nei packages di Home Assistant non sono accettate. Metti hapatchy.allowed_directories nella sezione principale di configuration.yaml e riavvia Home Assistant."
     }
   },
   "issues": {
@@ -421,7 +453,7 @@
     },
     "security_error": {
       "title": "Patch da verificare",
-      "description": "{target}\n\nIl percorso o il tipo di file non è consentito. Non usare link simbolici o hard link.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+      "description": "La patch è stata bloccata da un controllo di sicurezza. Verifica configuration.yaml, entrambi gli elenchi di cartelle e i percorsi protetti; riavvia Home Assistant dopo aver modificato lo YAML. Qui non vengono mostrati contenuti o hash del file."
     },
     "apply_error": {
       "title": "Patch da verificare",

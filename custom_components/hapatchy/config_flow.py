@@ -17,6 +17,7 @@ from .models import PatchDefinition, PatchError, Status
 from .source_upload import read_upload
 from .target_picker import list_targets
 from .validation import inspect_target, validate_definition
+from .yaml_policy import policy_for_hass
 
 
 class HAPatchYConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -96,6 +97,10 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
     def _root(self):
         return Path(self.hass.config.config_dir)
 
+    @property
+    def _policy(self):
+        return policy_for_hass(self.hass)
+
     async def async_step_reconfigure(self, user_input=None):
         if not self._data:
             subentry = self._get_reconfigure_subentry()
@@ -124,7 +129,10 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                         else self._data["target_path"] + ".patch-source"
                     )
                 )
-                PatchDefinition.from_mapping("pending", self._data | {"source": placeholder})
+                definition = PatchDefinition.from_mapping(
+                    "pending", self._data | {"source": placeholder}
+                )
+                await self.hass.async_add_executor_job(self._policy.check_definition, definition)
             except PatchError as error:
                 errors["base"] = error.reason
             else:
@@ -133,8 +141,13 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                 if method == "managed":
                     return await self.async_step_editor()
                 return await self.async_step_source()
-        if self._targets is None:
-            self._targets = await self.hass.async_add_executor_job(list_targets, self._root)
+        try:
+            self._targets = await self.hass.async_add_executor_job(
+                list_targets, self._root, self._policy
+            )
+        except PatchError as error:
+            self._targets = []
+            errors.setdefault("base", error.reason)
         fields = {
             vol.Required("name", default=self._data.get("name", "")): str,
             vol.Required(
@@ -156,7 +169,12 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             vol.Optional("watch_root", default=self._data.get("watch_root", "")): str,
             vol.Optional("watch_pattern", default=self._data.get("watch_pattern", "")): str,
         }
-        return self.async_show_form(step_id="user", data_schema=vol.Schema(fields), errors=errors)
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema(fields),
+            errors=errors,
+            description_placeholders={"policy_path": "configuration.yaml"},
+        )
 
     async def async_step_source(self, user_input=None):
         errors = {}
@@ -231,7 +249,7 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                 self._data["source"] = hashlib.sha256(self._draft).hexdigest()
                 definition = PatchDefinition.from_mapping("pending", self._data)
                 await self.hass.async_add_executor_job(
-                    inspect_target, self._root, definition, self._draft
+                    inspect_target, self._root, definition, self._draft, self._policy
                 )
                 await self._check_source_change(definition)
             except PatchError as error:
@@ -272,7 +290,7 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                     ):
                         raise PatchError("source_hash_mismatch")
                     result = await self.hass.async_add_executor_job(
-                        inspect_target, self._root, definition, self._draft
+                        inspect_target, self._root, definition, self._draft, self._policy
                     )
                 else:
                     result = await validate_definition(self.hass, definition)
@@ -345,11 +363,13 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                 ):
                     raise PatchError("duplicate_target")
                 await self._check_source_change(definition)
+                await self.hass.async_add_executor_job(self._policy.check_definition, definition)
                 if definition.source_type == "managed":
                     assert self._draft is not None
                     self._data["source"] = await self.hass.async_add_executor_job(
                         ManagedPatchStore(self._root).save, self._draft
                     )
+                await self.hass.async_add_executor_job(self._policy.check_definition, definition)
                 if runtime and runtime.closing:
                     raise PatchError("runtime_reloading")
                 return self._commit()

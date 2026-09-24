@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from custom_components.hapatchy.models import PatchDefinition
+from tests.policy_helpers import grant_directories
 
 DIFF = b"--- a/scripts/a.py\n+++ b/scripts/a.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n"
 
@@ -47,7 +48,9 @@ def definition(**changes):
     ],
 )
 def test_action_policy(tree, action, auto, expected, mutated):
-    result = api()(tree).run(definition(auto_apply=auto), DIFF, action, 10, False)
+    result = api()(tree, grant_directories(tree)).run(
+        definition(auto_apply=auto), DIFF, action, 10, False
+    )
     assert result.inspection.status == expected
     assert result.mutated == mutated
     assert (tree / "scripts/a.py").read_bytes() == (
@@ -57,7 +60,7 @@ def test_action_policy(tree, action, auto, expected, mutated):
 
 
 def test_reconcile_is_idempotent_and_revert_always_backs_up(tree):
-    reconciler = api()(tree)
+    reconciler = api()(tree, grant_directories(tree))
     reconciler.run(definition(backup_before_apply=False), DIFF, "apply", 10, False)
     again = reconciler.run(definition(), DIFF, "reconcile", 10, False)
     assert again.inspection.status == "applied" and not again.mutated
@@ -70,15 +73,15 @@ def test_reconcile_is_idempotent_and_revert_always_backs_up(tree):
 
 
 def test_revert_not_applied_is_no_write_service_failure(tree):
-    result = api()(tree).run(definition(), DIFF, "revert", 10, False)
+    result = api()(tree, grant_directories(tree)).run(definition(), DIFF, "revert", 10, False)
     assert result.service_error == "not_applied"
     assert result.inspection.status == "applicable"
     assert not result.mutated
-    assert not (tree / ".hapatchy").exists()
+    assert not (tree / ".hapatchy/backups").exists()
 
 
 def test_durability_failure_remains_error_until_sync_succeeds(tree, monkeypatch):
-    reconciler = api()(tree)
+    reconciler = api()(tree, grant_directories(tree))
     real = os.fsync
 
     def fail_dir(fd):
@@ -103,22 +106,22 @@ def test_durability_failure_remains_error_until_sync_succeeds(tree, monkeypatch)
 
 def test_conflict_never_creates_backup_or_changes_target(tree):
     (tree / "scripts/a.py").write_bytes(b"context\nupstream changed\n")
-    result = api()(tree).run(definition(), DIFF, "apply", 10, False)
+    result = api()(tree, grant_directories(tree)).run(definition(), DIFF, "apply", 10, False)
     assert result.inspection.status == "conflict"
     assert result.service_error == "context_not_unique"
-    assert not (tree / ".hapatchy").exists()
+    assert not (tree / ".hapatchy/backups").exists()
     assert (tree / "scripts/a.py").read_bytes() == b"context\nupstream changed\n"
 
 
 def test_missing_target_is_visible(tree):
     (tree / "scripts/a.py").unlink()
-    result = api()(tree).run(definition(), DIFF, "reconcile", 10, False)
+    result = api()(tree, grant_directories(tree)).run(definition(), DIFF, "reconcile", 10, False)
     assert result.inspection.status == "missing_target"
     assert not result.mutated
 
 
 def test_pending_durability_is_not_cleared_by_missing_target(tree):
     (tree / "scripts/a.py").unlink()
-    result = api()(tree).run(definition(), DIFF, "reconcile", 10, True)
+    result = api()(tree, grant_directories(tree)).run(definition(), DIFF, "reconcile", 10, True)
     assert result.inspection.status == "apply_error"
     assert result.inspection.reason == "durability_unconfirmed"

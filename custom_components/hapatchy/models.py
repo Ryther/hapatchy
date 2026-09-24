@@ -48,7 +48,8 @@ def relative_parts(path: str, *, internal: bool = False) -> tuple[str, ...]:
     ):
         raise PatchError("unsafe_path", Status.SECURITY_ERROR)
     if not internal and (
-        parts[0] in (".storage", ".hapatchy") or parts[:2] == ("custom_components", "hapatchy")
+        parts[0] in (".storage", ".hapatchy")
+        or parts[:2] == ("custom_components", "hapatchy")
     ):
         raise PatchError("protected_path", Status.SECURITY_ERROR)
     return parts

@@ -1,6 +1,47 @@
 """HAPatchY integration."""
 
+from pathlib import Path
+
+import voluptuous as vol
+
 from .const import DOMAIN
+
+
+def _grant_list(value):
+    """Keep HA's YAML schema strict without loading files on the event loop."""
+    from .yaml_policy import validate_hapatchy_directories
+
+    try:
+        return list(validate_hapatchy_directories({"allowed_directories": value}))
+    except ValueError as error:
+        raise vol.Invalid("invalid_allowed_directories") from error
+
+
+CONFIG_SCHEMA = vol.Schema(
+    {
+        vol.Optional(DOMAIN): vol.Schema(
+            {vol.Required("allowed_directories"): _grant_list},
+            extra=vol.PREVENT_EXTRA,
+        )
+    },
+    extra=vol.ALLOW_EXTRA,
+)
+
+
+async def async_setup(hass, config):
+    """Freeze operator YAML grants independently of patch definitions."""
+    from .models import PatchError
+    from .yaml_policy import DeniedYamlPolicy, load_yaml_policy
+
+    shared = hass.data.setdefault(DOMAIN, {"restart_required": set()})
+    try:
+        loaded = await hass.async_add_executor_job(
+            load_yaml_policy, Path(hass.config.config_dir), config
+        )
+    except PatchError as error:
+        loaded = DeniedYamlPolicy(error.reason)
+    shared["yaml_policy"] = loaded
+    return True
 
 
 def _load_runtime_adapters():

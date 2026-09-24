@@ -17,7 +17,7 @@
       "step": {
         "user": {
           "title": "Configure patch",
-          "description": "Select the file to patch, then choose how to provide the patch. Suggestions exclude protected files, hidden files and links. You can also enter a relative path.",
+          "description": "Select a file authorized by both directory lists. Configure Home Assistant’s allowlist_external_dirs and hapatchy.allowed_directories in {policy_path}; then restart Home Assistant. HAPatchY cannot edit these permissions. You can enter a path if it is missing from the suggestions.",
           "data": {
             "name": "Name",
             "target_path": "File to patch",
@@ -141,7 +141,15 @@
         "upload_unavailable": "The upload is unavailable. Select the file again.",
         "revert_before_edit": "This patch is applied. Cancel this form, run Revert, then reconfigure it.",
         "configuration_changed": "The configuration changed while this form was open. Cancel and reopen it.",
-        "ambiguous_direction": "The file contains both the original and modified context. Use distinguishing context."
+        "ambiguous_direction": "The file contains both the original and modified context. Use distinguishing context.",
+        "hapatchy_path_not_allowed": "The target or watch directory is not listed under hapatchy.allowed_directories in configuration.yaml. Ask the operator to update it and restart Home Assistant.",
+        "ha_path_not_allowed": "The target or watch directory is not authorized by Home Assistant’s allowlist_external_dirs. Update that setting and restart HA.",
+        "configuration_source_unavailable": "Home Assistant configuration sources cannot be read safely. Check configuration.yaml and its includes, then restart Home Assistant.",
+        "configuration_source_changed": "Home Assistant configuration sources changed since startup. Restart Home Assistant to load and verify the current grants.",
+        "configuration_mismatch": "The loaded Home Assistant configuration does not match the operator YAML grants. Check packages and includes, then restart Home Assistant.",
+        "hapatchy_yaml_invalid": "The hapatchy section in configuration.yaml is invalid. Use allowed_directories with a list of relative folders.",
+        "revert_metadata_unavailable": "The file was reverted, but Home Assistant could not save the disabled automatic reapply setting. Automatic reapply is suspended; check storage and retry Revert.",
+        "hapatchy_package_forbidden": "Directory grants inside Home Assistant packages are not accepted. Put hapatchy.allowed_directories in the top-level configuration.yaml and restart Home Assistant."
       },
       "abort": {
         "reconfigure_successful": "Configuration updated."
@@ -178,7 +186,7 @@
           "missing_target": "Missing target",
           "source_error": "Source error",
           "invalid_patch": "Invalid patch",
-          "security_error": "Unsafe path",
+          "security_error": "Access denied",
           "apply_error": "Write error"
         }
       }
@@ -400,6 +408,30 @@
     },
     "revert_before_edit": {
       "message": "This patch is applied. Cancel this form, run Revert, then reconfigure it."
+    },
+    "hapatchy_path_not_allowed": {
+      "message": "The target or watch directory is not listed under hapatchy.allowed_directories in configuration.yaml. Ask the operator to update it and restart Home Assistant."
+    },
+    "ha_path_not_allowed": {
+      "message": "The target or watch directory is not authorized by Home Assistant’s allowlist_external_dirs. Update that setting and restart HA."
+    },
+    "configuration_source_unavailable": {
+      "message": "Home Assistant configuration sources cannot be read safely. Check configuration.yaml and its includes, then restart Home Assistant."
+    },
+    "configuration_source_changed": {
+      "message": "Home Assistant configuration sources changed since startup. Restart Home Assistant to load and verify the current grants."
+    },
+    "configuration_mismatch": {
+      "message": "The loaded Home Assistant configuration does not match the operator YAML grants. Check packages and includes, then restart Home Assistant."
+    },
+    "hapatchy_yaml_invalid": {
+      "message": "The hapatchy section in configuration.yaml is invalid. Use allowed_directories with a list of relative folders."
+    },
+    "revert_metadata_unavailable": {
+      "message": "The file was reverted, but Home Assistant could not save the disabled automatic reapply setting. Automatic reapply is suspended; check storage and retry Revert."
+    },
+    "hapatchy_package_forbidden": {
+      "message": "Directory grants inside Home Assistant packages are not accepted. Put hapatchy.allowed_directories in the top-level configuration.yaml and restart Home Assistant."
     }
   },
   "issues": {
@@ -421,7 +453,7 @@
     },
     "security_error": {
       "title": "Patch needs attention",
-      "description": "{target}\n\nThe path or file type is unsafe. Do not use symbolic or hard links.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+      "description": "The patch was blocked by a security check. Review configuration.yaml, both directory lists and protected paths; restart Home Assistant after changing the YAML. No target contents or hashes are shown here."
     },
     "apply_error": {
       "title": "Patch needs attention",

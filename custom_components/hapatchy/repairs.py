@@ -38,11 +38,15 @@ class IssueManager:
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key=key,
-            translation_placeholders={
-                "target": definition.target_path,
-                "target_sha256": state.target_sha256 or "unknown",
-                "patch_sha256": state.patch_sha256 or "unknown",
-            },
+            translation_placeholders=(
+                {}
+                if state.status == Status.SECURITY_ERROR
+                else {
+                    "target": definition.target_path,
+                    "target_sha256": state.target_sha256 or "unknown",
+                    "patch_sha256": state.patch_sha256 or "unknown",
+                }
+            ),
         )
 
     def clear(self, patch_id: str) -> None:

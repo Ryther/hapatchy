@@ -8,6 +8,7 @@ from .atomic_writer import AtomicFileWriter, CommitError
 from .backup import BackupManager
 from .models import PatchDefinition, PatchError, PatchInspection, Status
 from .patch_engine import UnifiedDiffEngine
+from .path_policy import PathPolicy
 from .safe_io import GuardedFile
 
 
@@ -23,8 +24,9 @@ class ReconcileResult:
 class Reconciler:
     """Own one complete inspect/commit operation; the runtime owns serialization."""
 
-    def __init__(self, root: Path):
+    def __init__(self, root: Path, policy: PathPolicy):
         self.root = root
+        self.policy = policy
         self.engine = UnifiedDiffEngine()
         self.writer = AtomicFileWriter()
 
@@ -45,6 +47,7 @@ class Reconciler:
             )
         for attempt in range(3):
             try:
+                self.policy.check_definition(definition)
                 parsed = self.engine.parse(source, definition.target_path)
                 with GuardedFile(self.root, definition.target_path) as target:
                     snapshot = target.read()
@@ -87,6 +90,7 @@ class Reconciler:
                             snapshot,
                             output,
                             before_replace=backup if backup_required else None,
+                            before_commit=lambda: self.policy.check_definition(definition),
                         )
                     except CommitError as error:
                         mutated = error.replaced
@@ -109,7 +113,7 @@ class Reconciler:
                         service_error=inspection.reason,
                     )
             except PatchError as error:
-                if pending_durability:
+                if pending_durability and error.status != Status.SECURITY_ERROR:
                     return ReconcileResult(
                         PatchInspection(Status.APPLY_ERROR, "durability_unconfirmed"),
                         digest,
