@@ -5,6 +5,13 @@
 !/.cz.yaml
 !/.github/workflows/commits.yaml
 !/AGENTS.md
+!/.agents/
+!/.agents/skills/
+!/.agents/skills/hapatchy-guide/
+!/.agents/skills/hapatchy-guide/SKILL.md
+!/.claude/
+!/.claude/skills/
+!/.claude/skills/hapatchy-guide
 !/docs/directory-permissions.md
 !/README.md
 !/CONTRIBUTING.md

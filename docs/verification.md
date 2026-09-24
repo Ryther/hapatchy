@@ -68,8 +68,8 @@ HA 2026.9.0/Python 3.14.7 from pinned runtime inputs, each with a fresh
 temporary configuration. In both processes it completed onboarding, created
 a managed patch through HA's native API, checked bytes after Apply and Revert,
 and confirmed that a target outside both grants was refused with unchanged
-bytes. These smoke checks were run locally; GitHub-hosted execution is not
-claimed in this record.
+bytes. These smoke checks passed locally and in the GitHub-hosted
+[Tests run for product commit `36ff7c9`](https://github.com/Ryther/hapatchy/actions/runs/36022163070).
 
 | Environment | Current revision checks |
 | --- | --- |
@@ -79,11 +79,15 @@ claimed in this record.
 The pinned hassfest image reported **0 invalid integrations** after the
 translation changes. The pinned actionlint image accepted the workflow files.
 The release archive builder completed on both test lanes. These checks were
-run locally; GitHub-hosted execution is not claimed in this record.
+also covered by the GitHub-hosted Tests and
+[Integration validation](https://github.com/Ryther/hapatchy/actions/runs/36022604170)
+runs. After the repository became public, that validation run passed its local
+metadata, hassfest and HACS Action jobs. HACS Action validates the published
+repository metadata; it does not install or update HAPatchY in HA.
 
 The screenshots show rendered forms and statuses. Separate disk-byte checks
 establish the specific writes above. The minimum HA lane was exercised by
 automated tests and the functional API smoke, not by a separate browser session.
 The HTTPS browser check used a denied loopback URL, not a live public HTTPS
 service. This record does not represent a HACS installation, HACS update or a
-public GitHub release.
+GitHub release.
