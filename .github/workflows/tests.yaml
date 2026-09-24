@@ -12,6 +12,20 @@ on:
 permissions:
   contents: read
 jobs:
+  secrets:
+    name: Secrets
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Scan Git history and checked-out files for secrets
+        run: |
+          image='ghcr.io/gitleaks/gitleaks@sha256:75bdb2b2f4db213cde0b8295f13a88d6b333091bbfbf3012a4e083d00d31caba' # v8.18.4
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" "$image" detect --source /repo --redact --no-banner
+          docker run --rm -v "$GITHUB_WORKSPACE:/repo:ro" "$image" detect --no-git --source /repo --redact --no-banner
   test:
     runs-on: ubuntu-24.04
     strategy:
