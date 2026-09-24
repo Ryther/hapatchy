@@ -51,8 +51,9 @@ to initialize the workflow.
    labels and drafts. Keep Issues enabled. Do not commit the token.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
-   Require the **Conventional Commits**, **Secrets**, **Tests** matrix and
-   **Integration validation** checks in the branch rules for `main`. Select the
+   Require the **Conventional Commits**, **Workflow lint**, **Secrets**, **Tests**
+   matrix, **HA boot smoke** and **Integration validation** checks in the branch
+   rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
 5. Fill in the repository metadata required by HACS, including its description
    and topics. The HACS job reports missing metadata.
@@ -98,9 +99,15 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | File | Trigger and responsibility |
 | --- | --- |
 | [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
-| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; scan Git history and checkout for secrets, then run Python tests, Ruff, mypy, environment tests and packaging on HA 2025.3/Python 3.13 and HA 2026.9/Python 3.14. Release can supply an exact commit. |
+| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and boot disposable HA with the complete recent-lane runtime lock. Release can supply an exact commit. |
 | [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; hassfest on the checkout and HACS repository metadata validation. Also called by Release. |
 | [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
+
+[dependabot.yml](../.github/dependabot.yml) proposes weekly updates for Actions
+and Python requirements in `.devcontainer/` and `tests/`. Python lock changes
+require manual review and both CI lanes; Dependabot neither merges PRs nor
+changes the HA baseline pins automatically. Workflow container-image digests
+are reviewed and updated separately.
 
 Tests and hassfest use the candidate SHA. HACS checks remote repository metadata
 in its event context; it does **not** install the candidate into HA. A successful

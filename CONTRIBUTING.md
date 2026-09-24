@@ -48,6 +48,7 @@ From the repository root inside the container:
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD
 .venv/bin/python script/build_release.py
+.venv-ha/bin/python script/smoke_ha.py
 ```
 
 VS Code's **Tasks: Run Task → Checks: all** runs these checks in order. Individual
@@ -59,6 +60,11 @@ Commit message yourself. Check the PR title with
 `.venv/bin/cz check --message "fix: describe the change" --allowed-prefixes`.
 CI validates both the title and commits. Release Please owns version/changelog
 updates: do not run `cz bump` or independently bump the integration manifest.
+Dependabot proposes updates for Actions and the two Python dependency locations.
+Review every proposed version and its lock changes manually, then require the
+normal checks; no dependency PR is merged automatically. HA baseline versions
+remain operator-owned rather than being raised by Dependabot. Container image
+digests used in workflows remain a separate manual update.
 
 For user-facing changes, first exercise the documented operation in disposable
 HA and capture the actual UI. See [documentation verification](docs/verification.md).
