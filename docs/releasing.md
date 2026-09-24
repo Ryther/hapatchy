@@ -12,6 +12,13 @@ has **not completed a real GitHub release run**. The GitHub configuration needed
 for publication is described below. User installation instructions are in
 [installation.md](installation.md).
 
+During a private release rehearsal, the HACS Action is skipped: [HACS cannot
+use private GitHub repositories](https://hacs.dev/docs/faq/private_repositories/).
+The workflow still checks the local HACS metadata and runs hassfest, but those
+checks do not prove that HACS can install the integration. After making the
+repository public, run Integration validation again and require its HACS job to
+pass before claiming HACS compatibility.
+
 ## What happens after a merge
 
 There are two separate runs of the **Release** workflow:
@@ -55,6 +62,9 @@ to initialize the workflow.
    matrix, both **HA boot smoke** matrix jobs and **Integration validation**
    checks in the branch rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
+   A personal GitHub Free repository cannot enforce branch protection while
+   private; review every check manually in that phase, then enable the rules
+   after making the repository public or upgrading the plan.
 5. Fill in the repository metadata required by HACS, including its description
    and topics. The HACS job reports missing metadata.
 
@@ -100,7 +110,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | --- | --- |
 | [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
 | [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
-| [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; hassfest on the checkout and HACS repository metadata validation. Also called by Release. |
+| [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
 | [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
 
 [dependabot.yml](../.github/dependabot.yml) proposes weekly updates for Actions
@@ -109,9 +119,10 @@ require manual review and both CI lanes; Dependabot neither merges PRs nor
 changes the HA baseline pins automatically. Workflow container-image digests
 are reviewed and updated separately.
 
-Tests and hassfest use the candidate SHA. HACS checks remote repository metadata
-in its event context; it does **not** install the candidate into HA. A successful
-HACS job is not proof of a successful HACS installation or upstream update.
+Tests, local metadata validation and hassfest use the candidate SHA. When the
+repository is public, HACS checks remote repository metadata in its event
+context; it does **not** install the candidate into HA. A successful HACS job is
+not proof of a successful HACS installation or upstream update.
 
 The ZIP contains tracked integration files under `custom_components/hapatchy/`
 and `LICENSE`. HACS currently reads the repository layout (`zip_release` is not

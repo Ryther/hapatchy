@@ -19,10 +19,8 @@ Read the relevant existing code and these documents before proposing changes:
 - `docs/verification.md`: actual UI and file-byte evidence for this revision.
 - `docs/releasing.md`: version proposal, validation and release ownership.
 
-This is an independent public GitHub project, not a deployed Darkfactory service.
-The engineering rules below adapt useful Darkfactory practices. Do not import its
-Gitea/Tekton, Kubernetes, Memos, identity, database or central-wave requirements.
-Do not require the plugin or private files to understand or contribute to this repo.
+This is a self-contained public GitHub project. No private files or external
+project tooling are required to understand or contribute to this repository.
 
 Public code, comments, docs and commit messages are English. Match the user's
 language in conversation. Keep the prominent README vibe-coding warning honest.
@@ -149,6 +147,19 @@ are not proof of authorization, durability or every race: test those separately.
 Update English/Italian native translations together. Keep public screenshots
 current with the revision they document. Record versions and limitations.
 
+For a change to a user-visible flow or application behavior, review every
+affected public guide: `README.md` for capabilities and limits;
+`docs/installation.md` and `docs/directory-permissions.md` for setup;
+`docs/first-patch.md` for the walkthrough and screenshots;
+`docs/reference.md` for fields, actions, statuses and limits; and
+`docs/troubleshooting.md` for errors, recovery and removal. Update
+`docs/verification.md` with what was actually exercised and what remains
+unverified. Review `.agents/skills/hapatchy-guide/SKILL.md` and update its
+instructions whenever the user procedure it describes changes; Claude's
+`.claude/skills/hapatchy-guide` points to that same file. Keep examples and
+screenshots consistent with the current UI. Do not claim a guide or skill was
+verified by a test that did not exercise its procedure.
+
 When changing UI, labels, actions, errors, installation steps, or any behavior
 visible to a user, create or update the root `.ux-review-required.md` before
 implementation. It is a local, Git-ignored handoff: list affected user journeys,
@@ -160,14 +171,10 @@ requires a `docs/verification.md` update alongside changed product Python,
 metadata, brand, translation or service surfaces; those checks supplement, not
 replace, real UX review.
 
-Keep private plans, wave bundles, repro scripts, raw diagnostics and evidence under
-`_test/` (or existing ignored `_tmp/` staging). The user's wave bundles remain
-private there unless explicitly moved. Use a wave's existing canonical files;
-consolidate duplicate legacy notes instead of creating competing authorities.
-A useful wave specifies outcome, dependencies, ordered work, acceptance commands,
-risks and genuinely unresolved user decisions. Distinguish executed checks from
-proposed checks. Do not claim Darkfactory validation ran without its actual evidence.
-Promote durable product/development facts into public documentation.
+Keep private plans, repro scripts and raw diagnostics under `_test/` (or existing
+ignored `_tmp/` staging). Distinguish executed checks from proposed checks and
+never claim validation ran without evidence. Promote durable product and
+development facts into public documentation.
 
 ## Git and releases
 
