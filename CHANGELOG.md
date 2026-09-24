@@ -1,7 +1,8 @@
 # Changelog
 
-## [0.2.0](https://github.com/Ryther/hapatchy/compare/v0.1.0...v0.2.0) (2026-09-24)
+## 0.2.0 (2026-09-24)
 
+Initial public release.
 
 ### Features
 
@@ -32,12 +33,5 @@
 * remove private project references from agent guide ([76fd32d](https://github.com/Ryther/hapatchy/commit/76fd32de9d0414c59825d76224b69fdb3042f070))
 * require Dev Container reproduction for PR problems ([4ff7a7f](https://github.com/Ryther/hapatchy/commit/4ff7a7f43a3dd654cbb151509deb60f5fae4bf0d))
 * require user guides and skill updates for UX changes ([a1ca9f9](https://github.com/Ryther/hapatchy/commit/a1ca9f9d80f647aae8692187a712ae24b35f27b5))
-* **security:** record patch authorization audit and threat model ([e27b08f](https://github.com/Ryther/hapatchy/commit/e27b08f371c049cbf249eaac27a790c1c586b45e))
 * verify first patch walkthrough in disposable HA ([1176bf3](https://github.com/Ryther/hapatchy/commit/1176bf3b7c1447a4379569022e4bd60ce4f56d1a))
 * verify user procedures in HA and clarify the release flow ([6e4dbd0](https://github.com/Ryther/hapatchy/commit/6e4dbd02089a2d35ce030bafdb23174b05f3b0c6))
-
-## Changelog
-
-Release Please generates dated version entries from Conventional Commits when it
-opens a release PR. The initial development version is 0.1.0; this file does not
-claim that version has been published. GitHub Releases records published versions.
