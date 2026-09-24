@@ -83,7 +83,7 @@ patch-ng==1.19.1
 pathspec==1.1.1
 pillow==12.3.0
 pip==26.2.1
-pipdeptree==2.26.1
+pipdeptree==4.2.5
 pluggy==1.6.0
 probatio==0.11.4
 prompt_toolkit==3.0.53
