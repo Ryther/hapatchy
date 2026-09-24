@@ -79,7 +79,10 @@ HAPatchY accepts hostname URLs only when **every** DNS answer is a public
 unicast address. It rejects numeric hosts, private, loopback, link-local and
 mixed public/private answers before opening a connection. It does not use
 environment HTTP proxies. A URL saved before this restriction may stop working;
-replace it with a direct public-hostname URL or choose a managed/local source.
+the old source can also block Revert and in-place source reconfiguration. Inspect
+the target and retained backups before removing that rule, then create a new
+rule with a direct public-hostname URL or a managed/local source. Removing a
+rule does not undo an applied change; see [recovery and removal](troubleshooting.md#remove-a-patch-or-uninstall-hapatchy).
 The policy limits where HAPatchY connects, not whether a public server or its
 patch contents are trustworthy.
 

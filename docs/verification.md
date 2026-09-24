@@ -35,6 +35,22 @@ target bytes remained unchanged. This confirms the visible error for a literal
 loopback URL; isolated resolver/connector tests cover private, mixed and
 non-global DNS answers without contacting those addresses.
 
+A native subentry-flow test seeded a previously saved loopback URL, then tried
+to change it to a managed source. Reconfiguration was denied before any target
+write. Removing the old rule and adding a managed rule with automatic application
+off succeeded, again with the original target bytes unchanged. The browser UI
+cannot create such a legacy rule in this revision, so that recovery branch was
+verified through the native flow API rather than a new screenshot. Separate
+runtime checks loaded that saved legacy rule, reported `security_error` at
+startup, and refused Apply, Revert and Refresh source without changing bytes.
+Loader tests exercised a public DNS answer through the actual connector with a
+synthetic failed dial and proxy settings present. They checked that the dial
+retained the original TLS hostname and an SSL context; a certificate error was
+injected rather than produced by a TLS handshake. Another test returned HTTP
+200 through the real loader using a test-only transport redirected to an
+offline loopback server. DNS, stream cancellation and post-download timeout
+tests checked cleanup and controlled errors. No public server was contacted.
+
 ![A loopback HTTPS source is rejected in the native form](images/https-source-denied.png)
 
 An earlier native editor flow also created a managed patch for
@@ -57,8 +73,8 @@ claimed in this record.
 
 | Environment | Current revision checks |
 | --- | --- |
-| HA 2025.3.0 / Python 3.13.12 | 281 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
-| HA 2026.9.0 / Python 3.14.7 | Browser walkthrough above; 281 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
+| HA 2025.3.0 / Python 3.13.12 | 289 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
+| HA 2026.9.0 / Python 3.14.7 | Browser walkthrough above; 289 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
 
 The pinned hassfest image reported **0 invalid integrations** after the
 translation changes. The pinned actionlint image accepted the workflow files.

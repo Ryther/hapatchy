@@ -185,6 +185,55 @@ async def test_native_reconfigure_preserves_identity(hass, files):
     assert entry.subentries[original].title == "Updated"
 
 
+async def test_denied_legacy_url_requires_remove_and_safe_readd(hass, files):
+    legacy = DATA | {"source_type": "url", "source": "https://127.0.0.1/patch"}
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={},
+        subentries_data=[
+            {
+                "subentry_type": "patch",
+                "title": "Legacy",
+                "unique_id": "scripts/a.py",
+                "data": legacy,
+            }
+        ],
+    )
+    entry.add_to_hass(hass)
+    old_id = next(iter(entry.subentries))
+    original_bytes = (files / "scripts/a.py").read_bytes()
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "reconfigure", "subentry_id": old_id}
+    )
+    result = await configure(
+        hass,
+        result["flow_id"],
+        DATA | {"source_type": "managed", "source": ""},
+    )
+    assert result["step_id"] == "editor"
+    result = await configure(hass, result["flow_id"], {"patch_text": DIFF.decode()})
+    assert result["errors"] == {"base": "source_network_denied"}
+    assert entry.subentries[old_id].data["source"] == legacy["source"]
+    assert (files / "scripts/a.py").read_bytes() == original_bytes
+
+    hass.config_entries.async_remove_subentry(entry, old_id)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(
+        hass,
+        result["flow_id"],
+        DATA | {"source_type": "managed", "source": ""},
+    )
+    result = await configure(hass, result["flow_id"], {"patch_text": DIFF.decode()})
+    result = await configure(hass, result["flow_id"], {"auto_apply": False})
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert old_id not in entry.subentries
+    assert next(iter(entry.subentries.values())).data["source_type"] == "managed"
+    assert (files / "scripts/a.py").read_bytes() == original_bytes
+
+
 @pytest.mark.parametrize("retention", [0, 101, 1.5, True, "10"])
 async def test_options_reject_invalid_retention(hass, retention):
     require_flow()

@@ -73,6 +73,12 @@ For a local source, confirm the file exists in the configuration folder and is
 readable by HA. Check spelling, capitalization, extension and UTF-8 encoding.
 For HTTPS, check that the URL returns patch text directly, without an HTML page,
 login or redirect. Check connectivity and the optional source fingerprint.
+If a previously saved URL is now denied because its hostname or DNS answer is
+not public, source reconfiguration and Revert may also be refused: both check
+the old source. Inspect the target and retained backups first. Removing the old
+rule leaves target bytes unchanged; you can then add a new rule using a permitted
+source. If the old patch is still present in the target, resolve that change
+manually with the exact original bytes before applying a replacement.
 
 Patch sources larger than 2 MiB are rejected. Download failures never trigger an
 application using stale cached data. Fix the source, then run Refresh source.

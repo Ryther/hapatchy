@@ -114,6 +114,27 @@ async def test_source_failure_cannot_reuse_old_patch(hass, tmp_path):
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
 
 
+async def test_saved_legacy_url_fails_closed_at_startup_and_actions(hass, tmp_path):
+    entry, runtime, pid = await setup(
+        hass,
+        tmp_path,
+        {
+            "source_type": "url",
+            "source": "https://127.0.0.1/patch",
+            "reconcile_on_startup": True,
+        },
+    )
+    target = tmp_path / "scripts/a.py"
+    original = target.read_bytes()
+    assert runtime.states[pid].status == "security_error"
+    for action in ("apply", "revert", "refresh_source"):
+        result = await runtime.async_action(pid, action)
+        assert result.inspection.status == "security_error"
+        assert result.service_error == "source_network_denied"
+        assert target.read_bytes() == original
+    assert entry.subentries[pid].data.get("auto_apply", True) is True
+
+
 async def test_unload_waits_for_admitted_executor_transaction(hass, tmp_path, monkeypatch):
     entry, runtime, pid = await setup(hass, tmp_path)
     entered, release = threading.Event(), threading.Event()

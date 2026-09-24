@@ -4,8 +4,10 @@ import asyncio
 import hashlib
 import importlib
 import os
+import ssl
 from pathlib import Path
 
+import aiohttp
 import pytest
 
 
@@ -230,4 +232,162 @@ async def test_private_dns_denial_never_changes_target(tmp_path, monkeypatch):
         await patch_source.PatchSourceClient(tmp_path, run).load(item)
     assert caught.value.status.value == "security_error"
     assert "hidden" not in str(caught.value)
+    assert target.read_bytes() == b"original\n"
+
+
+@pytest.mark.parametrize("dial_error", [OSError, ssl.SSLCertVerificationError])
+async def test_real_loader_dials_only_public_answer_without_proxy(
+    tmp_path, monkeypatch, dial_error
+):
+    from custom_components.hapatchy import patch_source
+    from custom_components.hapatchy.network_policy import PublicDNSResolver
+    from tests.test_network_policy import FakeResolver
+
+    delegate = FakeResolver("1.1.1.1")
+    monkeypatch.setattr(
+        patch_source, "PublicDNSResolver", lambda: PublicDNSResolver(delegate)
+    )
+    monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:12345")
+    attempted = []
+
+    async def observe_dial(self, *args, **kwargs):
+        attempted.append((args, kwargs))
+        raise dial_error("synthetic connection stop")
+
+    monkeypatch.setattr(aiohttp.TCPConnector, "_wrap_create_connection", observe_dial)
+    item = definition(source_type="url", source="https://patch.example/file")
+    with pytest.raises(ValueError, match="source_unavailable"):
+        await patch_source.PatchSourceClient(tmp_path, run).load(item)
+    assert delegate.calls == 1
+    assert attempted
+    assert "1.1.1.1" in str(attempted)
+    assert "127.0.0.1" not in str(attempted)
+    assert attempted[0][1]["server_hostname"] == "patch.example"
+    assert isinstance(attempted[0][1]["ssl"], ssl.SSLContext)
+
+
+async def test_real_loader_reads_200_after_vetted_dns_with_offline_transport(
+    tmp_path, monkeypatch, socket_enabled
+):
+    from custom_components.hapatchy import patch_source
+    from custom_components.hapatchy.network_policy import PublicDNSResolver
+    from tests.test_network_policy import FakeResolver
+
+    raw = b"offline patch bytes\r\n"
+    requests = []
+
+    async def serve(reader, writer):
+        requests.append(await reader.readuntil(b"\r\n\r\n"))
+        writer.write(
+            b"HTTP/1.1 200 OK\r\nContent-Length: "
+            + str(len(raw)).encode()
+            + b"\r\nConnection: close\r\n\r\n"
+            + raw
+        )
+        await writer.drain()
+        writer.close()
+        await writer.wait_closed()
+
+    server = await asyncio.start_server(serve, "127.0.0.1", 0)
+    port = server.sockets[0].getsockname()[1]
+    delegate = FakeResolver("1.1.1.1")
+    monkeypatch.setattr(
+        patch_source, "PublicDNSResolver", lambda: PublicDNSResolver(delegate)
+    )
+    attempts = []
+
+    async def offline_transport(self, protocol_factory, *args, **kwargs):
+        attempts.append(kwargs)
+        # Only this test replaces the socket transport with its local fixture.
+        return await asyncio.get_running_loop().create_connection(
+            protocol_factory, "127.0.0.1", port
+        )
+
+    monkeypatch.setattr(aiohttp.TCPConnector, "_wrap_create_connection", offline_transport)
+    item = definition(
+        source_type="url",
+        source="https://patch.example/file",
+        source_sha256=hashlib.sha256(raw).hexdigest(),
+    )
+    try:
+        assert await patch_source.PatchSourceClient(tmp_path, run).load(item) == raw
+    finally:
+        server.close()
+        await server.wait_closed()
+    assert delegate.calls == 1
+    assert "1.1.1.1" in str(attempts)
+    assert requests and b"Host: patch.example" in requests[0]
+
+
+async def test_cancellation_closes_HTTPS_resolver(tmp_path, monkeypatch):
+    from custom_components.hapatchy import patch_source
+
+    started = asyncio.Event()
+
+    class WaitingResolver:
+        closed = False
+
+        async def resolve(self, host, port=0, family=0):
+            started.set()
+            await asyncio.Event().wait()
+
+        async def close(self):
+            self.closed = True
+
+    resolver = WaitingResolver()
+    monkeypatch.setattr(patch_source, "PublicDNSResolver", lambda: resolver)
+    item = definition(source_type="url", source="https://patch.example/file")
+    task = asyncio.create_task(patch_source.PatchSourceClient(tmp_path, run).load(item))
+    await asyncio.wait_for(started.wait(), 1)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert resolver.closed
+
+
+async def test_cancellation_during_stream_closes_session(tmp_path, monkeypatch):
+    from custom_components.hapatchy import patch_source
+
+    started = asyncio.Event()
+
+    class BlockingResponse(Response):
+        async def iter_chunked(self, size):
+            started.set()
+            await asyncio.Event().wait()
+            yield b"never delivered"
+
+    class ObservedSession(Session):
+        closed = False
+
+        async def __aexit__(self, *args):
+            self.closed = True
+
+    session = ObservedSession(BlockingResponse([]))
+    monkeypatch.setattr(patch_source.aiohttp, "ClientSession", lambda **kwargs: session)
+    item = definition(source_type="url", source="https://patch.example/file")
+    task = asyncio.create_task(patch_source.PatchSourceClient(tmp_path, run).load(item))
+    await asyncio.wait_for(started.wait(), 1)
+    task.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await task
+    assert session.closed
+
+
+async def test_timeout_covers_post_download_hash_validation(tmp_path, monkeypatch):
+    from custom_components.hapatchy import patch_source
+
+    fake_session(monkeypatch, Response([b"patch bytes"]))
+    monkeypatch.setattr(patch_source, "HTTPS_TIMEOUT_SECONDS", 0.01)
+
+    async def stalled_hash(fn):
+        if fn.func is patch_source._verify:
+            await asyncio.Event().wait()
+        return fn()
+
+    target = tmp_path / "scripts" / "a.py"
+    target.parent.mkdir()
+    target.write_bytes(b"original\n")
+    item = definition(source_type="url", source="https://patch.example/file")
+    with pytest.raises(ValueError, match="source_unavailable"):
+        await asyncio.wait_for(patch_source.PatchSourceClient(tmp_path, stalled_hash).load(item), 1)
     assert target.read_bytes() == b"original\n"

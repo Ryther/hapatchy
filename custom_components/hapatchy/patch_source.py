@@ -14,6 +14,8 @@ from .models import PatchDefinition, PatchError, Status
 from .network_policy import PublicDNSResolver, checked_url
 from .safe_io import GuardedFile
 
+HTTPS_TIMEOUT_SECONDS = 30
+
 
 def _local(root: Path, definition: PatchDefinition) -> bytes:
     with GuardedFile(root, definition.source) as source:
@@ -57,30 +59,37 @@ class PatchSourceClient:
                     partial(ManagedPatchStore(self.root).load, definition.source)
                 )
             else:
-                async with asyncio.timeout(30):
+                async with asyncio.timeout(HTTPS_TIMEOUT_SECONDS):
                     url = checked_url(definition.source)
+                    resolver = PublicDNSResolver()
                     connector = aiohttp.TCPConnector(
-                        resolver=PublicDNSResolver(), use_dns_cache=False
+                        resolver=resolver, use_dns_cache=False
                     )
-                    async with aiohttp.ClientSession(
-                        connector=connector, trust_env=False
-                    ) as session:
-                        async with session.get(
-                            url,
-                            allow_redirects=False,
-                            timeout=aiohttp.ClientTimeout(total=30),
-                        ) as response:
-                            if response.status != 200:
-                                raise PatchError("source_http_error", Status.SOURCE_ERROR)
-                            parts = []
-                            size = 0
-                            async for chunk in response.content.iter_chunked(65536):
-                                size += len(chunk)
-                                if size > MAX_PATCH_BYTES:
-                                    raise PatchError("source_too_large", Status.SOURCE_ERROR)
-                                parts.append(chunk)
-                            data = b"".join(parts)
-                    return await self.run_io(partial(_verify, data, definition.source_sha256))
+                    try:
+                        async with aiohttp.ClientSession(
+                            connector=connector, trust_env=False
+                        ) as session:
+                            async with session.get(
+                                url,
+                                allow_redirects=False,
+                                timeout=aiohttp.ClientTimeout(total=HTTPS_TIMEOUT_SECONDS),
+                            ) as response:
+                                if response.status != 200:
+                                    raise PatchError("source_http_error", Status.SOURCE_ERROR)
+                                parts = []
+                                size = 0
+                                async for chunk in response.content.iter_chunked(65536):
+                                    size += len(chunk)
+                                    if size > MAX_PATCH_BYTES:
+                                        raise PatchError("source_too_large", Status.SOURCE_ERROR)
+                                    parts.append(chunk)
+                                data = b"".join(parts)
+                        return await self.run_io(
+                            partial(_verify, data, definition.source_sha256)
+                        )
+                    finally:
+                        await connector.close()
+                        await resolver.close()
             return await self.run_io(partial(_verify, data, definition.source_sha256))
         except (aiohttp.ClientError, OSError, asyncio.TimeoutError):
             raise PatchError("source_unavailable", Status.SOURCE_ERROR) from None
