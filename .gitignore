@@ -3,6 +3,8 @@
 !/.gitignore
 !/.cz.yaml
 !/.github/workflows/commits.yaml
+!/AGENTS.md
+!/docs/security-review.md
 !/README.md
 !/CONTRIBUTING.md
 !/LICENSE
