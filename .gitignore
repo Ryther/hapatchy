@@ -22,6 +22,7 @@
 !/.github/pull_request_template.md
 !/.github/workflows/
 !/.github/workflows/tests.yaml
+!/.github/workflows/codeql.yaml
 !/.github/dependabot.yml
 !/tests/
 !/tests/*.py
