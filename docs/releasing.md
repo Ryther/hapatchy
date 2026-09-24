@@ -8,8 +8,8 @@ messages. The publishing helper builds the integration archive, uploads it to a
 GitHub draft and publishes that draft only after verification.
 
 This automation has been tested locally, including failure and retry cases. It
-has **not yet completed a real GitHub release run**. The setup below must be done
-on GitHub before the first release. User installation instructions are in
+has **not completed a real GitHub release run**. The GitHub configuration needed
+for publication is described below. User installation instructions are in
 [installation.md](installation.md).
 
 ## What happens after a merge
@@ -51,7 +51,7 @@ to initialize the workflow.
    labels and drafts. Keep Issues enabled. Do not commit the token.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
-   Require the **Conventional Commits**, **Tests** matrix and
+   Require the **Conventional Commits**, **Secrets**, **Tests** matrix and
    **Integration validation** checks in the branch rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
 5. Fill in the repository metadata required by HACS, including its description
@@ -98,7 +98,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | File | Trigger and responsibility |
 | --- | --- |
 | [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
-| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; Python tests, Ruff, mypy, environment tests and packaging on HA 2025.3/Python 3.13 and HA 2026.9/Python 3.14. Release can supply an exact commit. |
+| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; scan Git history and checkout for secrets, then run Python tests, Ruff, mypy, environment tests and packaging on HA 2025.3/Python 3.13 and HA 2026.9/Python 3.14. Release can supply an exact commit. |
 | [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; hassfest on the checkout and HACS repository metadata validation. Also called by Release. |
 | [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
 
@@ -132,8 +132,3 @@ draft still names the old commit. Stop retrying that candidate and resolve the
 failed release state before preparing a corrected version. Do not move a
 published tag. A draft recovery also consumes that workflow run; another push
 or manual run is needed to resume release PR maintenance.
-
-Before the first public release, complete a real HACS install/update exercise in
-a disposable HA installation and record its versions and results in the release
-PR. That exercise and the first remote release run are still outstanding; the
-local UI walkthrough in [verification.md](verification.md) does not replace them.

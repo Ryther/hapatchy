@@ -27,14 +27,17 @@ instead of guessing. Patches for other integrations are **not bundled**.
    a real patch, and [troubleshooting and recovery](docs/troubleshooting.md) if
    something goes wrong.
 
-You configure HAPatchY from **Settings → Devices & services**. Select the target
+The operator first authorizes destination folders in `configuration.yaml` using
+[both directory lists](docs/directory-permissions.md), then restarts HA. You
+configure each patch from **Settings → Devices & services**. Select the target
 file from HA’s configuration, then paste a patch into the editor or upload a
 `.patch`/`.diff` file. HAPatchY saves it and lets you edit it later. Existing local
 patch files and direct HTTPS URLs remain available as advanced inputs. Each patch has a
-status sensor; Home Assistant's Repairs page reports problems. There is no YAML
-integration configuration to maintain and no custom dashboard to install.
+status sensor; Home Assistant's Repairs page reports problems. The YAML contains
+only operator-owned directory grants, not patch definitions. There is no custom
+dashboard to install.
 
-![HAPatchY in Home Assistant, showing the Add patch button and one configured example](docs/images/integration.png)
+![Current Add patch form in disposable Home Assistant](docs/images/yaml-directory-authorization.png)
 
 This screenshot shows a local development installation, not a HACS certification.
 
@@ -45,6 +48,9 @@ This screenshot shows a local development installation, not a HACS certification
   on the host. You can save a rule for a missing file and wait for it to appear.
 - A patch needs enough unchanged context to identify the intended location.
   There is no fuzzy matching, forced application, or multi-file patch support.
+- No directory is authorized by default. Both HA's explicit
+  `allowlist_external_dirs` and HAPatchY's `allowed_directories` must permit
+  the target and watch directory; see [directory permissions](docs/directory-permissions.md).
 - Automatic application, startup checks and backups are enabled by default.
   The introductory example explains how to start with automatic application off.
 - Changing a Python file on disk may require an HA restart to affect running
@@ -71,7 +77,7 @@ HAPatchY is experimental. Use a published version from
 If there is no release, the manual source-install path is for development/testing.
 HACS installation/update has not yet been verified; default-store inclusion is not claimed.
 See [installation](docs/installation.md) for the exercised manual path and
-[verification](docs/verification.md) for screenshots and the remaining gaps.
+[verification](docs/verification.md) for the checks performed on this revision.
 
 ## Help and development
 

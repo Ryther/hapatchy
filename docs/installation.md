@@ -21,10 +21,8 @@ HAPatchY paths are relative to this folder. If a file is
 
 ## HACS availability
 
-A HACS installation/update has **not yet been exercised for this repository**.
-This guide therefore does not present an untested HACS click sequence. Use the
-manual source-install path below for development testing. HACS instructions will
-be added after a real install from the public repository has been verified.
+A HACS installation/update has **not been exercised for this revision**. The
+manual source-install path below is the verified development procedure.
 
 ## Manual installation
 
@@ -56,6 +54,10 @@ on a fresh HA OS installation. See [the verification record](verification.md).
    configuration. From the release ZIP, extract only the integration folder.
 5. Restart Home Assistant.
 
+Before creating a patch, add the target subdirectory to both YAML directory
+lists and restart again. Follow [Allow a directory for HAPatchY](directory-permissions.md)
+for a complete example. Installing the integration alone grants no patch targets.
+
 HA installs the integration's declared Python dependencies using its own runtime.
 You do not need to install Python, run `pip`, or create a venv inside your HA
 installation. Internet access may be required for dependency installation.
@@ -66,10 +68,6 @@ installation. Internet access may be required for dependency installation.
 2. Open **Settings → Devices & services → Add integration**.
 3. Search for **HAPatchY**, select it, submit the confirmation form and select **Finish**.
 4. Open the HAPatchY integration page. You should see **Add patch**.
-
-![Finding the copied integration in Add integration](images/install-search.png)
-
-![HAPatchY configured successfully with Add patch available](images/install-ready.png)
 
 Create HAPatchY only once. Multiple patches live inside that one integration.
 No sensor appears until you add a patch. Continue with
@@ -82,7 +80,6 @@ import or dependency error needs investigation. See
 
 ## Updates
 
-A real HACS update and replacement with a newer released HAPatchY version remain
-unverified. Do not treat the local file-replacement exercise in the first-patch
-tutorial as an integration upgrade test. Release-specific update instructions
-will be documented after that exercise is completed.
+The current verification covers source installation and patch operations, not a
+HACS update or replacement with a newer released HAPatchY version. Keep a full
+HA backup before updating an installed integration.

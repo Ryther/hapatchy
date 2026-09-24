@@ -1,7 +1,7 @@
 # Contributing to HAPatchY
 
 AI contributors must read the root [AGENTS.md](AGENTS.md). Security-sensitive
-changes must account for the [security review](docs/security-review.md).
+changes must preserve the path and authorization checks covered by the tests.
 
 Use the [Dev Container](.devcontainer/README.md) for a reproducible development
 environment. It starts an isolated Home Assistant and supplies the Python test,

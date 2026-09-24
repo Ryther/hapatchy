@@ -10,6 +10,7 @@ Assistant lifecycle. No patch is executed as a shell command or Python program.
 | `safe_io` | Descriptor-relative traversal and file snapshots | `GuardedDirectory`, `GuardedFile` |
 | `atomic_writer`, `backup` | Durable transaction and backup retention | `AtomicFileWriter`, `BackupManager` |
 | `patch_source` | Bounded managed/local/HTTPS source reads | `PatchSourceClient` |
+| `yaml_source_graph`, `yaml_policy`, `path_policy` | Bounded YAML-source inventory, frozen grants and live path decisions | `scan_source_graph`, `load_yaml_policy`, `PathPolicy` |
 | `managed_source` | Immutable private patch revisions | `ManagedPatchStore` |
 | `source_upload`, `target_picker` | Consume native uploads and enumerate bounded target suggestions | `read_upload`, `list_targets` |
 | `reconciler` | Synchronous policy and transaction orchestration | `Reconciler.run` |
@@ -36,15 +37,19 @@ active saves. Managed files are published before their references are configured
 without overwriting existing revisions. Upload processing and discovery run in
 the executor.
 
-Native subentries are the source of configuration. Metadata storage contains
-status history only. Revert updates native auto-apply configuration before file
-work, using HA's normal configuration persistence lifecycle. This is not a
-separate fsync transaction spanning HA storage and the target file.
+Native subentries own patch definitions. Operator YAML owns directory grants;
+HAPatchY does not write it. At startup the integration compares raw YAML and
+HA's loaded configuration, snapshots configuration sources, and denies a target
+if a source changes before the next restart. HA's live path check remains an
+independent condition. Revert persists auto-apply off after a non-security
+reconciliation; if that persistence fails, automatic reapplication is suppressed
+and state records a controlled error. HA storage and the target file do not share
+one filesystem transaction.
 
 Tests cover decisions independently and exercise native flows, sensors, service
-permissions, watcher threads and filesystem failures. End-to-end HACS update
-acceptance is a separate release gate; synthetic filesystem events do not replace
-it. See the release guide for the manual checks that complement CI.
+permissions, watcher threads and filesystem failures. The current verification
+does not include an end-to-end HACS update. See the
+[verification record](verification.md) for checks performed on this revision.
 
 ## Working on the project
 

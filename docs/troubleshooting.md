@@ -2,14 +2,14 @@
 
 [← Documentation home](../README.md) · [Status reference](reference.md#status-sensor)
 
-The local-source conflict, source-error, invalid-patch and missing-target paths
-were reproduced and recovered on HA 2026.9.0. See [the verification record](verification.md)
-for screenshots and the cases covered only by automated tests.
+See [the verification record](verification.md) for the behavior exercised in the
+disposable HA instance and by automated tests for this revision.
 
 ## Start with these checks
 
-1. Open the patch's status sensor and note its state, `last_error`, `target_path`
-   and `watcher_available` attributes.
+1. Open the patch's status sensor and note its state, `last_error` and
+   `watcher_available` attributes. Paths and hashes are hidden after a security
+   denial.
 2. Open **Settings → System → Repairs** for a HAPatchY issue. On some HA versions,
    Repairs is reached from the Settings notification/menu instead.
 3. If you need to inspect files without automatic reapplication, reconfigure the
@@ -62,9 +62,6 @@ version can remove unrelated fixes. Review the differences rather than doing tha
 blindly. For a controlled example of valid context, revisit
 [Your first patch](first-patch.md).
 
-![A nonmatching target produces conflict](images/conflict.png)
-
-![The corresponding issue appears in Repairs](images/repair-conflict.png)
 
 ## Source error
 
@@ -91,11 +88,12 @@ Do not broaden the watch to the whole configuration folder. Use an explicit
 subdirectory containing the target. If the directory remains unavailable, inspect
 its permissions and check for a symlink rather than repeatedly forcing actions.
 
-![Missing target reported without creating or replacing a file](images/missing-target.png)
-
 ## Security error
 
-Paths must stay inside the HA configuration folder. Absolute paths, traversal,
+Start with [both directory lists](directory-permissions.md): the operator must
+name the target and watch directory, then restart HA. A changed, missing or
+unreadable YAML source also blocks operations until restart. Paths must stay
+inside the HA configuration folder. Absolute paths, traversal,
 symlinks, hard-linked files, special files and protected internal directories are
 not supported. Use a normal file under a normal subdirectory. HAPatchY's own code,
 `.storage` and `.hapatchy` are deliberately protected from patch rules.
@@ -117,7 +115,10 @@ confirmed. Do not repeatedly overwrite the file with an old backup.
 
 Revert requires a unique reverse match using the current patch source. It can fail
 if upstream changes intervened, the source changed, or the patch was never applied.
-Automatic application remains off after the attempt. Inspect the file and source
+Automatic application remains off after a non-security attempt. A security denial
+leaves the saved setting unchanged. If `last_error` is
+`revert_metadata_unavailable`, the target may already be reverted and automatic
+reapplication is suspended; fix HA storage and retry Revert. Inspect the file and source
 before retrying. If a manual repair is necessary, preserve both versions and
 review the intended edits; the backup is evidence, not an unconditional rollback.
 
@@ -135,9 +136,6 @@ Removing rules or integration files does **not** restore targets or erase backup
 Your patch source files also remain. Keep them until you no longer need recovery;
 remove them manually only when you are sure.
 
-![Deleting the reverted demo patch through its menu](images/remove-patch.png)
-
-![After deleting the integration folder and restarting, HAPatchY is no longer available](images/uninstalled.png)
 
 ## Report a problem
 
@@ -149,5 +147,3 @@ Use the integration menu's **Download diagnostics** when available. HAPatchY omi
 file contents and full source URLs, but paths, names and source hostnames can
 still identify your setup. Review the download and logs before sharing. Never post
 credentials, tokens, `.storage`, or a full configuration backup.
-
-![Diagnostics download in the integration menu](images/diagnostics-menu.png)

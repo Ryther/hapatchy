@@ -16,8 +16,7 @@ Read the relevant existing code and these documents before proposing changes:
 - `CONTRIBUTING.md` and `.devcontainer/README.md`: environment and review rules.
 - `docs/architecture.md`: module ownership and runtime boundaries.
 - `docs/reference.md`: supported patch format, paths, actions and limits.
-- `docs/verification.md`: actual UI evidence and explicit unverified scenarios.
-- `docs/security-review.md`: security findings and current protection limits.
+- `docs/verification.md`: actual UI and file-byte evidence for this revision.
 - `docs/releasing.md`: version proposal, validation and release ownership.
 
 This is an independent public GitHub project, not a deployed Darkfactory service.
@@ -126,9 +125,11 @@ watcher reapplication, reconfiguration, Apply, Revert and Refresh source.
 - Redact secrets and raw contents from errors, logs and diagnostics. Never print
   credentials during discovery. Never copy local HA auth/state into public files.
 
-The current implementation has protected-path checks, not an operator-approved directory
-allowlist. See the security review for the proposed additional authorization
-boundary. Do not describe a proposal as implemented protection.
+The current implementation requires operator-owned grants in `configuration.yaml`
+plus HA's explicit `allowlist_external_dirs`. Grant changes require an HA restart;
+changing a YAML source during a run denies further patch operations. Do not
+describe this directory boundary as review of an individual diff or a process
+sandbox. Keep security findings in private task evidence, not public user guides.
 
 For meaningful safety changes, reproduce the negative case in temporary storage,
 then add a regression test proving refusal and unchanged target bytes. Also test
@@ -141,8 +142,8 @@ Independent review supplements tests; neither is proof of complete security.
 Before documenting a new product procedure, perform it in disposable HA and
 capture the actual rendered UI. Check disk bytes for write operations. Screenshots
 are not proof of authorization, durability or every race: test those separately.
-Update English/Italian native translations together. Keep old screenshots clearly
-identified when they depict an earlier UI. Record versions and limitations.
+Update English/Italian native translations together. Keep public screenshots
+current with the revision they document. Record versions and limitations.
 
 Keep private plans, wave bundles, repro scripts, raw diagnostics and evidence under
 `_test/` (or existing ignored `_tmp/` staging). The user's wave bundles remain

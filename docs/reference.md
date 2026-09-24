@@ -2,10 +2,9 @@
 
 [← Documentation home](../README.md) · [First-patch tutorial](first-patch.md)
 
-The editor, upload, target selection and local-source UI operations below were
-exercised on HA 2026.9.0.
-[Verification and screenshots](verification.md) separate those observations
-from contracts covered only by automated tests.
+The current Add patch form and a managed patch were exercised on HA 2026.9.0.
+[Verification](verification.md) records the UI and file-byte checks performed for
+this revision; other behavior below is covered by automated tests.
 
 ## Patch settings
 
@@ -16,7 +15,7 @@ entry; you do not need a separate integration for each file.
 | Setting | Meaning | Default / limit |
 | --- | --- | --- |
 | Name | A label you will recognize in HA | Required |
-| File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file inside a subdirectory |
+| File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file below both explicitly authorized directories |
 | Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
 | Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
 | Patch input | Write/paste, upload, existing local file, or HTTPS URL | Write or paste patch contents |
@@ -41,8 +40,6 @@ The integration's options (rather than an individual patch's settings) contain
 **backup retention**: completed backups to keep **per patch**, default 10,
 minimum 1, maximum 100. Removing a patch does not delete its backups.
 
-![Backup retention in the native integration options](images/retention.png)
-
 ## Managed patches and the file picker
 
 Writing/pasting and uploading both create a **managed** source. HAPatchY saves
@@ -57,7 +54,8 @@ entries and descending at most 16 directory levels. It skips hidden entries,
 protected paths, symbolic/hard links and files directly in the configuration root.
 It is a convenience list, not a complete filesystem browser. Enter an eligible
 relative path manually when it is absent; normal path and patch validation still
-applies. The upload chooser selects a patch on your computer; the target picker
+applies, including [both YAML directory lists](directory-permissions.md). The
+upload chooser selects a patch on your computer; the target picker
 selects an existing file on the HA server.
 
 Only the final form submission saves a managed revision. Saving configuration
@@ -100,7 +98,7 @@ may display friendly labels; the raw state values below are stable identifiers.
 | `missing_target` | The target does not exist | Check the path or wait for installation/update to finish |
 | `source_error` | The patch could not be read, downloaded or verified | Check source, connectivity and SHA-256 |
 | `invalid_patch` | The diff is malformed, unsupported or ambiguous | Regenerate it with correct headers and distinctive context |
-| `security_error` | A path/file safety check failed | Use a permitted regular file and directory |
+| `security_error` | A path, YAML-source or file safety check failed | Check both directory grants and configuration-source changes; restart HA after YAML edits |
 | `apply_error` | A backup, write or durability check failed | Read the Repair; do not assume no bytes changed |
 
 Useful attributes include:
@@ -112,6 +110,10 @@ Useful attributes include:
 - `target_sha256` / `patch_sha256`: fingerprints recorded at the last check.
 - `last_error`: a controlled error reason; see Repairs and logs for context.
 - `restart_may_be_required`: a Python file changed during this HA process.
+
+After `security_error`, target paths and hashes are withheld from the sensor,
+diagnostics and Repair issue. Use your operator-owned YAML and local file editor
+to diagnose the denied path.
 
 A status describes the last completed check, not continuous proof of the current
 file contents. A missing watch root can produce a Repair even when a previous
@@ -127,7 +129,7 @@ Copy the ID from the patch's sensor before running an action.
 | --- | --- | --- |
 | `hapatchy.reconcile` | Optional `patch_id` | Check one rule, or every enabled rule if omitted; respect automatic application |
 | `hapatchy.apply` | `patch_id` | Explicitly apply one enabled patch if uniquely applicable |
-| `hapatchy.revert` | `patch_id` | Turn automatic application off in configuration, then attempt an exact reversal with a mandatory backup |
+| `hapatchy.revert` | `patch_id` | Attempt an exact reversal with a mandatory backup, then persist automatic application off if no security denial occurred |
 | `hapatchy.refresh_source` | `patch_id` | Fetch/read and validate the source and current target; never modify the target |
 
 For all enabled patches:
@@ -145,8 +147,10 @@ data:
   patch_id: "paste-your-patch-id-here"
 ```
 
-Revert keeps automatic application **off even if reversal fails**. This prevents
-an immediate reapplication; turn it back on yourself when appropriate. Revert
+Revert keeps automatic application **off after a non-security failure**. A security
+denial leaves the target and the saved automatic-application setting unchanged.
+If HA cannot save the setting after a reversal, HAPatchY suspends automatic
+reapplication and reports an apply error; check storage and retry Revert. Revert
 uses the currently configured patch, so keep the original patch source when you
 expect to reverse it later. It does not restore arbitrary backup files.
 
