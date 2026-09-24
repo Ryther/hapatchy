@@ -2,6 +2,17 @@
 
 [← Documentation home](../README.md) · [Your first patch](first-patch.md)
 
+On **25 September 2026**, an isolated reproduction of the v0.2.0 **Add patch**
+picker used 500 eligible files under `custom_components` and 100 YAML files in
+an include directory. The v0.2.0 scan took **8.99 seconds** and left **507 file
+descriptors open**, up from 6 before enumeration. The corrected code returned
+the same 500 suggestions in **0.059 seconds** and left the descriptor count at
+4 before and after enumeration. Separate processes account for the different
+starting counts. A regression test scans nested include directories 20 times
+and checks that the descriptor count does not rise. These are disposable
+fixtures, not measurements from a household HA installation. The picker form
+and fields remain as shown in the screenshot below.
+
 On **25 September 2026**, the target picker was checked against a slow-opening
 case in a disposable HA 2026.9.0 / Python 3.14.7 process. Opening the native
 **Add patch** flow with 500 eligible files took **0.146 seconds** and left the

@@ -1,5 +1,7 @@
 """The configuration source graph is protected without constructing HA tags."""
 
+import os
+
 import pytest
 
 from custom_components.hapatchy.models import PatchError
@@ -27,6 +29,22 @@ def test_recursive_include_sources_and_future_files_are_protected(tmp_path):
 
     (nested / "future.yaml").write_text("sensor: []\n")
     assert scan_source_graph(tmp_path) != graph
+
+
+def test_repeated_include_directory_scans_close_descriptors(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text(
+        "homeassistant:\n  packages: !include_dir_named packages\n"
+    )
+    nested = tmp_path / "packages" / "nested"
+    nested.mkdir(parents=True)
+    (nested / "example.yaml").write_text("sensor: []\n")
+
+    before = len(os.listdir("/proc/self/fd"))
+    for _ in range(20):
+        assert scan_source_graph(tmp_path).protects("packages/nested/example.yaml")
+    assert len(os.listdir("/proc/self/fd")) == before
 
 
 @pytest.mark.parametrize("source", ["sensor: !unexpected x\n", "sensor: !include ../outside.yaml\n"])
