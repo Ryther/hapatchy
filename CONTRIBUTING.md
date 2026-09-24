@@ -69,7 +69,7 @@ remain operator-owned rather than being raised by Dependabot. Container image
 digests used in workflows remain a separate manual update.
 
 For user-facing changes, first exercise the documented operation in disposable
-HA and capture the actual UI. See [documentation verification](docs/verification.md).
+HA, capture the actual UI, and record the checks and their limits in the PR.
 Use synthetic examples; keep credentials, diagnostics and HA state private.
 The repository uses a default-deny `.gitignore`: add narrow exceptions for new
 source/docs/screenshots and check them before staging. Do not use `git add -f`.

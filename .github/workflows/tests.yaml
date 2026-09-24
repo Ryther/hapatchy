@@ -22,20 +22,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha || inputs.ref || github.sha }}
           fetch-depth: 0
           persist-credentials: false
-      - name: Reject unfinished UX review and missing revision evidence
+      - name: Reject unfinished UX review
         env:
-          EVENT_NAME: ${{ github.event_name }}
-          CANDIDATE_REF: ${{ inputs.ref || '' }}
-          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before || '' }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha || inputs.ref || github.sha }}
-        run: |
-          if [[ -n "$CANDIDATE_REF" ]]; then
-            python script/check_ux_review.py --head "$HEAD_SHA"
-          elif [[ "$EVENT_NAME" == "pull_request" || "$EVENT_NAME" == "push" ]]; then
-            python script/check_ux_review.py --base "$BASE_SHA" --head "$HEAD_SHA"
-          else
-            python script/check_ux_review.py --head "$HEAD_SHA"
-          fi
+        run: python script/check_ux_review.py --head "$HEAD_SHA"
   workflows:
     name: Workflow lint
     runs-on: ubuntu-24.04

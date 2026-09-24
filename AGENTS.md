@@ -16,7 +16,6 @@ Read the relevant existing code and these documents before proposing changes:
 - `CONTRIBUTING.md` and `.devcontainer/README.md`: environment and review rules.
 - `docs/architecture.md`: module ownership and runtime boundaries.
 - `docs/reference.md`: supported patch format, paths, actions and limits.
-- `docs/verification.md`: actual UI and file-byte evidence for this revision.
 - `docs/releasing.md`: version proposal, validation and release ownership.
 
 This is a self-contained public GitHub project. No private files or external
@@ -152,9 +151,9 @@ affected public guide: `README.md` for capabilities and limits;
 `docs/installation.md` and `docs/directory-permissions.md` for setup;
 `docs/first-patch.md` for the walkthrough and screenshots;
 `docs/reference.md` for fields, actions, statuses and limits; and
-`docs/troubleshooting.md` for errors, recovery and removal. Update
-`docs/verification.md` with what was actually exercised and what remains
-unverified. Review `.agents/skills/hapatchy-guide/SKILL.md` and update its
+`docs/troubleshooting.md` for errors, recovery and removal. Record actual
+browser/API/byte checks and remaining limits in the PR or task handoff. Review
+`.agents/skills/hapatchy-guide/SKILL.md` and update its
 instructions whenever the user procedure it describes changes; Claude's
 `.claude/skills/hapatchy-guide` points to that same file. Keep examples and
 screenshots consistent with the current UI. Do not claim a guide or skill was
@@ -166,12 +165,9 @@ implementation. It is a local, Git-ignored handoff: list affected user journeys,
 documentation/screenshots to inspect, and concrete browser/API/byte checks still
 needed. Keep it accurate while working. After performing those checks and updating
 public documentation to describe this revision, remove the marker. Never bypass
-the ignore rule to commit it. CI rejects an accidentally tracked marker and
-requires a `docs/verification.md` update alongside changed product Python,
-metadata, brand, translation or service surfaces. A valid manifest change to
-the `version` value alone is exempt because Release Please owns it; all other
-manifest changes still require evidence. These checks supplement, not replace,
-real UX review.
+the ignore rule to commit it. CI rejects an accidentally tracked marker;
+reviewers must check the PR evidence and affected user documentation. This
+check supplements, but does not replace, real UX review.
 
 Keep private plans, repro scripts and raw diagnostics under `_test/` (or existing
 ignored `_tmp/` staging). Distinguish executed checks from proposed checks and

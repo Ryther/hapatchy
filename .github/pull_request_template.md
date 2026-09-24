@@ -4,6 +4,9 @@ Describe the problem and the resulting behavior.
 
 ## Verification
 
+For user-visible changes, describe the disposable HA procedure, actual UI and
+file-byte checks, updated user guides/skill, and any unverified scenario here.
+
 - Commit tested:
 - Environment and HA/Python versions:
 - Commands performed and results:

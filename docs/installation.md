@@ -31,9 +31,9 @@ This path was exercised with integration source and the published v0.2.0
 archive in separate HA 2026.9.0 configurations. The source path was also
 checked in the browser UI. Both used the existing development Python
 environment; dependency downloads on a fresh HA OS installation remain
-unverified. See [the verification record](verification.md).
+unverified.
 
-1. Download [the v0.2.0 archive](https://github.com/Ryther/hapatchy/releases/tag/v0.2.0)
+1. Download [the latest release](https://github.com/Ryther/hapatchy/releases/latest)
    from GitHub Releases. The repository source is also available for development
    testing.
 2. Locate `custom_components/hapatchy` inside the download.
@@ -82,6 +82,6 @@ import or dependency error needs investigation. See
 
 ## Updates
 
-The current verification covers source installation and patch operations, not a
-HACS update or replacement with a newer released HAPatchY version. Keep a full
-HA backup before updating an installed integration.
+An installation through HACS reached the Add patch form on v0.2.0. Updating an
+installed integration through HACS has not yet been exercised. Keep a full HA
+backup before updating an installed integration.

@@ -2,9 +2,8 @@
 
 [← Documentation home](../README.md) · [First-patch tutorial](first-patch.md)
 
-The current Add patch form and a managed patch were exercised on HA 2026.9.0.
-[Verification](verification.md) records the UI and file-byte checks performed for
-this revision; other behavior below is covered by automated tests.
+The current Add patch form and a managed patch were exercised on HA 2026.9.0;
+other behavior below is covered by automated tests.
 
 ## Patch settings
 

@@ -142,5 +142,5 @@ controls Supervisor; there is no public process-control endpoint.
 
 State, virtual environments, caches and `dist/` stay ignored. Back up any disposable
 state you want to retain before intentionally resetting it. A successful container
-startup does not certify HACS installation; actual product UI evidence and its
-limits are recorded in [verification.md](../docs/verification.md).
+startup does not certify HACS installation; record product UI evidence and its
+limits in the relevant PR.

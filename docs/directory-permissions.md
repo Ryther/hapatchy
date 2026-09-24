@@ -44,8 +44,7 @@ This screenshot was captured on HA 2026.9.0 after a real restart with the YAML
 above adapted to the Dev Container path. The same disposable instance accepted a
 managed patch in an authorized `scripts/` directory, applied and reverted it,
 and its target bytes were checked. A direct native-flow API attempt against an
-unlisted `www/` target was refused with its bytes unchanged. See the
-[verification record](verification.md).
+unlisted `www/` target was refused with its bytes unchanged.
 
 Only explicit, existing directories are accepted. Do not use `.` (the whole
 configuration), absolute paths, `..`, wildcards, symlinks, or protected locations
