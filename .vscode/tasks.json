@@ -1,12 +1,159 @@
 {
   "version": "2.0.0",
   "tasks": [
-    {"label": "HA: bootstrap", "type": "shell", "command": "bash .devcontainer/scripts/bootstrap.sh", "problemMatcher": []},
-    {"label": "HA: start", "type": "shell", "command": "bash .devcontainer/scripts/start-ha.sh", "problemMatcher": []},
-    {"label": "HA: stop", "type": "shell", "command": "bash .devcontainer/scripts/stop-ha.sh", "problemMatcher": []},
-    {"label": "HA: restart", "type": "shell", "command": "bash .devcontainer/scripts/restart-ha.sh", "problemMatcher": []},
-    {"label": "HA: status", "type": "shell", "command": "bash .devcontainer/scripts/status-ha.sh", "problemMatcher": []},
-    {"label": "HA: readiness", "type": "shell", "command": "bash .devcontainer/scripts/wait-ha.sh", "problemMatcher": []},
-    {"label": "HA: logs", "type": "shell", "command": "tail -n 100 -f .devcontainer/state/ha/ha.log", "problemMatcher": []}
+    {
+      "label": "HA: bootstrap",
+      "type": "shell",
+      "command": "bash .devcontainer/scripts/bootstrap.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "HA: start",
+      "type": "shell",
+      "command": "bash .devcontainer/scripts/start-ha.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "HA: stop",
+      "type": "shell",
+      "command": "bash .devcontainer/scripts/stop-ha.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "HA: restart",
+      "type": "shell",
+      "command": "bash .devcontainer/scripts/restart-ha.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "HA: status",
+      "type": "shell",
+      "command": "bash .devcontainer/scripts/status-ha.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "HA: readiness",
+      "type": "shell",
+      "command": "bash .devcontainer/scripts/wait-ha.sh",
+      "problemMatcher": []
+    },
+    {
+      "label": "HA: logs",
+      "type": "shell",
+      "command": "tail -n 100 -f .devcontainer/state/ha/ha.log",
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: tests",
+      "type": "process",
+      "command": ".venv/bin/python",
+      "args": [
+        "-m",
+        "pytest",
+        "-q"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: lint",
+      "type": "process",
+      "command": ".venv/bin/ruff",
+      "args": [
+        "check",
+        "custom_components",
+        "tests",
+        ".devcontainer/scripts",
+        ".devcontainer/tests",
+        "script"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: typing",
+      "type": "process",
+      "command": ".venv/bin/mypy",
+      "args": [
+        "--python-version",
+        "3.14"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: environment",
+      "type": "process",
+      "command": ".venv/bin/python",
+      "args": [
+        "-m",
+        "unittest",
+        "discover",
+        "-s",
+        ".devcontainer/tests",
+        "-v"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: commits",
+      "type": "process",
+      "command": ".venv/bin/cz",
+      "args": [
+        "check",
+        "--rev-range",
+        "HEAD"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: package",
+      "type": "process",
+      "command": ".venv/bin/python",
+      "args": [
+        "script/build_release.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Commit: guided message",
+      "type": "process",
+      "command": ".venv/bin/cz",
+      "args": [
+        "commit"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Checks: all",
+      "dependsOrder": "sequence",
+      "dependsOn": [
+        "Checks: tests",
+        "Checks: lint",
+        "Checks: typing",
+        "Checks: environment",
+        "Checks: commits",
+        "Checks: package"
+      ],
+      "problemMatcher": []
+    }
   ]
 }
