@@ -131,6 +131,18 @@
       "problemMatcher": []
     },
     {
+      "label": "Checks: HA boot smoke",
+      "type": "process",
+      "command": ".venv-ha/bin/python",
+      "args": [
+        "script/smoke_ha.py"
+      ],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
       "label": "Commit: guided message",
       "type": "process",
       "command": ".venv/bin/cz",
@@ -151,7 +163,8 @@
         "Checks: typing",
         "Checks: environment",
         "Checks: commits",
-        "Checks: package"
+        "Checks: package",
+        "Checks: HA boot smoke"
       ],
       "problemMatcher": []
     }
