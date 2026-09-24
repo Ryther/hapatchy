@@ -29,14 +29,15 @@ Automated checks ran on both pinned environments:
 | HA 2025.3.0 / Python 3.13.12 | 247 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
 | HA 2026.9.0 / Python 3.14.7 | The same checks passed; pinned hassfest found no invalid integration metadata or translations |
 
-The separate startup smoke booted HA 2026.9.0 from the complete Dev Container
-runtime lock using a fresh temporary configuration. It observed HAPatchY setup
-completion and HTTP readiness, then confirmed that the synthetic target still
-contained its original bytes. The pinned actionlint image accepted all four
-workflow files. These checks were run locally; GitHub-hosted execution is not
-claimed in this record.
+The separate CI smoke booted HA 2025.3.0/Python 3.13.12 and
+HA 2026.9.0/Python 3.14.7 from their pinned runtime inputs, each with a fresh
+temporary configuration. In both processes it completed onboarding, created a
+managed patch through HA's native API, checked the bytes after Apply and Revert,
+and confirmed that a target outside the two grants was refused with unchanged
+bytes. The pinned actionlint image accepted all four workflow files. These
+checks were run locally; GitHub-hosted execution is not claimed in this record.
 
 The browser capture proves the displayed form; tests and byte checks establish
 the specific behavior above. The minimum HA lane was exercised by automated
-tests, not by a separate browser session. This record does not represent a
-HACS installation or a public GitHub release.
+tests and the functional API smoke, not by a separate browser session. This
+record does not represent a HACS installation or a public GitHub release.

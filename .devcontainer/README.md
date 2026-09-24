@@ -113,8 +113,10 @@ container logs and `.devcontainer/state/ha/ha.log`.
 For a separate, repeatable startup check, run
 `.venv-ha/bin/python script/smoke_ha.py`. It copies the integration into a
 temporary configuration, starts another HA process on a free local port,
-checks HAPatchY setup and HTTP readiness, then stops that process. It does not
-modify the managed HA instance or its configuration.
+checks HAPatchY setup and HTTP readiness, then creates a managed patch through
+HA's API and verifies Apply, Revert and an unlisted-target refusal against file
+bytes. It stops that process without modifying the managed HA instance or its
+configuration. CI runs the same flow on the minimum HA/Python pair as well.
 
 ## State and dependency ownership
 

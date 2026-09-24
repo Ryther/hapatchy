@@ -1,0 +1,3 @@
+# The minimum HA test lock, plus the frontend required to boot its server.
+-r requirements-ha-min.txt
+home-assistant-frontend==20250305.0

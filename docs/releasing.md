@@ -52,8 +52,8 @@ to initialize the workflow.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
    Require the **Conventional Commits**, **Workflow lint**, **Secrets**, **Tests**
-   matrix, **HA boot smoke** and **Integration validation** checks in the branch
-   rules for `main`. Select the
+   matrix, both **HA boot smoke** matrix jobs and **Integration validation**
+   checks in the branch rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
 5. Fill in the repository metadata required by HACS, including its description
    and topics. The HACS job reports missing metadata.
@@ -99,7 +99,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | File | Trigger and responsibility |
 | --- | --- |
 | [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
-| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and boot disposable HA with the complete recent-lane runtime lock. Release can supply an exact commit. |
+| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
 | [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; hassfest on the checkout and HACS repository metadata validation. Also called by Release. |
 | [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
 

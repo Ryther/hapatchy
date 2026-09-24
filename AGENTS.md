@@ -63,7 +63,8 @@ or restart the user's household HA. Rebuild/reopen after changing image inputs
 or locks. Use `.devcontainer/scripts/{status,start,stop,restart,wait}-ha.sh` for
 the disposable HA lifecycle. Python product changes generally need an HA restart.
 The smoke command starts and stops a second HA process with temporary synthetic
-configuration; it does not use the Dev Container's managed HA state.
+configuration; it does not use the Dev Container's managed HA state. CI runs the
+same native API/file-byte flow on both supported HA/Python pairs.
 
 For external PR problems, reproducing in the Dev Container is mandatory before
 blaming the contribution. Inspect untrusted Dockerfiles, lifecycle scripts and

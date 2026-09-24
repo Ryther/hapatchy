@@ -18,6 +18,7 @@
 !/tests/
 !/tests/*.py
 !/tests/requirements-ha-min.txt
+!/tests/requirements-ha-min-runtime.txt
 !/custom_components/
 !/custom_components/__init__.py
 !/custom_components/hapatchy/

@@ -33,6 +33,8 @@ minimum baseline still needs that exact CI lane; success on the recent baseline
 alone does not dismiss it. Both lanes and their locks are in
 [tests.yaml](.github/workflows/tests.yaml). Never install the minimum lock into
 one of the running container's virtual environments.
+CI runs the native API/file-byte smoke on both HA/Python pairs; the local smoke
+command below exercises the recent pair only.
 
 This is a contributor/reviewer requirement. GitHub checks validate the submitted
 code and messages; they cannot prove which local environment a reviewer used.
