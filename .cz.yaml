@@ -1,0 +1,5 @@
+# Commit messages only. Release Please owns versions, tags and CHANGELOG.md.
+commitizen:
+  name: cz_conventional_commits
+  allowed_prefixes:
+    - Merge

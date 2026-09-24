@@ -1,6 +1,8 @@
 # Default deny: admit authored files only when they are created.
 *
 !/.gitignore
+!/.cz.yaml
+!/.github/workflows/commits.yaml
 !/README.md
 !/LICENSE
 !/pyproject.toml

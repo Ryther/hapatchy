@@ -14,7 +14,10 @@ concurrency:
   group: hapatchy-release
   cancel-in-progress: false
 jobs:
+  commits:
+    uses: ./.github/workflows/commits.yaml
   prepare:
+    needs: commits
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     permissions:
