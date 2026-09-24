@@ -83,10 +83,10 @@ def test_documented_example_applies_and_reverts_exactly():
     engine = UnifiedDiffEngine()
     target = Path("docs/examples/settings.txt").read_bytes()
     parsed = engine.parse(
-        Path("docs/examples/interval.patch").read_bytes(), "hapatchy_demo/settings.txt"
+        Path("docs/examples/interval.patch").read_bytes(), "hapatchy_ui_demo/settings.txt"
     )
     inspection = engine.inspect(parsed, target)
-    assert inspection.forward_output == b"mode=demo\ninterval=5\n"
+    assert inspection.forward_output == b"# HAPatchY example\ninterval = 5\n"
     reverse = engine.inspect(parsed, inspection.forward_output)
     assert reverse.reverse_output == target
 

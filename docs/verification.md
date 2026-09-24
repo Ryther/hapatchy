@@ -8,12 +8,35 @@ The images linked below are captures of the running HA UI. They are not mockups.
 For apply/revert/reapplication, the target file was also read from disk; a sensor
 screenshot alone would not prove that the bytes were correct.
 
-## Browser and filesystem checks
+## Managed editor, upload and target picker
+
+The revised workflow was exercised in the Dev Container's isolated HA on the
+same date and versions. The current [first-patch tutorial](first-patch.md) follows
+this run. The older local-source run below remains evidence for unchanged actions
+and error handling; its old path form is not the current Add patch form.
+
+| Operation performed | Observed result | Screenshot |
+| --- | --- | --- |
+| Search the server-side target list and select a file | `hapatchy_ui_demo/settings.txt` selected without typing its path | [Picker](images/managed-target-picker.png) |
+| Enter a multiline diff and submit with auto-apply off | Enter inserted a newline; managed source saved; target retained `interval = 30` | [Editor](images/managed-editor.png), [options](images/managed-options.png), [status](images/managed-applicable.png) |
+| Upload a `.patch` for a second target | Native upload accepted; the editor prefilled the exact submitted text; final submit created a second managed rule | [Upload](images/managed-upload.png) |
+| Restart the isolated HA | Both rules loaded their managed sources from disk; unchanged reconfiguration also saved successfully | [Reopened uploaded patch](images/managed-upload-reopened.png) |
+| Apply, then attempt to change the applied patch | Target became `interval = 5`; editor refused replacement and retained the original revision | [Applied](images/managed-applied.png), [blocked edit](images/managed-revert-before-edit.png) |
+| Revert, reopen the editor and change the replacement to `interval = 7` | Original target restored; old patch prefilled; new revision saved with the same rule ID | [Reverted](images/managed-reverted.png), [edit](images/managed-edit-revision.png) |
+| Enable automatic application, then replace target with original bytes | New revision restored `interval = 7`; final Revert returned `interval = 30` | [Reapplied](images/managed-auto-reapplied.png) |
+
+The patch revision files were read back and their SHA-256 names checked against
+contents. Previous revisions were retained. Native configuration contains only
+the revision reference; neither upload identifiers nor editor text were persisted
+in the rule. Race/failure handling, including an apply or reload during save,
+was tested automatically rather than inferred from screenshots.
+
+## Earlier local-source browser and filesystem checks
 
 | Operation performed | Observed result | Screenshot |
 | --- | --- | --- |
 | Copy the integration into a separate HA configuration, start HA and use Add integration | HAPatchY found; setup completed; Add patch available | [Search](images/install-search.png), [ready](images/install-ready.png) |
-| Add the exact local example from the tutorial with auto-apply off | Sensor `applicable`; original `interval=30` retained | [Paths](images/patch-paths.png), [options](images/patch-options.png), [state](images/applicable.png) |
+| Add the earlier local-source example with auto-apply off | Sensor `applicable`; original `interval=30` retained | [Paths](images/patch-paths.png), [options](images/patch-options.png), [state](images/applicable.png) |
 | Perform Apply in the Actions YAML editor | `applied`; file contained `interval=5`; completed backup contained target bytes and metadata | [Action](images/action-apply.png), [state](images/applied.png) |
 | Perform Revert | `applicable`; file returned to `interval=30`; auto-apply remained off in the reconfiguration form | [State](images/reverted.png), [persisted option](images/revert-auto-off.png) |
 | Enable automatic application, then replace the target with its original contents | Watcher restored `interval=5`; sensor returned to `applied` | [After reapplication](images/auto-reapplied.png) |
@@ -28,7 +51,9 @@ screenshot alone would not prove that the bytes were correct.
 | Delete the reverted demo rule | Rule removed; target and backups remained | [Confirmation](images/remove-patch.png) |
 | Delete the integration, remove its copied folder and restart the separate HA | Native deletion completed; HAPatchY no longer appeared in Add integration | [Confirmation](images/remove-integration.png), [after restart](images/uninstalled.png) |
 
-The tutorial's two downloadable files were used without changing their contents.
+That earlier run used the previous tutorial fixtures (`mode=demo`, `interval=30`,
+and the `hapatchy_demo` target path). The current downloadable files match the
+managed-editor example above.
 Browser automation entered forms and performed actions; direct file writes were
 used only to create the example and simulate the documented replacements/errors.
 On this HA frontend, developer tools appear under the title **Tools**.

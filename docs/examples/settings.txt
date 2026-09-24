@@ -1,2 +1,2 @@
-mode=demo
-interval=30
+# HAPatchY example
+interval = 30

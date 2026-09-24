@@ -68,6 +68,10 @@ blindly. For a controlled example of valid context, revisit
 
 ## Source error
 
+For a managed source, keep `.hapatchy/patches/` in your HA backup. If a revision
+is missing, Reconfigure can restore its exact original contents. Do not edit
+hash-named files directly; use the editor after Revert.
+
 For a local source, confirm the file exists in the configuration folder and is
 readable by HA. Check spelling, capitalization, extension and UTF-8 encoding.
 For HTTPS, check that the URL returns patch text directly, without an HTML page,

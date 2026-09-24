@@ -2,7 +2,8 @@
 
 [← Documentation home](../README.md) · [First-patch tutorial](first-patch.md)
 
-The local-source UI operations below were exercised on HA 2026.9.0.
+The editor, upload, target selection and local-source UI operations below were
+exercised on HA 2026.9.0.
 [Verification and screenshots](verification.md) separate those observations
 from contracts covered only by automated tests.
 
@@ -15,11 +16,12 @@ entry; you do not need a separate integration for each file.
 | Setting | Meaning | Default / limit |
 | --- | --- | --- |
 | Name | A label you will recognize in HA | Required |
-| Target path | File that will be changed, relative to HA's configuration folder | One regular text file |
-| Watch directory | Existing directory containing the target; monitored recursively | Explicit subdirectory, never the configuration root |
+| File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file inside a subdirectory |
+| Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
 | Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
-| Source type | `local` for a file in the configuration folder, `url` for HTTPS | `local` |
-| Source | Patch file path or direct HTTPS URL; never the target itself | Required |
+| Patch input | Write/paste, upload, existing local file, or HTTPS URL | Write or paste patch contents |
+| Patch contents | Complete unified diff, typed or prefilled from an upload | UTF-8, maximum 2 MiB |
+| External source | Existing local patch path or direct HTTPS URL, requested on the next screen | Only for advanced local/HTTPS input |
 | Enabled | Allows checks, watching and actions for this rule | On |
 | Apply compatible patches automatically | Reconcile applies a patch when safe | On |
 | Check at Home Assistant startup | Check when HAPatchY starts or reloads | On |
@@ -41,6 +43,28 @@ minimum 1, maximum 100. Removing a patch does not delete its backups.
 
 ![Backup retention in the native integration options](images/retention.png)
 
+## Managed patches and the file picker
+
+Writing/pasting and uploading both create a **managed** source. HAPatchY saves
+immutable, SHA-256-named revisions under `.hapatchy/patches/`; native configuration
+contains their references, not the patch text. Reconfigure opens the saved text
+for editing. Revert an applied patch before changing its source or target.
+Saving a new revision retains the old one. Removing a rule also retains revisions;
+backup retention does not prune this source directory.
+
+The target picker offers up to 1,000 suggestions, inspecting at most 10,000
+entries and descending at most 16 directory levels. It skips hidden entries,
+protected paths, symbolic/hard links and files directly in the configuration root.
+It is a convenience list, not a complete filesystem browser. Enter an eligible
+relative path manually when it is absent; normal path and patch validation still
+applies. The upload chooser selects a patch on your computer; the target picker
+selects an existing file on the HA server.
+
+Only the final form submission saves a managed revision. Saving configuration
+reloads HAPatchY and can apply it when startup checking and automatic application
+are enabled. Cancel before saving to discard edits. An interrupted save can
+leave an unreferenced revision; old revisions are not automatically deleted.
+
 ## Local files and HTTPS
 
 Local paths always use `/` separators and start inside the HA configuration
@@ -58,7 +82,7 @@ that the author is trustworthy. When you deliberately update a pinned patch,
 review the new contents and update its fingerprint too. A failed source request
 or fingerprint check never reuses an old cached patch.
 
-Editing the **patch source** does not trigger the target watch. After editing it,
+Editing an **external patch source** does not trigger the target watch. After editing it,
 use **Refresh source** to check it or **Reconcile** to check and, if enabled, apply.
 
 ## Status sensor

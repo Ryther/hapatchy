@@ -27,7 +27,10 @@ instead of guessing. Patches for other integrations are **not bundled**.
    a real patch, and [troubleshooting and recovery](docs/troubleshooting.md) if
    something goes wrong.
 
-You configure HAPatchY from **Settings → Devices & services**. Each patch has a
+You configure HAPatchY from **Settings → Devices & services**. Select the target
+file from HA’s configuration, then paste a patch into the editor or upload a
+`.patch`/`.diff` file. HAPatchY saves it and lets you edit it later. Existing local
+patch files and direct HTTPS URLs remain available as advanced inputs. Each patch has a
 status sensor; Home Assistant's Repairs page reports problems. There is no YAML
 integration configuration to maintain and no custom dashboard to install.
 

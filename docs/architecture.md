@@ -9,7 +9,9 @@ Assistant lifecycle. No patch is executed as a shell command or Python program.
 | `patch_engine` | Parse and independently inspect forward/reverse exact matches; no I/O | `UnifiedDiffEngine.parse`, `UnifiedDiffEngine.inspect` |
 | `safe_io` | Descriptor-relative traversal and file snapshots | `GuardedDirectory`, `GuardedFile` |
 | `atomic_writer`, `backup` | Durable transaction and backup retention | `AtomicFileWriter`, `BackupManager` |
-| `patch_source` | Bounded local/HTTPS source reads | `PatchSourceClient` |
+| `patch_source` | Bounded managed/local/HTTPS source reads | `PatchSourceClient` |
+| `managed_source` | Immutable private patch revisions | `ManagedPatchStore` |
+| `source_upload`, `target_picker` | Consume native uploads and enumerate bounded target suggestions | `read_upload`, `list_targets` |
 | `reconciler` | Synchronous policy and transaction orchestration | `Reconciler.run` |
 | `coordinator` | HA loop state, serialized admission and drained teardown | `PatchManagerRuntime` |
 | `watcher` | Observer ownership, loop debounce and root recovery | `PatchWatcher` |
@@ -27,6 +29,12 @@ and shields them from caller cancellation until their result is recorded. Unload
 closes admission, stops watches and drains admitted work before releasing state.
 Watchdog threads enqueue immutable event paths onto HA's event loop; they never
 change HA entities or configuration directly.
+
+Configuration publication and runtime actions share a lock that survives reloads.
+A final source-change check and native update run under that lock; teardown drains
+active saves. Managed files are published before their references are configured,
+without overwriting existing revisions. Upload processing and discovery run in
+the executor.
 
 Native subentries are the source of configuration. Metadata storage contains
 status history only. Revert updates native auto-apply configuration before file
