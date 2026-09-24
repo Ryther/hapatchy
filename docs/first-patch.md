@@ -8,9 +8,8 @@ changed. You select the target in HA, paste the patch, then try Apply and Revert
 You do not need to create a patch file in HA's configuration folder.
 
 This exact example was performed in Chromium on disposable HA **2026.9.0** on
-24 September 2026. The resulting file bytes were checked after every write;
-see [verification details](verification.md). This HA version calls Developer
-tools **Tools**.
+24 September 2026. The resulting file bytes were checked after every write.
+This HA version calls Developer tools **Tools**.
 
 ## 1. Prepare an unused target
 

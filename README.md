@@ -83,13 +83,13 @@ The Dev Container's Python 3.14 requirement does not raise the product minimum.
 
 ## Installation and release status
 
-HAPatchY is experimental. The first public release is
-[v0.2.0](https://github.com/Ryther/hapatchy/releases/tag/v0.2.0). Its archive
-was downloaded, checksum-checked and exercised in disposable HA. For manual
-installation, use the archive's `custom_components/hapatchy` folder.
-HACS installation/update has not yet been verified; default-store inclusion is not claimed.
-See [installation](docs/installation.md) for the exercised manual path and
-[verification](docs/verification.md) for the checks performed on this revision.
+HAPatchY is experimental. Download the
+[latest release](https://github.com/Ryther/hapatchy/releases/latest) for manual
+installation and use its `custom_components/hapatchy` folder. The first public
+v0.2.0 archive was checksum-checked and exercised in disposable HA. A HACS
+installation of v0.2.0 reached the native Add patch form; a HACS update has not
+yet been verified, and default-store inclusion is not claimed. See
+[installation](docs/installation.md) for the setup steps.
 
 ## Help and development
 

@@ -2,9 +2,6 @@
 
 [← Documentation home](../README.md) · [Status reference](reference.md#status-sensor)
 
-See [the verification record](verification.md) for the behavior exercised in the
-disposable HA instance and by automated tests for this revision.
-
 ## Start with these checks
 
 1. Open the patch's status sensor and note its state, `last_error` and

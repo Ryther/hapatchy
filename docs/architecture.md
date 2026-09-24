@@ -47,9 +47,8 @@ and state records a controlled error. HA storage and the target file do not shar
 one filesystem transaction.
 
 Tests cover decisions independently and exercise native flows, sensors, service
-permissions, watcher threads and filesystem failures. The current verification
-does not include an end-to-end HACS update. See the
-[verification record](verification.md) for checks performed on this revision.
+permissions, watcher threads and filesystem failures. An end-to-end HACS update
+has not yet been exercised.
 
 ## Working on the project
 
