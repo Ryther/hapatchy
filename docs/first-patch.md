@@ -7,11 +7,10 @@ This exercise changes an unused text file from `interval = 30` to `interval = 5`
 changed. You select the target in HA, paste the patch, then try Apply and Revert.
 You do not need to create a patch file in HA's configuration folder.
 
-The current Add patch form was captured in Chromium on HA **2026.9.0** on
-24 September 2026. A managed patch was applied and reverted with target-byte
-checks in that instance. The exact example below was not replayed end to end
-for this revision; see [verification details](verification.md). This HA version
-calls Developer tools **Tools**.
+This exact example was performed in Chromium on disposable HA **2026.9.0** on
+24 September 2026. The resulting file bytes were checked after every write;
+see [verification details](verification.md). This HA version calls Developer
+tools **Tools**.
 
 ## 1. Prepare an unused target
 
@@ -48,6 +47,8 @@ choose **Add custom item**. Paths are validated again when submitted.
 
 Select **Submit** to open the patch editor.
 
+![The Add patch form with the server-side target picker](images/first-patch-target-picker.png)
+
 ## 3. Paste and save the patch
 
 Paste this complete unified diff into **Patch contents**:
@@ -81,6 +82,8 @@ start an apply immediately; that is why this tutorial turns automatic applicatio
 
 The new sensor, **UI interval status**, should become **Applicable**. The target
 still contains `interval = 30`. A brief `unknown` state before the check is normal.
+
+![The tutorial rule is applicable before the target is changed](images/first-patch-applicable.png)
 
 ### Prefer uploading a patch file?
 
@@ -126,9 +129,13 @@ saved patch. Change `+interval = 5` to `+interval = 7` and submit.
 If the patch is still applied, HAPatchY asks you to cancel, run Revert and reopen
 the form. The old patch remains configured so Revert can still use it.
 
-After Revert, the edit can be saved. HAPatchY keeps the previous patch revision
+After Revert, the edit can be saved. Submit the final **Behavior and verification**
+form to save the edit; reconfiguration returns to the integration page without
+another Finish button. HAPatchY keeps the previous patch revision
 and gives the new contents their own file; it does not overwrite the old revision.
 The rule and sensor keep their identity.
+
+![Reconfigure opens the saved patch text in the editor](images/first-patch-reconfigure.png)
 
 ## 6. Try automatic reapplication
 
