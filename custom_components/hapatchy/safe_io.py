@@ -91,8 +91,8 @@ class GuardedDirectory(AbstractContextManager):
 class GuardedFile(AbstractContextManager):
     """A verified parent handle; each read captures the current named inode."""
 
-    def __init__(self, root: Path, path: str):
-        parts = relative_parts(path)
+    def __init__(self, root: Path, path: str, *, internal: bool = False):
+        parts = relative_parts(path, internal=internal)
         self.name = parts[-1]
         self.directory = GuardedDirectory(root, parts[:-1])
 

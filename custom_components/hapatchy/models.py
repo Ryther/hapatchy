@@ -89,6 +89,9 @@ class PatchDefinition:
         if source_type == "local":
             if relative_parts(source) == target:
                 raise PatchError("source_is_target", Status.SECURITY_ERROR)
+        elif source_type == "managed":
+            if not re.fullmatch(r"[0-9a-f]{64}", source):
+                raise PatchError("invalid_managed_source", Status.SECURITY_ERROR)
         elif source_type == "url":
             try:
                 url = urlsplit(source)

@@ -9,6 +9,7 @@ from pathlib import Path
 import aiohttp
 
 from .const import MAX_PATCH_BYTES
+from .managed_source import ManagedPatchStore
 from .models import PatchDefinition, PatchError, Status
 from .safe_io import GuardedFile
 
@@ -51,6 +52,10 @@ class PatchSourceClient:
         try:
             if definition.source_type == "local":
                 data = await self.run_io(partial(_local, self.root, definition))
+            elif definition.source_type == "managed":
+                data = await self.run_io(
+                    partial(ManagedPatchStore(self.root).load, definition.source)
+                )
             else:
                 assert self.session is not None
                 async with self.session.get(
