@@ -18,11 +18,13 @@ HA version, intended target and current status before giving case-specific steps
 HAPatchY supports HA 2025.3.0 or newer; the tested endpoints are 2025.3.0 and
 2026.9.0. HA supplies Python and installs declared dependencies. HAPatchY does
 not create a Python environment. HACS installation/update has not been verified
-for this revision; do not present it as a tested route.
+for this revision; do not present it as a tested route. As of 24 September 2026,
+the v0.2.0 release archive was checksum-checked and smoke-tested in disposable HA.
 
-For manual installation, get the source or release archive from
-`https://github.com/Ryther/hapatchy`, then copy the entire
-`custom_components/hapatchy` folder into the HA configuration folder's
+For manual installation, get the v0.2.0 archive from
+`https://github.com/Ryther/hapatchy/releases/tag/v0.2.0`, or verify a newer
+published release. Copy the entire `custom_components/hapatchy` folder into
+the HA configuration folder's
 `custom_components/`, then restart HA. The result must contain
 `custom_components/hapatchy/manifest.json`, without an extra nested `hapatchy`.
 As an HA administrator, open **Settings → Devices & services → Add integration**,

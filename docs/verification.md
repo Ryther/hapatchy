@@ -73,8 +73,8 @@ bytes. These smoke checks passed locally and in the GitHub-hosted
 
 | Environment | Current revision checks |
 | --- | --- |
-| HA 2025.3.0 / Python 3.13.12 | 289 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
-| HA 2026.9.0 / Python 3.14.7 | Browser walkthrough above; 289 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
+| HA 2025.3.0 / Python 3.13.12 | 293 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
+| HA 2026.9.0 / Python 3.14.7 | Browser walkthrough above; 293 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
 
 The pinned hassfest image reported **0 invalid integrations** after the
 translation changes. The pinned actionlint image accepted the workflow files.
@@ -85,9 +85,19 @@ runs. After the repository became public, that validation run passed its local
 metadata, hassfest and HACS Action jobs. HACS Action validates the published
 repository metadata; it does not install or update HAPatchY in HA.
 
+The [v0.2.0 release workflow](https://github.com/Ryther/hapatchy/actions/runs/36026824446)
+passed both test and boot-smoke lanes against commit `e3e9fb2`, plus HACS,
+hassfest, metadata, workflow lint and secret checks. The published tag resolves
+to that commit, and GitHub reports the release as immutable. Both release
+assets were downloaded; `sha256sum --check hapatchy-0.2.0.zip.sha256` passed.
+The downloaded ZIP was then extracted into a fresh disposable HA 2026.9.0
+setup. Its native API flow saved a managed patch, Apply and Revert produced the
+expected disk bytes, and a target outside the grants was refused. This tested
+the published archive, not a HACS installation or a fresh HA OS dependency
+download.
+
 The screenshots show rendered forms and statuses. Separate disk-byte checks
 establish the specific writes above. The minimum HA lane was exercised by
 automated tests and the functional API smoke, not by a separate browser session.
 The HTTPS browser check used a denied loopback URL, not a live public HTTPS
-service. This record does not represent a HACS installation, HACS update or a
-GitHub release.
+service. This record does not represent a HACS installation or HACS update.
