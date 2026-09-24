@@ -2,6 +2,7 @@
 
 import os
 import stat
+from collections.abc import Callable
 from pathlib import Path
 
 from .models import PatchError, relative_parts
@@ -18,7 +19,7 @@ def list_targets(root: Path, policy: PathPolicy) -> list[str]:
     results: list[str] = []
     remaining = MAX_ENTRIES
 
-    def visit(parts: tuple[str, ...]) -> None:
+    def visit(parts: tuple[str, ...], check_path: Callable[[str], None]) -> None:
         nonlocal remaining
         if not remaining or len(results) >= MAX_SUGGESTIONS or len(parts) > MAX_DEPTH:
             return
@@ -38,11 +39,11 @@ def list_targets(root: Path, policy: PathPolicy) -> list[str]:
                         except (OSError, PatchError):
                             continue
                         if stat.S_ISDIR(info.st_mode):
-                            visit(path)
+                            visit(path, check_path)
                         elif parts and stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
                             candidate = "/".join(path)
                             try:
-                                policy.check_path(candidate)
+                                check_path(candidate)
                             except PatchError:
                                 continue
                             results.append(candidate)
@@ -51,6 +52,7 @@ def list_targets(root: Path, policy: PathPolicy) -> list[str]:
             # A disappearing/inaccessible directory is not a reason to block manual input.
             return
 
-    for grant in grants:
-        visit(tuple(grant.split("/")))
+    with policy.checked_read_only_paths() as check_path:
+        for grant in grants:
+            visit(tuple(grant.split("/")), check_path)
     return sorted(set(results))
