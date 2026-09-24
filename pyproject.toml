@@ -1,6 +1,6 @@
 [project]
 name = "hapatchy"
-version = "0.2.0"
+version = "0.2.1"
 description = "Exact single-file patch management for Home Assistant"
 requires-python = ">=3.13"
 license = "MIT"

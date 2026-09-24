@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.2.1](https://github.com/Ryther/hapatchy/compare/v0.2.0...v0.2.1) (2026-09-24)
+
+
+### Bug Fixes
+
+* avoid repeated YAML scans in patch picker ([f3ab9fa](https://github.com/Ryther/hapatchy/commit/f3ab9fa61973264bce696cfcefc86847996c39f3))
+* close YAML include directory descriptors ([499fd57](https://github.com/Ryther/hapatchy/commit/499fd578fb6fab1c4d5f8f423940c3c3035eefe5))
+
+
+### Documentation
+
+* add HACS custom repository button ([d7f5e0b](https://github.com/Ryther/hapatchy/commit/d7f5e0bda07b051308eaa9f3aa38b2537068e25a))
+
 ## 0.2.0 (2026-09-24)
 
 Initial public release.
