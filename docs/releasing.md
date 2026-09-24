@@ -7,10 +7,10 @@ Release Please proposes the version and changelog. Commitizen checks commit
 messages. The publishing helper builds the integration archive, uploads it to a
 GitHub draft and publishes that draft only after verification.
 
-This automation has been tested locally, including failure and retry cases. It
-has **not completed a real GitHub release run**. The GitHub configuration needed
-for publication is described below. User installation instructions are in
-[installation.md](installation.md).
+The [v0.2.0 release run](https://github.com/Ryther/hapatchy/actions/runs/36026824446)
+completed on 24 September 2026: it validated both HA/Python lanes, uploaded the
+ZIP and checksum, and published the release. GitHub reports that release as
+immutable. User installation instructions are in [installation.md](installation.md).
 
 The HACS Action is skipped when the repository is private because [HACS cannot
 use private GitHub repositories](https://hacs.dev/docs/faq/private_repositories/).
@@ -25,6 +25,10 @@ There are two separate runs of the **Release** workflow:
 | --- | --- |
 | Merge a feature/fix PR | Check commit messages, then open or update the release PR. No release assets are published. |
 | Merge the release PR | Check commit messages, create a draft, test the release commit, upload the ZIP/checksum, then publish. |
+
+The prepare job handles draft creation before considering another release PR.
+When a merged release PR creates a draft, PR creation is skipped; subsequent
+feature/fix commits can start the next proposal after that release is published.
 
 For example, starting from the development version `0.1.0`:
 
@@ -50,8 +54,8 @@ to initialize the workflow.
 
 1. Use **`main`** as the default branch and enable Actions. In repository
    **Settings → Releases**, enable **release immutability** before the first
-   publication. The draft/upload/publish sequence supports it, but the current
-   workflow does not check whether that GitHub setting is enabled.
+   publication. HAPatchY's v0.2.0 release is reported as immutable by GitHub;
+   the workflow itself does not check the repository setting.
 2. Add the repository Actions secret **`RELEASE_PLEASE_TOKEN`**: a fine-grained
    personal access token for this repository with **Contents**, **Pull requests**
    and **Issues** read/write permissions. Release Please uses it to create PRs,
@@ -64,7 +68,9 @@ to initialize the workflow.
    actual check names shown after their first run. Avoid bypassing these rules.
    A personal GitHub Free repository cannot enforce branch protection while
    private; review every check manually in that phase, then enable the rules
-   after making the repository public or upgrading the plan.
+   after making the repository public or upgrading the plan. On this public
+   repository, `main` requires the listed checks, a PR, current base, and linear
+   history, and disallows force pushes and deletion even for administrators.
 5. Fill in the repository metadata required by HACS, including its description
    and topics. The HACS job reports missing metadata.
 

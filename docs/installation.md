@@ -21,19 +21,21 @@ HAPatchY paths are relative to this folder. If a file is
 
 ## HACS availability
 
-A HACS installation/update has **not been exercised for this revision**. The
-manual source-install path below is the verified development procedure.
+A HACS installation/update has **not been exercised for this revision**. Manual
+installation from the published v0.2.0 archive has been exercised in disposable
+HA, including Apply, Revert and a denied destination.
 
 ## Manual installation
 
-This path was exercised with a copy of the integration source in a separate HA
-2026.9.0 configuration, followed by startup and native UI setup. It used the
-existing development Python environment; it did not test dependency downloads
-on a fresh HA OS installation. See [the verification record](verification.md).
+This path was exercised with integration source and the published v0.2.0
+archive in separate HA 2026.9.0 configurations. The source path was also
+checked in the browser UI. Both used the existing development Python
+environment; dependency downloads on a fresh HA OS installation remain
+unverified. See [the verification record](verification.md).
 
-1. Download/clone this repository for development testing. Once a public release
-   exists, its integration archive can provide the same folder; installation from
-   a published release has not yet been tested.
+1. Download [the v0.2.0 archive](https://github.com/Ryther/hapatchy/releases/tag/v0.2.0)
+   from GitHub Releases. The repository source is also available for development
+   testing.
 2. Locate `custom_components/hapatchy` inside the download.
 3. Copy that **entire `hapatchy` folder** into your HA configuration's
    `custom_components` directory. Create `custom_components` if necessary.
