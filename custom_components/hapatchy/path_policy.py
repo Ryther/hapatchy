@@ -1,8 +1,9 @@
 """Pure destination decisions over operator grants and Home Assistant permission."""
 
 from collections.abc import Callable
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Protocol
+from typing import Iterator, Protocol
 
 from .models import PatchDefinition, PatchError, Status, relative_parts
 
@@ -62,6 +63,19 @@ class PathPolicy:
     def check_path(self, path: str, *, directory: bool = False) -> None:
         self.grants.check_current()
         self._check_path(path, directory=directory)
+
+    @contextmanager
+    def checked_read_only_paths(self) -> Iterator[Callable[[str], None]]:
+        """Validate a read-only listing against one unchanged YAML snapshot."""
+        self.grants.check_current()
+
+        def check(path: str) -> None:
+            self._check_path(path, directory=False)
+
+        try:
+            yield check
+        finally:
+            self.grants.check_current()
 
     def check_definition(self, definition: PatchDefinition) -> None:
         self.grants.check_current()

@@ -2,8 +2,27 @@
 
 [← Documentation home](../README.md) · [Your first patch](first-patch.md)
 
-On **24 September 2026**, this revision ran in the Dev Container's disposable
-**Home Assistant 2026.9.0 / Python 3.14.7**. The operator YAML contained explicit
+On **25 September 2026**, the target picker was checked against a slow-opening
+case in a disposable HA 2026.9.0 / Python 3.14.7 process. Opening the native
+**Add patch** flow with 500 eligible files took **0.146 seconds** and left the
+sample target's bytes unchanged. A separate synthetic case with 500 eligible
+files and 100 included YAML files took **8.11 seconds before** the read-only
+policy-check change and **0.071 seconds after** it on the same development
+machine. These timings describe those fixtures, not a guaranteed response time
+for every installation. In a fresh browser session against disposable HA, the
+same **Add patch** form appeared in **0.393 seconds** with 500 eligible files.
+Regression tests cover bounded YAML rescans and refusal when configuration
+changes during enumeration. The rendered fields did not change; the published
+screenshot below shows that same form from the preceding browser walkthrough.
+Both locked test lanes passed **295 pytest tests**, Ruff, mypy, 13 Dev
+Container unit tests and the release archive build. Separate disposable HA
+processes on **2025.3.0 / Python 3.13.12** and **2026.9.0 / Python 3.14.7**
+passed the managed-patch Apply, Revert and denied-target byte checks. The
+browser timing was measured only on the newer lane.
+
+On **24 September 2026**, the preceding product revision ran in the Dev
+Container's disposable **Home Assistant 2026.9.0 / Python 3.14.7**. The
+operator YAML contained explicit
 `homeassistant.allowlist_external_dirs` and `hapatchy.allowed_directories` entries
 for two test directories. After restarting HA, the integration loaded and the
 current Add patch form displayed the two-list requirement:
@@ -71,7 +90,7 @@ and confirmed that a target outside both grants was refused with unchanged
 bytes. These smoke checks passed locally and in the GitHub-hosted
 [Tests run for product commit `36ff7c9`](https://github.com/Ryther/hapatchy/actions/runs/36022163070).
 
-| Environment | Current revision checks |
+| Environment | 24 September baseline checks |
 | --- | --- |
 | HA 2025.3.0 / Python 3.13.12 | 293 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
 | HA 2026.9.0 / Python 3.14.7 | Browser walkthrough above; 293 pytest tests, Ruff, mypy and 13 Dev Container unit tests passed |
