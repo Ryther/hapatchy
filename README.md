@@ -89,6 +89,15 @@ For help, start with [troubleshooting](docs/troubleshooting.md). When opening a
 [GitHub issue](https://github.com/Ryther/hapatchy/issues), include versions, the
 sensor status and a small sanitized example. Review diagnostics before sharing.
 
+AI assistants can use the [HAPatchY user guide skill](.agents/skills/hapatchy-guide/SKILL.md)
+to walk through installation, directory authorization, patch actions and recovery.
+Codex and OpenCode discover it from `.agents/skills/`; Claude Code discovers the
+same skill through `.claude/skills/`. In ChatGPT accounts that support Skills,
+upload the `hapatchy-guide` folder from `.agents/skills/` in **Plugins → Skills →
+Create → Upload from your computer**. A ChatGPT chat does not automatically
+load skills merely because it can read this repository. The skill gives guidance;
+it does not grant HA access or approve a patch destination.
+
 For contributors: [contribution rules](CONTRIBUTING.md),
 [development and architecture](docs/architecture.md),
 [Dev Container guide](.devcontainer/README.md), and
