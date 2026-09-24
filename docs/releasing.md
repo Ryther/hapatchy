@@ -63,8 +63,8 @@ to initialize the workflow.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
    Require the **Conventional Commits**, **Workflow lint**, **Secrets**, **Tests**
-   matrix, both **HA boot smoke** matrix jobs and **Integration validation**
-   checks in the branch rules for `main`. Select the
+   matrix, both **HA boot smoke** matrix jobs, **Integration validation**, and
+   both **CodeQL** jobs in the branch rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
    A personal GitHub Free repository cannot enforce branch protection while
    private; review every check manually in that phase, then enable the rules
