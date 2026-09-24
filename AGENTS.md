@@ -48,6 +48,7 @@ Run from the repository root inside the container:
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD
 .venv/bin/python script/build_release.py
+.venv-ha/bin/python script/smoke_ha.py
 ```
 
 For several commits, validate the actual base-to-head range with Commitizen.
@@ -61,6 +62,8 @@ requirements on another, run ad hoc pip upgrades in a live managed environment,
 or restart the user's household HA. Rebuild/reopen after changing image inputs
 or locks. Use `.devcontainer/scripts/{status,start,stop,restart,wait}-ha.sh` for
 the disposable HA lifecycle. Python product changes generally need an HA restart.
+The smoke command starts and stops a second HA process with temporary synthetic
+configuration; it does not use the Dev Container's managed HA state.
 
 For external PR problems, reproducing in the Dev Container is mandatory before
 blaming the contribution. Inspect untrusted Dockerfiles, lifecycle scripts and

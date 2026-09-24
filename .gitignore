@@ -14,6 +14,7 @@
 !/.github/pull_request_template.md
 !/.github/workflows/
 !/.github/workflows/tests.yaml
+!/.github/dependabot.yml
 !/tests/
 !/tests/*.py
 !/tests/requirements-ha-min.txt
@@ -56,6 +57,7 @@
 !/docs/images/yaml-directory-authorization.png
 !/script/
 !/script/build_release.py
+!/script/smoke_ha.py
 !/.github/workflows/validation.yaml
 
 # User guides, executable example and release automation.

@@ -74,6 +74,9 @@ CI repeats product tests in the separate minimum HA/Python environment. Do not
 install its lock over the running recent HA environment. Use temporary files and
 fake network/GitHub boundaries in tests; no test should need household HA, a real
 GitHub token, or publication permissions.
+The CI boot smoke uses the complete recent-lane HA lock and a separate temporary
+configuration; the unit-test lock is intentionally smaller. The smoke waits for
+HAPatchY setup and HTTP readiness and checks that its synthetic target is unchanged.
 
 ## Packaging and release boundaries
 

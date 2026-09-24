@@ -110,6 +110,12 @@ owns port 8123 and responds over HTTP. Startup preparation has a 30-minute bound
 HA readiness then has its own 120-second deadline. Failures remain visible in
 container logs and `.devcontainer/state/ha/ha.log`.
 
+For a separate, repeatable startup check, run
+`.venv-ha/bin/python script/smoke_ha.py`. It copies the integration into a
+temporary configuration, starts another HA process on a free local port,
+checks HAPatchY setup and HTTP readiness, then stops that process. It does not
+modify the managed HA instance or its configuration.
+
 ## State and dependency ownership
 
 - `.venv` contains development/test tools and Supervisor.
