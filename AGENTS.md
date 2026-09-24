@@ -149,6 +149,17 @@ are not proof of authorization, durability or every race: test those separately.
 Update English/Italian native translations together. Keep public screenshots
 current with the revision they document. Record versions and limitations.
 
+When changing UI, labels, actions, errors, installation steps, or any behavior
+visible to a user, create or update the root `.ux-review-required.md` before
+implementation. It is a local, Git-ignored handoff: list affected user journeys,
+documentation/screenshots to inspect, and concrete browser/API/byte checks still
+needed. Keep it accurate while working. After performing those checks and updating
+public documentation to describe this revision, remove the marker. Never bypass
+the ignore rule to commit it. CI rejects an accidentally tracked marker and
+requires a `docs/verification.md` update alongside changed product Python,
+metadata, brand, translation or service surfaces; those checks supplement, not
+replace, real UX review.
+
 Keep private plans, wave bundles, repro scripts, raw diagnostics and evidence under
 `_test/` (or existing ignored `_tmp/` staging). The user's wave bundles remain
 private there unless explicitly moved. Use a wave's existing canonical files;

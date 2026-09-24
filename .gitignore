@@ -1,5 +1,6 @@
 # Default deny: admit authored files only when they are created.
 *
+/.ux-review-required.md
 !/.gitignore
 !/.cz.yaml
 !/.github/workflows/commits.yaml
@@ -56,9 +57,14 @@
 !/docs/verification.md
 !/docs/images/
 !/docs/images/yaml-directory-authorization.png
+!/docs/images/first-patch-target-picker.png
+!/docs/images/first-patch-applicable.png
+!/docs/images/first-patch-reconfigure.png
+!/docs/images/https-source-denied.png
 !/script/
 !/script/build_release.py
 !/script/smoke_ha.py
+!/script/check_ux_review.py
 !/.github/workflows/validation.yaml
 
 # User guides, executable example and release automation.
