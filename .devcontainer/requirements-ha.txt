@@ -100,7 +100,7 @@ securetar==2026.4.1
 sentence_stream==1.3.0
 six==1.17.0
 snitun==0.47.0
-SQLAlchemy==2.0.52
+SQLAlchemy==2.0.54
 standard-aifc==3.13.0
 standard-chunk==3.13.0
 standard-telnetlib==3.13.0
