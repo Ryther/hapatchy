@@ -83,7 +83,7 @@ pycares==5.0.1
 pycognito==2024.5.1
 pycparser==3.0
 pydantic==2.10.6
-pydantic_core==2.27.2
+pydantic_core==2.49.0
 PyJWT==2.10.1
 pylint-per-file-ignores==1.4.0
 pyOpenSSL==25.0.0
