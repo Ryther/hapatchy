@@ -66,8 +66,9 @@ The Dev Container's Python 3.14 requirement does not raise the product minimum.
 HAPatchY is experimental. Use a published version from
 [GitHub Releases](https://github.com/Ryther/hapatchy/releases) when one is available.
 If there is no release, the manual source-install path is for development/testing.
-HACS installation uses a custom repository; default-store inclusion is not claimed.
-See [installation](docs/installation.md) for the complete procedure and checks.
+HACS installation/update has not yet been verified; default-store inclusion is not claimed.
+See [installation](docs/installation.md) for the exercised manual path and
+[verification](docs/verification.md) for screenshots and the remaining gaps.
 
 ## Help and development
 

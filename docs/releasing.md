@@ -1,183 +1,135 @@
-# Versioning and releases
+# Release HAPatchY
 
-[← Documentation home](../README.md) · [Development guide](architecture.md)
+Releases use a pull request. **Merging a feature does not publish a release;
+merging the release PR authorizes publication after its checks pass.**
 
-This page is for maintainers. Users should follow [installation](installation.md).
-The automation is defined in [release.yaml](../.github/workflows/release.yaml);
-this document describes that workflow, not a record of releases already performed.
+Release Please proposes the version and changelog. Commitizen checks commit
+messages. The publishing helper builds the integration archive, uploads it to a
+GitHub draft and publishes that draft only after verification.
 
-## The normal path
+This automation has been tested locally, including failure and retry cases. It
+has **not yet completed a real GitHub release run**. The setup below must be done
+on GitHub before the first release. User installation instructions are in
+[installation.md](installation.md).
 
-```mermaid
-flowchart TD
-    A[Merge feature or fix into main] --> B[Release Please opens or updates release PR]
-    B --> C[Review version and changelog; CI runs on the PR]
-    C --> D[Merge release PR]
-    D --> E[Create draft release for its exact commit]
-    E --> F[Run both HA test baselines and integration validation]
-    F --> G[Upload integration ZIP and SHA-256 checksum]
-    G --> H[Publish release and version tag]
-    F -->|failure| I[Keep draft for retry]
-    G -->|failure| I
-```
+## What happens after a merge
 
-Ordinary feature merges update a **release PR**, not a published release. Review
-that PR as the decision to release: confirm the version, changelog, supported HA
-versions and any outstanding manual acceptance. The workflow does not auto-merge it.
-After you merge it, successful validation and asset upload lead to publication.
+There are two separate runs of the **Release** workflow:
 
-The publisher checks out and tests the draft's **full commit SHA**, even if `main`
-has moved ahead. It requires that commit to belong to `origin/main`. It refuses a
-moving branch as a release target, mismatched versions/tags, a dirty checkout, an
-existing tag pointing elsewhere, or an already-published release. Drafts are created
-without forcing a Git tag before validation.
-
-## One-time GitHub setup
-
-1. Make **`main`** the repository's default branch and put the workflow/configuration
-   files on it. These workflows intentionally target `main`.
-2. Enable GitHub Actions. Under **Settings → Actions → General**, permit Actions
-   to create pull requests if repository/organization policy requires it.
-3. Add an Actions secret named **`RELEASE_PLEASE_TOKEN`**. Use a fine-grained PAT
-   scoped to this repository with **Contents**, **Pull requests** and **Issues**
-   read/write permissions (metadata read is implicit). Issues permission is used
-   for release labels. Treat it as a repository automation credential and rotate
-   it before expiry. Never commit its value or place it in a workflow file.
-4. Keep the repository's Issues enabled and complete the metadata required by HACS
-   (description/topics and valid HACS metadata). The HACS validation job reports
-   missing requirements; it is not a clean-install test.
-5. Require the **Tests** matrix and **Integration validation** checks in the branch
-   rules for `main`, using the check names shown after their first GitHub run.
-   Review/squash-merge feature PRs with Conventional Commit titles.
-6. Inspect the first release PR and its checks before merging. In disposable HA
-   installations, perform the manual acceptance checks listed below.
-
-Why a separate token? GitHub suppresses most workflow events caused by the built-in
-`GITHUB_TOKEN`. Release Please needs a credential whose PR creation/update triggers
-normal PR checks. The prepare job fails clearly if the secret is missing; it does
-not silently create an unchecked PR. The publication job uses the built-in token
-with only `contents: write` and runs in the same workflow, so it does not rely on
-a second tag-triggered workflow. See
-[Release Please credentials](https://github.com/googleapis/release-please-action#github-credentials)
-and [GitHub workflow triggering](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
-
-The checked-in workflows have local tests and static validation. Their presence
-alone does not prove that GitHub settings, credentials or a remote release run are
-working. Confirm those on the repository's Actions page after setup.
-
-## How the version is chosen
-
-Use Conventional Commits in the commits that reach `main` (usually squash-merge titles):
-
-| Example | Version effect |
+| Event on `main` | Result |
 | --- | --- |
-| `fix: preserve a patch after a directory replacement` | Patch release |
-| `feat: add a supported source type` | Minor release |
-| `feat!: change patch configuration format` | Breaking release |
-| `docs: clarify backup recovery` | Does not by itself request a new release |
+| Merge a feature/fix PR | Check commit messages, then open or update the release PR. No release assets are published. |
+| Merge the release PR | Check commit messages, create a draft, test the release commit, upload the ZIP/checksum, then publish. |
 
-Before 1.0, a breaking change bumps the minor version because
-`bump-minor-pre-major` is enabled; features also bump the minor version. At 1.0 and
-later, breaking changes bump the major version. This pipeline currently accepts
-stable `MAJOR.MINOR.PATCH` versions and `vMAJOR.MINOR.PATCH` tags, not prerelease suffixes.
-A 0.x version still denotes an evolving, experimental product.
+For example, starting from the development version `0.1.0`:
 
-[release-please-config.json](../release-please-config.json) configures the Python
-release strategy and an extra JSON update for HA's manifest. The release PR keeps
-these three values equal:
+1. Merge `feat: support a new patch source`. Release Please normally proposes
+   `0.2.0` in a new PR. Further feature/fix merges update that same PR.
+2. Review its `CHANGELOG.md` and the version changes in `pyproject.toml`,
+   `custom_components/hapatchy/manifest.json` and `.release-please-manifest.json`.
+   All three versions must agree. The PR runs the normal CI checks.
+3. Merge that PR when the release is ready. Release Please creates a draft for
+   its exact commit. The workflow runs both HA/Python test baselines and
+   integration validation against that candidate.
+4. If checks succeed, the publisher uploads `hapatchy-0.2.0.zip` and
+   `hapatchy-0.2.0.zip.sha256`, verifies their hashes, and publishes `v0.2.0`.
+   If a check or upload fails, the draft stays unpublished.
 
-- `pyproject.toml` → `[project].version`
-- `custom_components/hapatchy/manifest.json` → `version`
-- `.release-please-manifest.json` → `"."`
+`0.1.0` is the initial development baseline, not a claim that it was released.
+Review the actual proposed version before merging; do not create an old tag just
+to initialize the workflow.
 
-The initial development baseline is **0.1.0**. With the existing feature commits,
-the first automatically calculated release is normally **0.2.0**; 0.1.0 is not
-being asserted as a previously published release. Review the PR rather than
-creating a synthetic old tag. Subsequent versions are based on release history.
-[CHANGELOG.md](../CHANGELOG.md) is maintained by Release Please; review its generated
-entries for accuracy and add useful migration/recovery notes to the release PR.
+## Configure GitHub once
 
-## What gets validated and published
+1. Use **`main`** as the default branch and enable Actions.
+2. Add the repository Actions secret **`RELEASE_PLEASE_TOKEN`**: a fine-grained
+   personal access token for this repository with **Contents**, **Pull requests**
+   and **Issues** read/write permissions. Release Please uses it to create PRs,
+   labels and drafts. Keep Issues enabled. Do not commit the token.
+3. Allow Actions to create PRs if required by repository/organization policy.
+4. Enable **squash merging**, with the PR title as the default commit title.
+   Require the **Conventional Commits**, **Tests** matrix and
+   **Integration validation** checks in the branch rules for `main`. Select the
+   actual check names shown after their first run. Avoid bypassing these rules.
+5. Fill in the repository metadata required by HACS, including its description
+   and topics. The HACS job reports missing metadata.
 
-[Tests](../.github/workflows/tests.yaml) is reusable by the release workflow and
-runs the locked HA/Python minimum and recent lanes, product/release tests, Ruff,
-mypy, environment unit tests and a local archive build.
-[Integration validation](../.github/workflows/validation.yaml) runs pinned hassfest
-against the selected source checkout and HACS's repository validator. HACS's
-remote metadata check follows its event/repository context; it is not evidence of
-installing the draft or of testing every HACS interaction at the selected SHA.
+The separate token lets bot-created PRs trigger PR checks; most events created
+with the built-in `GITHUB_TOKEN` do not trigger another workflow. Publication
+uses the built-in token in the same run, so no tag-triggered workflow is needed.
+See [GitHub's trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
 
-After both workflows succeed, [release_github.py](../script/release_github.py)
-rechecks draft identity and builds:
+## Commit messages and version ownership
 
-```text
-hapatchy-X.Y.Z.zip
-hapatchy-X.Y.Z.zip.sha256
-```
-
-The ZIP contains tracked `custom_components/hapatchy/` files and `LICENSE`, using
-repository-relative paths. Development state, tests, credentials, untracked files
-and planning evidence are excluded. The checksum uses the usual `sha256sum` format.
-Both uploaded asset digests are checked before the draft is published. Published
-releases and existing tags are never replaced by this helper.
-
-HACS uses the repository's integration layout: `hacs.json` does **not** enable
-`zip_release`. The attached ZIP is also available for manual installation; do not
-change HACS to ZIP mode without defining/testing that separate asset-layout contract.
-
-To inspect an archive locally, from a checkout with the version changes present:
+[.cz.yaml](../.cz.yaml) configures standard Conventional Commits. To write or
+check a message locally, install the same version used by CI in a separate tool
+environment, then run:
 
 ```bash
-python script/build_release.py
-# To additionally require a particular version:
-python script/build_release.py --tag v0.2.0
-# Replace the filename with the version actually built:
-cd dist
-sha256sum --check hapatchy-0.2.0.zip.sha256
+python -m venv .venv-cz
+.venv-cz/bin/python -m pip install commitizen==4.19.0
+.venv-cz/bin/cz commit
+# Or check a message without committing:
+.venv-cz/bin/cz check --message "fix: preserve the patch status"
 ```
 
-The builder does not bump versions, create a tag or publish anything. Local builds
-use tracked working-copy contents, which may be edited; the publishing helper
-separately requires a clean committed checkout. ZIP timestamps and permissions
-are fixed so repeated builds with the same source/toolchain produce the same bytes.
+CI checks both the PR title and its commits. Title edits rerun the check. On
+`main`, CI checks the committed history; merge commits are exempt, temporary
+`fixup!`/`squash!` messages are not. A red check prevents merging only when branch
+rules require it. The Release workflow also requires the commit check itself.
 
-## Recover a failed run
+| Commit | Release Please effect |
+| --- | --- |
+| `fix: ...` or `perf: ...` | Patch increment |
+| `feat: ...` | Minor increment |
+| `feat!: ...` or a `BREAKING CHANGE:` footer | Minor increment before 1.0; major afterward |
+| `docs: ...`, `ci: ...`, `build: ...`, `chore: ...` | No release by themselves |
 
-A failed check or upload leaves a draft. The next run on `main` first finds an
-unfinished stable-version draft and retries it **before** asking Release Please
-to create another PR. This also avoids confusing release history while a draft
-has no published tag.
+**Do not run `cz bump`.** Release Please alone updates versions and the changelog.
+The Commitizen configuration intentionally has no bump/version-file settings.
+Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 
-To retry explicitly, open **Actions → Release → Run workflow**, choose `main` and
-enter the existing draft tag in **resume_tag**, for example `v0.2.0`. The workflow
-re-reads its SHA and reruns all release checks. Leaving the input empty uses the
-normal discovery/PR path. If multiple drafts exist, select one explicitly and
-resolve the others intentionally.
+## Which workflow does what
 
-- If a transient dependency/API failure caused the problem, retry after fixing it.
-- If checks fail because of code, merging a fix into `main` does not rewrite the
-  old draft's commit. Inspect the failed candidate and prepare a corrected release;
-  do not assume a retry magically tests the newer commit.
-- If an asset with the expected name already exists, a retry keeps it only when its
-  SHA-256 matches. Different bytes or a missing digest stop publication. Inspect
-  the draft manually before removing a bad asset; the workflow never uses clobber.
-- If the release is already published, the helper refuses to modify it. Correct
-  mistakes in a new version instead of moving its tag or replacing its assets.
+| File | Trigger and responsibility |
+| --- | --- |
+| [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
+| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; Python tests, Ruff, mypy, environment tests and packaging on HA 2025.3/Python 3.13 and HA 2026.9/Python 3.14. Release can supply an exact commit. |
+| [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; hassfest on the checkout and HACS repository metadata validation. Also called by Release. |
+| [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
 
-## Manual acceptance before merging a release PR
+Tests and hassfest use the candidate SHA. HACS checks remote repository metadata
+in its event context; it does **not** install the candidate into HA. A successful
+HACS job is not proof of a successful HACS installation or upstream update.
 
-Automation verifies code, packaging and repository metadata. It cannot prove
-correct behavior in every installation. For the initial release and changes to
-installation/update behavior, record results from disposable HA environments:
+The ZIP contains tracked integration files under `custom_components/hapatchy/`
+and `LICENSE`. HACS currently reads the repository layout (`zip_release` is not
+enabled); the attached ZIP is for manual installation. To build it without
+publishing, run `python script/build_release.py`. The output is under `dist/`.
+From that directory, use `sha256sum --check hapatchy-<version>.zip.sha256`.
 
-1. Install via HACS on the supported minimum and recent baselines; restart and
-   complete native entry/patch setup.
-2. Exercise a harmless apply/revert, check status and Repairs, and inspect diagnostics.
-3. For a real third-party patch, perform the actual upstream update through HACS
-   and check safe reapplication or a conflict. A copied-file simulation is useful
-   but is not that same acceptance test.
-4. Check backups, reload/unload behavior, removal and the documented recovery path.
-5. Review release notes and any compatibility change before merging the release PR.
+## If publication fails
 
-Record actual versions and outcomes in the PR/release discussion without secrets.
-Do not mark these checks complete solely because an automated workflow is green.
+Open the failed **Release** run first and identify the failed job. A draft is
+not a published version. Do not manually publish it to bypass a failed check.
+
+For a transient failure, choose **Actions → Release → Run workflow**, select
+`main` and set **resume_tag** to the draft tag. The workflow retests that draft's
+original commit. A later push to `main` also discovers and retries an unfinished
+draft before maintaining another release PR.
+
+Matching assets from a partial upload are retained. Different bytes, an
+unverifiable digest, a tag pointing elsewhere or an already published release
+stop the helper; it never overwrites them. If several drafts exist, choose one
+explicitly with `resume_tag`.
+
+If the candidate code is broken, retrying after merging a fix does not help: the
+draft still names the old commit. Stop retrying that candidate and resolve the
+failed release state before preparing a corrected version. Do not move a
+published tag. A draft recovery also consumes that workflow run; another push
+or manual run is needed to resume release PR maintenance.
+
+Before the first public release, complete a real HACS install/update exercise in
+a disposable HA installation and record its versions and results in the release
+PR. That exercise and the first remote release run are still outstanding; the
+local UI walkthrough in [verification.md](verification.md) does not replace them.

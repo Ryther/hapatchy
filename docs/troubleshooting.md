@@ -2,6 +2,10 @@
 
 [← Documentation home](../README.md) · [Status reference](reference.md#status-sensor)
 
+The local-source conflict, source-error, invalid-patch and missing-target paths
+were reproduced and recovered on HA 2026.9.0. See [the verification record](verification.md)
+for screenshots and the cases covered only by automated tests.
+
 ## Start with these checks
 
 1. Open the patch's status sensor and note its state, `last_error`, `target_path`
@@ -58,6 +62,10 @@ version can remove unrelated fixes. Review the differences rather than doing tha
 blindly. For a controlled example of valid context, revisit
 [Your first patch](first-patch.md).
 
+![A nonmatching target produces conflict](images/conflict.png)
+
+![The corresponding issue appears in Repairs](images/repair-conflict.png)
+
 ## Source error
 
 For a local source, confirm the file exists in the configuration folder and is
@@ -78,6 +86,8 @@ interval and the configured debounce delay after an update.
 Do not broaden the watch to the whole configuration folder. Use an explicit
 subdirectory containing the target. If the directory remains unavailable, inspect
 its permissions and check for a symlink rather than repeatedly forcing actions.
+
+![Missing target reported without creating or replacing a file](images/missing-target.png)
 
 ## Security error
 
@@ -114,12 +124,16 @@ review the intended edits; the backup is evidence, not an unconditional rollback
 2. Remove the individual patch from its menu on the HAPatchY integration page.
 3. To stop using HAPatchY entirely, remove its integration entry from
    **Settings → Devices & services**.
-4. Remove its download through HACS, or delete `custom_components/hapatchy` for a
-   manual installation, then restart HA.
+4. For a manual installation, delete `custom_components/hapatchy`, then restart
+   HA. HACS removal is outside the verified procedure.
 
 Removing rules or integration files does **not** restore targets or erase backups.
 Your patch source files also remain. Keep them until you no longer need recovery;
 remove them manually only when you are sure.
+
+![Deleting the reverted demo patch through its menu](images/remove-patch.png)
+
+![After deleting the integration folder and restarting, HAPatchY is no longer available](images/uninstalled.png)
 
 ## Report a problem
 
@@ -131,3 +145,5 @@ Use the integration menu's **Download diagnostics** when available. HAPatchY omi
 file contents and full source URLs, but paths, names and source hostnames can
 still identify your setup. Review the download and logs before sharing. Never post
 credentials, tokens, `.storage`, or a full configuration backup.
+
+![Diagnostics download in the integration menu](images/diagnostics-menu.png)

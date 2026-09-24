@@ -19,30 +19,23 @@ HAPatchY paths are relative to this folder. If a file is
 `/config/python_scripts/example.py`, enter `python_scripts/example.py`, without
 `/config/` and without a leading slash. Do not edit HA's `.storage` files.
 
-## Option A: HACS custom repository
+## HACS availability
 
-Use this path when the repository has a published version available to HACS.
-HACS itself must already be installed; follow its
-[official getting-started guide](https://www.hacs.xyz/docs/use/) if needed.
+A HACS installation/update has **not yet been exercised for this repository**.
+This guide therefore does not present an untested HACS click sequence. Use the
+manual source-install path below for development testing. HACS instructions will
+be added after a real install from the public repository has been verified.
 
-1. Open **HACS** in Home Assistant.
-2. Open its menu and choose **Custom repositories**.
-3. Enter `https://github.com/Ryther/hapatchy`, select **Integration**, and add it.
-4. Find **HAPatchY** in HACS and download the version you want to test.
-5. **Restart Home Assistant**, not just the browser. Downloading custom integration
-   files does not load the integration into an already running HA process.
-6. Continue with **Add the integration** below.
+## Manual installation
 
-HACS menu names can vary by version. If it cannot find the repository or a release,
-check the [repository](https://github.com/Ryther/hapatchy) and
-[Releases page](https://github.com/Ryther/hapatchy/releases). A repository URL in a
-README is not evidence that a release has been published. Do not substitute an
-unrelated similarly named project.
+This path was exercised with a copy of the integration source in a separate HA
+2026.9.0 configuration, followed by startup and native UI setup. It used the
+existing development Python environment; it did not test dependency downloads
+on a fresh HA OS installation. See [the verification record](verification.md).
 
-## Option B: manual installation
-
-1. Download the versioned HAPatchY archive from GitHub Releases. For unreleased
-   development testing, download/clone the repository instead.
+1. Download/clone this repository for development testing. Once a public release
+   exists, its integration archive can provide the same folder; installation from
+   a published release has not yet been tested.
 2. Locate `custom_components/hapatchy` inside the download.
 3. Copy that **entire `hapatchy` folder** into your HA configuration's
    `custom_components` directory. Create `custom_components` if necessary.
@@ -71,8 +64,12 @@ installation. Internet access may be required for dependency installation.
 
 1. Sign in as an administrator.
 2. Open **Settings → Devices & services → Add integration**.
-3. Search for **HAPatchY**, select it and submit the confirmation form.
+3. Search for **HAPatchY**, select it, submit the confirmation form and select **Finish**.
 4. Open the HAPatchY integration page. You should see **Add patch**.
+
+![Finding the copied integration in Add integration](images/install-search.png)
+
+![HAPatchY configured successfully with Add patch available](images/install-ready.png)
 
 Create HAPatchY only once. Multiple patches live inside that one integration.
 No sensor appears until you add a patch. Continue with
@@ -83,11 +80,9 @@ read **Settings → System → Logs**. A custom-integration warning is normal; a
 import or dependency error needs investigation. See
 [troubleshooting](troubleshooting.md#hapatchy-does-not-appear-or-fails-to-load).
 
-## Updating later
+## Updates
 
-Read release notes before updating. Update through HACS, or replace the integration
-folder with the new version for a manual installation, then restart HA. Keep your
-patch definitions, patch source files and backups. An update to HAPatchY is distinct
-from an update to the third-party file you are patching: inspect that patch's status
-after either update. Never assume an `applied` disk state proves Python code has
-been reloaded into memory.
+A real HACS update and replacement with a newer released HAPatchY version remain
+unverified. Do not treat the local file-replacement exercise in the first-patch
+tutorial as an integration upgrade test. Release-specific update instructions
+will be documented after that exercise is completed.

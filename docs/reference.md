@@ -2,6 +2,10 @@
 
 [← Documentation home](../README.md) · [First-patch tutorial](first-patch.md)
 
+The local-source UI operations below were exercised on HA 2026.9.0.
+[Verification and screenshots](verification.md) separate those observations
+from contracts covered only by automated tests.
+
 ## Patch settings
 
 Each item added with **Add patch** is an independent rule with its own sensor.
@@ -34,6 +38,8 @@ checks still report status and you can explicitly Apply from Developer tools.
 The integration's options (rather than an individual patch's settings) contain
 **backup retention**: completed backups to keep **per patch**, default 10,
 minimum 1, maximum 100. Removing a patch does not delete its backups.
+
+![Backup retention in the native integration options](images/retention.png)
 
 ## Local files and HTTPS
 

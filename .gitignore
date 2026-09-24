@@ -47,11 +47,34 @@
 !/docs/
 !/docs/architecture.md
 !/docs/releasing.md
+!/docs/verification.md
 !/script/
 !/script/build_release.py
 !/.github/workflows/validation.yaml
 !/docs/images/
 !/docs/images/integration.png
+!/docs/images/uninstalled.png
+!/docs/images/remove-integration.png
+!/docs/images/remove-patch.png
+!/docs/images/diagnostics-menu.png
+!/docs/images/retention.png
+!/docs/images/disabled.png
+!/docs/images/recovered.png
+!/docs/images/missing-target.png
+!/docs/images/invalid-patch.png
+!/docs/images/source-error.png
+!/docs/images/repair-conflict.png
+!/docs/images/conflict.png
+!/docs/images/auto-reapplied.png
+!/docs/images/revert-auto-off.png
+!/docs/images/reverted.png
+!/docs/images/applied.png
+!/docs/images/action-apply.png
+!/docs/images/applicable.png
+!/docs/images/patch-options.png
+!/docs/images/patch-paths.png
+!/docs/images/install-ready.png
+!/docs/images/install-search.png
 
 # User guides, executable example and release automation.
 !/docs/installation.md

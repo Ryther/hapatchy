@@ -10,6 +10,11 @@ reverting work before touching an important file.
 You need HAPatchY installed and access to your HA configuration folder. In this
 guide, a path such as `hapatchy_demo/settings.txt` is relative to that folder.
 
+Tested in the browser on HA **2026.9.0**, HAPatchY **0.1.0**, on 24 September
+2026. The screenshots below come from that run; target bytes and backups were
+also checked. See [verification details](verification.md). On this HA version,
+developer tools are titled **Tools**; older versions may say **Developer tools**.
+
 ## 1. Create the target file
 
 Create a folder named `hapatchy_demo`. Inside it, create `settings.txt` with
@@ -77,17 +82,26 @@ The watch directory is the folder to monitor for file replacements. Leaving the
 pattern empty selects the specific target within that directory. The source is
 **the patch**, not another copy of the target.
 
+![The saved patch paths reopened in the native form](images/patch-paths.png)
+
+This screenshot shows the rule reopened after saving. The initially empty watch
+pattern has been resolved to `settings.txt`, the target inside `hapatchy_demo`.
+
 On the next screen:
 
 - Keep **Enabled**, **Check at Home Assistant startup**, and **Back up before applying** on.
 - Turn **Apply compatible patches automatically** **off** for this exercise.
 - Leave the optional SHA-256 empty and the wait at **1.5 seconds**.
-- Submit the form.
+- Submit the form and select **Finish** on the success screen.
+
+![Automatic application disabled for the first check](images/patch-options.png)
 
 HAPatchY should create a sensor named **Demo interval status**. The state should
 be **Applicable** (`applicable` in Developer tools), and the file should still
 contain `interval=30`. A brief `unknown` state before the initial check is normal.
 If you see another status, stop and use [troubleshooting](troubleshooting.md).
+
+![The new patch is applicable and exposes its patch ID](images/applicable.png)
 
 ## 4. Find the patch ID and apply once
 
@@ -106,12 +120,16 @@ data:
   patch_id: "paste-your-patch-id-here"
 ```
 
+![Apply executed from the Actions YAML editor](images/action-apply.png)
+
 Expected result:
 
 - The sensor becomes **Applied**.
 - `hapatchy_demo/settings.txt` contains `mode=demo` and `interval=5`.
 - A backup exists under `.hapatchy/backups/<patch_id>/` in the configuration folder.
   Your editor may need **Show hidden files** to display `.hapatchy`.
+
+![Applied state after checking that the file contains interval=5](images/applied.png)
 
 Applying again should leave the already-patched file unchanged. This demo uses
 `.txt`; no HA restart is needed to observe its contents.
@@ -125,6 +143,13 @@ Revert first turns automatic application off and keeps it off. It then reverses
 the current patch only if the file still matches exactly, making a mandatory
 backup before writing. It does not blindly copy an old backup over the file.
 
+![Revert returned the sensor to applicable](images/reverted.png)
+
+Opening **Reconfigure patch** after Revert confirms that automatic application
+is off:
+
+![Automatic application remains off after Revert](images/revert-auto-off.png)
+
 ## 6. Try automatic reapplication
 
 1. Use the patch's settings menu on the HAPatchY page to **Reconfigure** it.
@@ -134,6 +159,9 @@ backup before writing. It does not blindly copy an old backup over the file.
    `mode=demo` and `interval=30`. This simulates an upstream update replacing a file.
 4. Wait a few seconds. HAPatchY should restore `interval=5` and show **Applied**.
 
+![Applied again after the original file was written back](images/auto-reapplied.png)
+
+The file was read back as `mode=demo` and `interval=5` after this screenshot.
 This is a simple local demonstration, not a test of a particular HACS update.
 For real integrations, an update can also change the surrounding code, in which
 case a **Conflict** is the correct result. Review the new upstream version and
