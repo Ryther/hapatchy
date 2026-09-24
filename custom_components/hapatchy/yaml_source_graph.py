@@ -223,7 +223,9 @@ class _Scanner:
         if self.directories_seen > _MAX_DIRECTORIES:
             self._deny()
         try:
-            iterator = os.scandir(os.dup(fd))
+            # scandir accepts a directory descriptor without taking ownership
+            # of it. Duplicating here leaks that extra descriptor per scan.
+            iterator = os.scandir(fd)
         except OSError:
             self._deny()
         with iterator:
