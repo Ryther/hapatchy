@@ -8,6 +8,13 @@
 > AI reviews do not guarantee correctness or safety. This is experimental software:
 > keep independent backups and try it in a disposable HA installation first.
 
+[![Open HAPatchY in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Ryther&repository=hapatchy&category=integration)
+
+The button opens this **custom repository** in an existing HACS installation;
+it does not add HAPatchY to HACS's default catalog. HACS installation and updates
+have not yet been exercised in disposable HA. The [verified manual installation](docs/installation.md)
+is available now.
+
 HAPatchY helps you keep a small, deliberate change to a file after an update
 replaces that file. You provide a **patch**: a text file describing which lines
 should change and the surrounding lines that identify them. HAPatchY watches the
