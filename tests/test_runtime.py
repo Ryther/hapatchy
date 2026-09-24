@@ -334,3 +334,67 @@ async def test_queued_revert_cannot_overwrite_native_edit(hass, tmp_path, change
     else:
         assert entry.subentries[pid].data == edited
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
+
+
+@pytest.mark.parametrize("reload_during_save", [False, True])
+async def test_reconfigure_save_excludes_old_definition_apply(
+    hass, tmp_path, monkeypatch, reload_during_save
+):
+    """An action admitted while a revision is saved cannot write the old definition."""
+    from custom_components.hapatchy.managed_source import ManagedPatchStore
+
+    entry, runtime, pid = await setup(hass, tmp_path, {"auto_apply": False})
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "reconfigure", "subentry_id": pid}
+    )
+    fields = DATA | {"source_type": "managed"}
+    fields.pop("source")
+    fields.pop("reconcile_on_startup")
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], fields)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"patch_text": DIFF.decode().replace("+new", "+newer")}
+    )
+    entered, release = threading.Event(), threading.Event()
+    original_save = ManagedPatchStore.save
+
+    def blocked_save(store, data):
+        entered.set()
+        assert release.wait(5)
+        return original_save(store, data)
+
+    monkeypatch.setattr(ManagedPatchStore, "save", blocked_save)
+    saving = asyncio.create_task(
+        hass.config_entries.subentries.async_configure(
+            result["flow_id"], {"auto_apply": False, "reconcile_on_startup": False}
+        )
+    )
+    assert await asyncio.to_thread(entered.wait, 2)
+    applying = asyncio.create_task(runtime.async_action(pid, "apply"))
+    await asyncio.sleep(0)
+    reloading = (
+        asyncio.create_task(hass.config_entries.async_reload(entry.entry_id))
+        if reload_during_save
+        else None
+    )
+    try:
+        await asyncio.sleep(0)
+        assert not applying.done()
+        if reloading:
+            await asyncio.sleep(0)
+            assert not reloading.done()
+        assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
+    finally:
+        release.set()
+    result = await saving
+    if reloading:
+        assert result["errors"] == {"base": "runtime_reloading"}
+        await applying
+        await reloading
+        assert entry.subentries[pid].data["source_type"] == "local"
+        return
+    assert result["reason"] == "reconfigure_successful"
+    with pytest.raises(ValueError, match="runtime_reloading|runtime_closing"):
+        await applying
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
+    assert entry.subentries[pid].data["source_type"] == "managed"

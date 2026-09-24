@@ -17,14 +17,17 @@
       "step": {
         "user": {
           "title": "Configura patch",
-          "description": "Seleziona un singolo file e una patch unified diff UTF-8. I file interni di HA e HAPatchY sono protetti.",
+          "description": "Scegli il file da modificare, poi come fornire la patch. I suggerimenti escludono file protetti, nascosti e collegamenti. Puoi anche digitare un percorso relativo.",
           "data": {
             "name": "Nome",
-            "target_path": "Percorso del file (relativo alla configurazione HA)",
+            "target_path": "File da modificare",
             "watch_root": "Cartella da monitorare (relativa alla configurazione HA)",
             "watch_pattern": "Pattern di monitoraggio (facoltativo)",
-            "source_type": "Tipo di sorgente",
-            "source": "Percorso locale o URL HTTPS diretto"
+            "source_type": "Come fornire la patch"
+          },
+          "data_description": {
+            "watch_root": "Lascia vuoto per usare la cartella del file selezionato.",
+            "target_path": "File nella configurazione HA, dentro una sottocartella. La lista è limitata; digita il percorso se non compare."
           }
         },
         "options": {
@@ -58,6 +61,27 @@
           "description": "Il file da modificare non esiste. La patch attenderà la sua creazione. Se hai disabilitato i backup, le future applicazioni non creeranno copie di recupero.",
           "data": {
             "confirm": "Comprendo e confermo"
+          }
+        },
+        "source": {
+          "title": "Sorgente esterna",
+          "description": "Inserisci il percorso relativo alla configurazione HA o un URL HTTPS diretto.",
+          "data": {
+            "source": "Percorso locale o URL HTTPS"
+          }
+        },
+        "upload": {
+          "title": "Carica una patch",
+          "description": "Scegli un file UTF-8 .patch o .diff (massimo 2 MiB). Potrai rivederlo e modificarlo prima di salvarlo.",
+          "data": {
+            "file": "File patch"
+          }
+        },
+        "editor": {
+          "title": "Modifica la patch",
+          "description": "Incolla un unified diff completo per il file selezionato. HAPatchY conserva la patch quando completi la configurazione. Usa prima Revert per modificare una patch già applicata.",
+          "data": {
+            "patch_text": "Contenuto della patch"
           }
         }
       },
@@ -93,7 +117,7 @@
         "directory_changed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "target_outside_watch_root": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "header_target_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
-        "source_too_large": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "source_too_large": "La patch supera il limite di 2 MiB.",
         "missing_target": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "hunk_count_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "invalid_source_hash": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
@@ -108,7 +132,16 @@
         "unknown_patch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "mixed_endings": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "no_hunks": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
-        "unsafe_file": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch."
+        "unsafe_file": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "empty_patch": "Incolla o carica una patch non vuota.",
+        "invalid_encoding": "La patch deve essere testo UTF-8.",
+        "invalid_managed_source": "Il riferimento alla patch salvata non è valido.",
+        "managed_source_unavailable": "La patch salvata manca. Ripristina il contenuto originale prima di modificarla.",
+        "managed_source_write_failed": "Impossibile salvare la patch. Controlla spazio libero e permessi, poi riprova.",
+        "upload_unavailable": "Il caricamento non è disponibile. Seleziona di nuovo il file.",
+        "revert_before_edit": "Questa patch è applicata. Annulla il modulo, esegui Revert e poi riconfigurala.",
+        "configuration_changed": "La configurazione è cambiata. Annulla e riapri il modulo.",
+        "ambiguous_direction": "Il file contiene sia il contesto originale sia quello modificato. Usa un contesto univoco."
       },
       "abort": {
         "reconfigure_successful": "Configurazione aggiornata."
@@ -297,7 +330,7 @@
       "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
     },
     "source_too_large": {
-      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+      "message": "La patch supera il limite di 2 MiB."
     },
     "missing_target": {
       "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
@@ -346,6 +379,27 @@
     },
     "filesystem_error": {
       "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+    },
+    "empty_patch": {
+      "message": "Incolla o carica una patch non vuota."
+    },
+    "invalid_encoding": {
+      "message": "La patch deve essere testo UTF-8."
+    },
+    "invalid_managed_source": {
+      "message": "Il riferimento alla patch salvata non è valido."
+    },
+    "managed_source_unavailable": {
+      "message": "La patch salvata manca. Ripristina il contenuto originale prima di modificarla."
+    },
+    "managed_source_write_failed": {
+      "message": "Impossibile salvare la patch. Controlla spazio libero e permessi, poi riprova."
+    },
+    "upload_unavailable": {
+      "message": "Il caricamento non è disponibile. Seleziona di nuovo il file."
+    },
+    "revert_before_edit": {
+      "message": "Questa patch è applicata. Annulla il modulo, esegui Revert e poi riconfigurala."
     }
   },
   "issues": {
@@ -380,6 +434,16 @@
     "watch_unavailable": {
       "title": "Patch da verificare",
       "description": "{target}\n\nLa cartella monitorata non è disponibile. HAPatchY ricontrolla ogni 60 secondi.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    }
+  },
+  "selector": {
+    "source_type": {
+      "options": {
+        "managed": "Scrivi o incolla la patch",
+        "upload": "Carica un file patch",
+        "local": "File locale esistente (avanzato)",
+        "url": "URL HTTPS (avanzato)"
+      }
     }
   }
 }

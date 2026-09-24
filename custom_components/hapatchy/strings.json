@@ -17,14 +17,17 @@
       "step": {
         "user": {
           "title": "Configure patch",
-          "description": "Choose one file and a UTF-8 unified diff. HA and HAPatchY internal files are protected.",
+          "description": "Select the file to patch, then choose how to provide the patch. Suggestions exclude protected files, hidden files and links. You can also enter a relative path.",
           "data": {
             "name": "Name",
-            "target_path": "Target path (relative to HA configuration)",
+            "target_path": "File to patch",
             "watch_root": "Watch directory (relative to HA configuration)",
             "watch_pattern": "Watch pattern (optional)",
-            "source_type": "Source type",
-            "source": "Local path or direct HTTPS URL"
+            "source_type": "Patch input"
+          },
+          "data_description": {
+            "watch_root": "Leave empty to watch the selected file’s parent directory.",
+            "target_path": "A file inside a subdirectory of the HA configuration. Suggestions are limited; enter its path if it is not listed."
           }
         },
         "options": {
@@ -58,6 +61,27 @@
           "description": "The target file is missing. The patch will wait for it to appear. If you disabled backups, future apply operations will not create recovery copies.",
           "data": {
             "confirm": "I understand and confirm"
+          }
+        },
+        "source": {
+          "title": "External patch source",
+          "description": "Enter a path relative to the HA configuration or a direct HTTPS URL.",
+          "data": {
+            "source": "Local path or HTTPS URL"
+          }
+        },
+        "upload": {
+          "title": "Upload a patch",
+          "description": "Choose a UTF-8 .patch or .diff file (maximum 2 MiB). You can review and edit it before saving.",
+          "data": {
+            "file": "Patch file"
+          }
+        },
+        "editor": {
+          "title": "Edit patch contents",
+          "description": "Paste a complete unified diff for the selected file. HAPatchY saves the patch when you finish configuration. Use Revert before changing an already applied patch.",
+          "data": {
+            "patch_text": "Patch contents"
           }
         }
       },
@@ -93,7 +117,7 @@
         "directory_changed": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "target_outside_watch_root": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "header_target_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
-        "source_too_large": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "source_too_large": "The patch exceeds the 2 MiB limit.",
         "missing_target": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "hunk_count_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "invalid_source_hash": "The patch or configuration is invalid. Check paths, patch contents and context.",
@@ -108,7 +132,16 @@
         "unknown_patch": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "mixed_endings": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "no_hunks": "The patch or configuration is invalid. Check paths, patch contents and context.",
-        "unsafe_file": "The patch or configuration is invalid. Check paths, patch contents and context."
+        "unsafe_file": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "empty_patch": "Paste or upload a nonempty patch.",
+        "invalid_encoding": "The patch must be UTF-8 text.",
+        "invalid_managed_source": "The saved patch reference is invalid.",
+        "managed_source_unavailable": "The saved patch is missing. Restore its original contents before changing it.",
+        "managed_source_write_failed": "Could not save the patch. Check available disk space and permissions, then retry.",
+        "upload_unavailable": "The upload is unavailable. Select the file again.",
+        "revert_before_edit": "This patch is applied. Cancel this form, run Revert, then reconfigure it.",
+        "configuration_changed": "The configuration changed while this form was open. Cancel and reopen it.",
+        "ambiguous_direction": "The file contains both the original and modified context. Use distinguishing context."
       },
       "abort": {
         "reconfigure_successful": "Configuration updated."
@@ -297,7 +330,7 @@
       "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
     },
     "source_too_large": {
-      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+      "message": "The patch exceeds the 2 MiB limit."
     },
     "missing_target": {
       "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
@@ -346,6 +379,27 @@
     },
     "filesystem_error": {
       "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+    },
+    "empty_patch": {
+      "message": "Paste or upload a nonempty patch."
+    },
+    "invalid_encoding": {
+      "message": "The patch must be UTF-8 text."
+    },
+    "invalid_managed_source": {
+      "message": "The saved patch reference is invalid."
+    },
+    "managed_source_unavailable": {
+      "message": "The saved patch is missing. Restore its original contents before changing it."
+    },
+    "managed_source_write_failed": {
+      "message": "Could not save the patch. Check available disk space and permissions, then retry."
+    },
+    "upload_unavailable": {
+      "message": "The upload is unavailable. Select the file again."
+    },
+    "revert_before_edit": {
+      "message": "This patch is applied. Cancel this form, run Revert, then reconfigure it."
     }
   },
   "issues": {
@@ -380,6 +434,16 @@
     "watch_unavailable": {
       "title": "Patch needs attention",
       "description": "{target}\n\nThe watch directory is unavailable. HAPatchY retries every 60 seconds.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    }
+  },
+  "selector": {
+    "source_type": {
+      "options": {
+        "managed": "Write or paste patch contents",
+        "upload": "Upload a patch file",
+        "local": "Existing local file (advanced)",
+        "url": "HTTPS URL (advanced)"
+      }
     }
   }
 }

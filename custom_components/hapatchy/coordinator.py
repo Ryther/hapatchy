@@ -3,6 +3,7 @@
 import asyncio
 import logging
 from collections.abc import Callable
+from contextlib import asynccontextmanager
 from dataclasses import asdict, replace
 from datetime import UTC, datetime
 from functools import partial
@@ -48,7 +49,9 @@ class PatchManagerRuntime:
         )
         self.closing = False
         self._closed = False
-        self._lock = asyncio.Lock()
+        self._lock = hass.data.setdefault(DOMAIN, {"restart_required": set()}).setdefault(
+            "operation_lock", asyncio.Lock()
+        )
         self._close_lock = asyncio.Lock()
         self._admitted: set[asyncio.Task] = set()
         self._workers: set[asyncio.Future] = set()
@@ -140,6 +143,14 @@ class PatchManagerRuntime:
         if not self.matches_entry():
             raise PatchError("runtime_reloading")
 
+    @asynccontextmanager
+    async def configuration_guard(self):
+        """Keep final flow inspection and config publication serialized with actions."""
+        async with self._lock:
+            if self.closing or not self.matches_entry():
+                raise PatchError("runtime_reloading")
+            yield
+
     async def async_action(self, patch_id: str, action: str) -> ReconcileResult:
         if self.closing:
             raise PatchError("runtime_closing")
@@ -221,7 +232,10 @@ class PatchManagerRuntime:
                 await asyncio.gather(
                     *(asyncio.shield(worker) for worker in self._workers), return_exceptions=True
                 )
-            await self.store.save(self.states)
+            # Configuration publication also owns this lock. Drain it before a
+            # replacement runtime can start, including saves in the executor.
+            async with self._lock:
+                await self.store.save(self.states)
             for key in self.definitions:
                 subentry = self.entry.subentries.get(key)
                 if subentry is None or not subentry.data.get("enabled", True):

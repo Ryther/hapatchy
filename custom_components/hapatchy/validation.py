@@ -17,7 +17,10 @@ def inspect_target(root: Path, definition: PatchDefinition, raw: bytes) -> Patch
     parsed = engine.parse(raw, definition.target_path)
     try:
         with GuardedFile(root, definition.target_path) as target:
-            return engine.inspect(parsed, target.read().data)
+            result = engine.inspect(parsed, target.read().data)
+            if result.status not in (Status.APPLICABLE, Status.APPLIED, Status.CONFLICT):
+                raise PatchError(result.reason or "invalid_patch", result.status)
+            return result
     except PatchError as error:
         if error.status == Status.MISSING_TARGET:
             return PatchInspection(Status.MISSING_TARGET, error.reason)
