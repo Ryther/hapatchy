@@ -37,6 +37,10 @@ status sensor; Home Assistant's Repairs page reports problems. The YAML contains
 only operator-owned directory grants, not patch definitions. There is no custom
 dashboard to install.
 
+HTTPS sources require a public hostname whose DNS answers are all public
+addresses; numeric hosts, local-network destinations and redirects are refused.
+See the [source rules](docs/reference.md#local-files-and-https).
+
 ![Current Add patch form in disposable Home Assistant](docs/images/yaml-directory-authorization.png)
 
 This screenshot shows a local development installation, not a HACS certification.

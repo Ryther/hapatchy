@@ -75,6 +75,14 @@ trusted URL first. Credentials embedded in a URL are not supported. A configured
 URL may contain a query string, which remains in HA's configuration storage even
 though full URLs are omitted from HAPatchY diagnostics.
 
+HAPatchY accepts hostname URLs only when **every** DNS answer is a public
+unicast address. It rejects numeric hosts, private, loopback, link-local and
+mixed public/private answers before opening a connection. It does not use
+environment HTTP proxies. A URL saved before this restriction may stop working;
+replace it with a direct public-hostname URL or choose a managed/local source.
+The policy limits where HAPatchY connects, not whether a public server or its
+patch contents are trustworthy.
+
 A SHA-256 fingerprint detects unexpected source changes; it does not establish
 that the author is trustworthy. When you deliberately update a pinned patch,
 review the new contents and update its fingerprint too. A failed source request
@@ -98,7 +106,7 @@ may display friendly labels; the raw state values below are stable identifiers.
 | `missing_target` | The target does not exist | Check the path or wait for installation/update to finish |
 | `source_error` | The patch could not be read, downloaded or verified | Check source, connectivity and SHA-256 |
 | `invalid_patch` | The diff is malformed, unsupported or ambiguous | Regenerate it with correct headers and distinctive context |
-| `security_error` | A path, YAML-source or file safety check failed | Check both directory grants and configuration-source changes; restart HA after YAML edits |
+| `security_error` | A path, YAML-source, file safety or HTTPS destination check failed | Check both directory grants, configuration-source changes and the source hostname; restart HA after YAML edits |
 | `apply_error` | A backup, write or durability check failed | Read the Repair; do not assume no bytes changed |
 
 Useful attributes include:

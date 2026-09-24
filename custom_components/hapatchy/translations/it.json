@@ -149,7 +149,8 @@
         "configuration_mismatch": "La configurazione caricata da Home Assistant non corrisponde alle autorizzazioni YAML. Controlla packages e inclusioni, poi riavvia Home Assistant.",
         "hapatchy_yaml_invalid": "La sezione hapatchy in configuration.yaml non è valida. Usa allowed_directories con un elenco di cartelle relative.",
         "revert_metadata_unavailable": "Il file è stato ripristinato, ma Home Assistant non ha salvato la disattivazione della riapplicazione automatica. La riapplicazione automatica è sospesa; controlla lo storage e riprova Revert.",
-        "hapatchy_package_forbidden": "Le autorizzazioni delle cartelle nei packages di Home Assistant non sono accettate. Metti hapatchy.allowed_directories nella sezione principale di configuration.yaml e riavvia Home Assistant."
+        "hapatchy_package_forbidden": "Le autorizzazioni delle cartelle nei packages di Home Assistant non sono accettate. Metti hapatchy.allowed_directories nella sezione principale di configuration.yaml e riavvia Home Assistant.",
+        "source_network_denied": "La sorgente HTTPS della patch deve risolvere solo a indirizzi di rete pubblici. Scegli un URL HTTPS pubblico diretto o un altro tipo di sorgente."
       },
       "abort": {
         "reconfigure_successful": "Configurazione aggiornata."
@@ -432,6 +433,9 @@
     },
     "hapatchy_package_forbidden": {
       "message": "Le autorizzazioni delle cartelle nei packages di Home Assistant non sono accettate. Metti hapatchy.allowed_directories nella sezione principale di configuration.yaml e riavvia Home Assistant."
+    },
+    "source_network_denied": {
+      "message": "La sorgente HTTPS della patch deve risolvere solo a indirizzi di rete pubblici. Scegli un URL HTTPS pubblico diretto o un altro tipo di sorgente."
     }
   },
   "issues": {
@@ -453,7 +457,7 @@
     },
     "security_error": {
       "title": "Patch da verificare",
-      "description": "La patch è stata bloccata da un controllo di sicurezza. Verifica configuration.yaml, entrambi gli elenchi di cartelle e i percorsi protetti; riavvia Home Assistant dopo aver modificato lo YAML. Qui non vengono mostrati contenuti o hash del file."
+      "description": "La patch è stata bloccata da un controllo di sicurezza. Verifica configuration.yaml, entrambi gli elenchi di cartelle, i percorsi protetti e la destinazione di eventuali sorgenti HTTPS; riavvia Home Assistant dopo aver modificato lo YAML. Qui non vengono mostrati contenuti o hash del file."
     },
     "apply_error": {
       "title": "Patch da verificare",

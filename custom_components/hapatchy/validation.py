@@ -4,7 +4,6 @@ from functools import partial
 from pathlib import Path
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .models import PatchDefinition, PatchError, PatchInspection, Status
 from .patch_engine import UnifiedDiffEngine
@@ -36,7 +35,7 @@ async def validate_definition(hass: HomeAssistant, definition: PatchDefinition) 
     root = Path(hass.config.config_dir)
     policy = policy_for_hass(hass)
     await hass.async_add_executor_job(policy.check_definition, definition)
-    client = PatchSourceClient(root, async_get_clientsession(hass), hass.async_add_executor_job)
+    client = PatchSourceClient(root, hass.async_add_executor_job)
     raw = await client.load(definition)
     result = await hass.async_add_executor_job(
         partial(inspect_target, root, definition, raw, policy)

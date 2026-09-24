@@ -106,7 +106,7 @@ async def test_managed_source_loads_without_network(hass, tmp_path):
             "source": revision,
         },
     )
-    client = PatchSourceClient(tmp_path, None, hass.async_add_executor_job)
+    client = PatchSourceClient(tmp_path, hass.async_add_executor_job)
     assert await client.load(definition) == DIFF
 
 

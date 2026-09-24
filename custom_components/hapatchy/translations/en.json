@@ -149,7 +149,8 @@
         "configuration_mismatch": "The loaded Home Assistant configuration does not match the operator YAML grants. Check packages and includes, then restart Home Assistant.",
         "hapatchy_yaml_invalid": "The hapatchy section in configuration.yaml is invalid. Use allowed_directories with a list of relative folders.",
         "revert_metadata_unavailable": "The file was reverted, but Home Assistant could not save the disabled automatic reapply setting. Automatic reapply is suspended; check storage and retry Revert.",
-        "hapatchy_package_forbidden": "Directory grants inside Home Assistant packages are not accepted. Put hapatchy.allowed_directories in the top-level configuration.yaml and restart Home Assistant."
+        "hapatchy_package_forbidden": "Directory grants inside Home Assistant packages are not accepted. Put hapatchy.allowed_directories in the top-level configuration.yaml and restart Home Assistant.",
+        "source_network_denied": "The HTTPS patch source must resolve only to public network addresses. Choose a public direct HTTPS URL or another source type."
       },
       "abort": {
         "reconfigure_successful": "Configuration updated."
@@ -432,6 +433,9 @@
     },
     "hapatchy_package_forbidden": {
       "message": "Directory grants inside Home Assistant packages are not accepted. Put hapatchy.allowed_directories in the top-level configuration.yaml and restart Home Assistant."
+    },
+    "source_network_denied": {
+      "message": "The HTTPS patch source must resolve only to public network addresses. Choose a public direct HTTPS URL or another source type."
     }
   },
   "issues": {
@@ -453,7 +457,7 @@
     },
     "security_error": {
       "title": "Patch needs attention",
-      "description": "The patch was blocked by a security check. Review configuration.yaml, both directory lists and protected paths; restart Home Assistant after changing the YAML. No target contents or hashes are shown here."
+      "description": "The patch was blocked by a security check. Review configuration.yaml, both directory lists, protected paths and any HTTPS source destination; restart Home Assistant after changing the YAML. No target contents or hashes are shown here."
     },
     "apply_error": {
       "title": "Patch needs attention",

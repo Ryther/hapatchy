@@ -10,7 +10,6 @@ from functools import partial
 from pathlib import Path
 
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .const import DEFAULT_RETENTION, DOMAIN
 from .models import PatchDefinition, PatchError, PatchInspection, PatchRuntimeState, Status
@@ -47,9 +46,7 @@ class PatchManagerRuntime:
         self.issues = IssueManager(hass)
         self.path_policy = policy_for_hass(hass)
         self.reconciler = Reconciler(Path(hass.config.config_dir), self.path_policy)
-        self.source = PatchSourceClient(
-            Path(hass.config.config_dir), async_get_clientsession(hass), self.run_io
-        )
+        self.source = PatchSourceClient(Path(hass.config.config_dir), self.run_io)
         self.closing = False
         self._closed = False
         self._lock = hass.data.setdefault(DOMAIN, {"restart_required": set()}).setdefault(
