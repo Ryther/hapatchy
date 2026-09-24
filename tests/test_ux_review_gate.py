@@ -1,5 +1,6 @@
-"""The CI UX gate checks committed evidence, including renamed files."""
+"""The CI UX gate checks committed evidence, including release-only versions."""
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -20,6 +21,9 @@ def setup_repo(root: Path) -> str:
     product = root / "custom_components" / "hapatchy" / "feature.py"
     product.parent.mkdir(parents=True)
     product.write_text("old = True\n")
+    (product.parent / "manifest.json").write_text(
+        json.dumps({"domain": "hapatchy", "name": "HAPatchY", "version": "0.1.0"}) + "\n"
+    )
     docs = root / "docs" / "verification.md"
     docs.parent.mkdir()
     docs.write_text("Initial evidence\n")
@@ -83,3 +87,21 @@ def test_user_visible_metadata_and_brand_require_evidence(tmp_path, surface):
     git(tmp_path, "add", ".")
     git(tmp_path, "commit", "-qm", "test: change product fixture")
     assert run_gate(tmp_path, base).returncode == 1
+
+
+@pytest.mark.parametrize(
+    ("new_manifest", "expected"),
+    [
+        ({"domain": "hapatchy", "name": "HAPatchY", "version": "0.2.0"}, 0),
+        ({"domain": "hapatchy", "name": "Different", "version": "0.2.0"}, 1),
+        ({"domain": "hapatchy", "name": "HAPatchY", "version": 2}, 1),
+        ({"domain": "hapatchy", "name": "HAPatchY"}, 1),
+    ],
+)
+def test_manifest_version_exemption_is_narrow(tmp_path, new_manifest, expected):
+    base = setup_repo(tmp_path)
+    manifest = tmp_path / "custom_components" / "hapatchy" / "manifest.json"
+    manifest.write_text(json.dumps(new_manifest) + "\n")
+    git(tmp_path, "add", ".")
+    git(tmp_path, "commit", "-qm", "test: manifest fixture")
+    assert run_gate(tmp_path, base).returncode == expected

@@ -168,8 +168,10 @@ needed. Keep it accurate while working. After performing those checks and updati
 public documentation to describe this revision, remove the marker. Never bypass
 the ignore rule to commit it. CI rejects an accidentally tracked marker and
 requires a `docs/verification.md` update alongside changed product Python,
-metadata, brand, translation or service surfaces; those checks supplement, not
-replace, real UX review.
+metadata, brand, translation or service surfaces. A valid manifest change to
+the `version` value alone is exempt because Release Please owns it; all other
+manifest changes still require evidence. These checks supplement, not replace,
+real UX review.
 
 Keep private plans, repro scripts and raw diagnostics under `_test/` (or existing
 ignored `_tmp/` staging). Distinguish executed checks from proposed checks and

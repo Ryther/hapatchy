@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import subprocess
 import sys
@@ -12,6 +13,7 @@ MARKER = ".ux-review-required.md"
 EVIDENCE = "docs/verification.md"
 EMPTY_TREE = "4b825dc642cb6eb9a060e54bf8d69288fbee4904"
 HEX_SHA = re.compile(r"[0-9a-f]{40}\Z")
+MANIFEST = "custom_components/hapatchy/manifest.json"
 
 
 def git(*args: str) -> bytes:
@@ -54,6 +56,31 @@ def product_path(path: str) -> bool:
     )
 
 
+def version_only_manifest_change(
+    base: str, head: str, status: str, paths: tuple[str, ...]
+) -> bool:
+    """Exclude only Release Please's manifest version change from UX evidence."""
+    if status != "M" or paths != (MANIFEST,):
+        return False
+    try:
+        before = json.loads(git("show", f"{base}:{MANIFEST}"))
+        after = json.loads(git("show", f"{head}:{MANIFEST}"))
+    except (json.JSONDecodeError, subprocess.CalledProcessError):
+        return False
+    if not isinstance(before, dict) or not isinstance(after, dict):
+        return False
+    old_version = before.pop("version", None)
+    new_version = after.pop("version", None)
+    return (
+        isinstance(old_version, str)
+        and isinstance(new_version, str)
+        and bool(old_version)
+        and bool(new_version)
+        and old_version != new_version
+        and before == after
+    )
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--base", help="Base commit SHA; omit for marker-only check")
@@ -71,7 +98,11 @@ def main() -> int:
     else:
         base = revision(base)
     changes = changed_paths(base, head)
-    product_changed = any(product_path(path) for _, paths in changes for path in paths)
+    product_changed = any(
+        product_path(path) and not version_only_manifest_change(base, head, status, paths)
+        for status, paths in changes
+        for path in paths
+    )
     evidence_changed = any(
         status[0] in ("A", "M", "R", "C") and paths[-1] == EVIDENCE
         for status, paths in changes

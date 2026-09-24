@@ -12,12 +12,10 @@ has **not completed a real GitHub release run**. The GitHub configuration needed
 for publication is described below. User installation instructions are in
 [installation.md](installation.md).
 
-During a private release rehearsal, the HACS Action is skipped: [HACS cannot
+The HACS Action is skipped when the repository is private because [HACS cannot
 use private GitHub repositories](https://hacs.dev/docs/faq/private_repositories/).
-The workflow still checks the local HACS metadata and runs hassfest, but those
-checks do not prove that HACS can install the integration. After making the
-repository public, run Integration validation again and require its HACS job to
-pass before claiming HACS compatibility.
+After the repository became public, the [HACS validation job](https://github.com/Ryther/hapatchy/actions/runs/36022604170)
+passed. It checks repository metadata, not installation into a running HA.
 
 ## What happens after a merge
 
@@ -34,7 +32,9 @@ For example, starting from the development version `0.1.0`:
    `0.2.0` in a new PR. Further feature/fix merges update that same PR.
 2. Review its `CHANGELOG.md` and the version changes in `pyproject.toml`,
    `custom_components/hapatchy/manifest.json` and `.release-please-manifest.json`.
-   All three versions must agree. The PR runs the normal CI checks.
+   All three versions must agree. The PR runs the normal CI checks. A manifest
+   change limited to its `version` value does not require new UI evidence;
+   changes to other manifest fields still do.
 3. Merge that PR when the release is ready. Release Please creates a draft for
    its exact commit. The workflow runs both HA/Python test baselines and
    integration validation against that candidate.
