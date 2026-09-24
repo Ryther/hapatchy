@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import os
+import secrets
 import shutil
 import socket
 import subprocess
@@ -10,6 +12,7 @@ import sys
 import tempfile
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -27,6 +30,8 @@ def prepare_config(root: Path, port: int) -> None:
     """Use only synthetic, isolated configuration and authored integration files."""
     (root / "scripts").mkdir()
     (root / "scripts" / "smoke.txt").write_text("original\n")
+    (root / "www").mkdir()
+    (root / "www" / "denied.txt").write_text("untouched\n")
     shutil.copytree(
         ROOT / "custom_components" / "hapatchy",
         root / "custom_components" / "hapatchy",
@@ -81,6 +86,157 @@ def wait_for_hapatchy(process: subprocess.Popen[bytes], log_path: Path) -> None:
     raise RuntimeError("HAPatchY setup timed out")
 
 
+def api_request(
+    base: str, path: str, data: dict | None = None, *, token: str = "", form: bool = False
+) -> dict | list:
+    body = None
+    headers = {}
+    if data is not None:
+        body = (
+            urllib.parse.urlencode(data).encode()
+            if form
+            else json.dumps(data).encode()
+        )
+        headers["Content-Type"] = "application/x-www-form-urlencoded" if form else "application/json"
+    if token:
+        headers["Authorization"] = f"Bearer {token}"
+    request = urllib.request.Request(base + path, body, headers)
+    try:
+        with urllib.request.urlopen(request, timeout=30) as response:
+            return json.load(response)
+    except urllib.error.HTTPError as error:
+        raise RuntimeError(f"HA API {path} returned HTTP {error.code}") from None
+
+
+def onboard(base: str) -> str:
+    client_id = base + "/"
+    result = api_request(
+        base,
+        "/api/onboarding/users",
+        {
+            "name": "HAPatchY CI",
+            "username": "hapatchy_ci",
+            "password": secrets.token_urlsafe(32),
+            "client_id": client_id,
+            "language": "en",
+        },
+    )
+    token = api_request(
+        base,
+        "/auth/token",
+        {
+            "grant_type": "authorization_code",
+            "code": result["auth_code"],
+            "client_id": client_id,
+        },
+        form=True,
+    )["access_token"]
+    for path, data in (
+        ("core_config", {}),
+        ("analytics", {}),
+    ):
+        api_request(base, "/api/onboarding/" + path, data, token=token)
+    return token
+
+
+def verify_patch_flow(base: str, root: Path) -> None:
+    token = onboard(base)
+    result = api_request(base, "/api/config/config_entries/flow", {"handler": "hapatchy"}, token=token)
+    if result["type"] == "form":
+        result = api_request(
+            base, "/api/config/config_entries/flow/" + result["flow_id"], {}, token=token
+        )
+    if result["type"] != "create_entry":
+        raise RuntimeError("HAPatchY integration flow did not create an entry")
+    entries = api_request(base, "/api/config/config_entries/entry", token=token)
+    entry = next(item["entry_id"] for item in entries if item["domain"] == "hapatchy")
+    flow = api_request(
+        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
+    )["flow_id"]
+    path = "/api/config/config_entries/subentries/flow/" + flow
+    result = api_request(
+        base,
+        path,
+        {
+            "name": "CI smoke",
+            "target_path": "scripts/smoke.txt",
+            "source_type": "managed",
+            "watch_root": "scripts",
+            "watch_pattern": "",
+        },
+        token=token,
+    )
+    if result.get("step_id") != "editor":
+        raise RuntimeError("Managed patch flow did not open the editor")
+    result = api_request(
+        base,
+        path,
+        {
+            "patch_text": "--- a/scripts/smoke.txt\n+++ b/scripts/smoke.txt\n"
+            "@@ -1 +1 @@\n-original\n+patched\n"
+        },
+        token=token,
+    )
+    if result.get("step_id") != "options":
+        raise RuntimeError("Managed patch flow did not open options")
+    result = api_request(
+        base,
+        path,
+        {
+            "enabled": True,
+            "auto_apply": False,
+            "reconcile_on_startup": True,
+            "backup_before_apply": True,
+            "source_sha256": "",
+            "debounce_seconds": 1.5,
+        },
+        token=token,
+    )
+    if result.get("type") != "create_entry":
+        raise RuntimeError("Managed patch flow did not save the patch")
+    target = root / "scripts" / "smoke.txt"
+    if target.read_bytes() != b"original\n":
+        raise RuntimeError("Target changed before explicit Apply")
+    deadline = time.monotonic() + 30
+    state = None
+    while time.monotonic() < deadline:
+        states = api_request(base, "/api/states", token=token)
+        state = next(
+            (item for item in states if item["entity_id"].startswith("sensor.ci_smoke")), None
+        )
+        if state is not None:
+            break
+        time.sleep(0.25)
+    if state is None:
+        raise RuntimeError("Managed patch sensor did not appear")
+    patch_id = state["attributes"]["patch_id"]
+    api_request(base, "/api/services/hapatchy/apply", {"patch_id": patch_id}, token=token)
+    if target.read_bytes() != b"patched\n":
+        raise RuntimeError("Apply did not change target bytes")
+    api_request(base, "/api/services/hapatchy/revert", {"patch_id": patch_id}, token=token)
+    if target.read_bytes() != b"original\n":
+        raise RuntimeError("Revert did not restore target bytes")
+    denied_flow = api_request(
+        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
+    )["flow_id"]
+    denied = api_request(
+        base,
+        "/api/config/config_entries/subentries/flow/" + denied_flow,
+        {
+            "name": "Denied CI smoke",
+            "target_path": "www/denied.txt",
+            "source_type": "managed",
+            "watch_root": "www",
+            "watch_pattern": "",
+        },
+        token=token,
+    )
+    if denied.get("type") != "form" or not denied.get("errors"):
+        raise RuntimeError("Unlisted target was not rejected by the native flow")
+    if (root / "www" / "denied.txt").read_bytes() != b"untouched\n":
+        raise RuntimeError("Unlisted target changed")
+
+
 def run_smoke() -> None:
     hass = Path(sys.executable).with_name("hass")
     with tempfile.TemporaryDirectory(prefix="hapatchy-ha-smoke-") as temporary:
@@ -99,9 +255,8 @@ def run_smoke() -> None:
                 wait_for_api(process, port)
                 wait_for_hapatchy(process, log_path)
                 log.flush()
-                if (root / "scripts" / "smoke.txt").read_text() != "original\n":
-                    raise RuntimeError("Smoke target changed unexpectedly")
-                print("Disposable HA booted with HAPatchY YAML; API ready; target unchanged")
+                verify_patch_flow(f"http://127.0.0.1:{port}", root)
+                print("Disposable HA Apply, Revert, denied target and byte checks: PASS")
             except Exception:
                 log.flush()
                 print(log_path.read_text(errors="replace")[-5000:], file=sys.stderr)
