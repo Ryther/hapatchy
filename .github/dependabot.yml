@@ -17,6 +17,10 @@ updates:
     ignore:
       - dependency-name: homeassistant
       - dependency-name: home-assistant-frontend
+      # These are fixed by the HA 2026.9.0 / pytest plugin dependency graph.
+      # Revisit them when that baseline or its test plugin changes.
+      - dependency-name: pipdeptree
+      - dependency-name: pyOpenSSL
   - package-ecosystem: pip
     directory: /tests
     schedule:
@@ -27,3 +31,7 @@ updates:
     ignore:
       - dependency-name: homeassistant
       - dependency-name: home-assistant-frontend
+      # These are fixed by the HA 2025.3.0 / pytest plugin dependency graph.
+      # Revisit them when that baseline or its test plugin changes.
+      - dependency-name: bleak
+      - dependency-name: pydantic-core
