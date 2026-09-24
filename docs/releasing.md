@@ -63,8 +63,8 @@ to initialize the workflow.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
    Require the **Conventional Commits**, **Workflow lint**, **Secrets**, **Tests**
-   matrix, both **HA boot smoke** matrix jobs and **Integration validation**
-   checks in the branch rules for `main`. Select the
+   matrix, both **HA boot smoke** matrix jobs, **Integration validation**, and
+   both **CodeQL** jobs in the branch rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
    A personal GitHub Free repository cannot enforce branch protection while
    private; review every check manually in that phase, then enable the rules
@@ -117,6 +117,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
 | [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
 | [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
+| [codeql.yaml](../.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of Python and GitHub Actions with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
 | [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
 
 [dependabot.yml](../.github/dependabot.yml) proposes weekly updates for Actions
