@@ -39,7 +39,7 @@ cryptography==44.0.1
 dbus-fast==2.33.0
 envs==1.4
 execnet==2.1.2
-fnv-hash-fast==1.2.6
+fnv-hash-fast==2.0.3
 fnvhash==0.1.0
 freezegun==1.5.1
 frozenlist==1.8.0
