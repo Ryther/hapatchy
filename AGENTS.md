@@ -147,6 +147,19 @@ are not proof of authorization, durability or every race: test those separately.
 Update English/Italian native translations together. Keep public screenshots
 current with the revision they document. Record versions and limitations.
 
+For a change to a user-visible flow or application behavior, review every
+affected public guide: `README.md` for capabilities and limits;
+`docs/installation.md` and `docs/directory-permissions.md` for setup;
+`docs/first-patch.md` for the walkthrough and screenshots;
+`docs/reference.md` for fields, actions, statuses and limits; and
+`docs/troubleshooting.md` for errors, recovery and removal. Update
+`docs/verification.md` with what was actually exercised and what remains
+unverified. Review `.agents/skills/hapatchy-guide/SKILL.md` and update its
+instructions whenever the user procedure it describes changes; Claude's
+`.claude/skills/hapatchy-guide` points to that same file. Keep examples and
+screenshots consistent with the current UI. Do not claim a guide or skill was
+verified by a test that did not exercise its procedure.
+
 When changing UI, labels, actions, errors, installation steps, or any behavior
 visible to a user, create or update the root `.ux-review-required.md` before
 implementation. It is a local, Git-ignored handoff: list affected user journeys,
