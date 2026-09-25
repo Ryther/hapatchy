@@ -108,7 +108,11 @@ def api_request(
         with urllib.request.urlopen(request, timeout=30) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
-        raise RuntimeError(f"HA API {path} returned HTTP {error.code}") from None
+        try:
+            message = json.load(error).get("message", "")
+        except (ValueError, AttributeError):
+            message = ""
+        raise RuntimeError(f"HA API {path} returned HTTP {error.code}: {message}") from None
 
 
 def onboard(base: str) -> str:
