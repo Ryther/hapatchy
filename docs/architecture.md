@@ -7,6 +7,7 @@ Assistant lifecycle. No patch is executed as a shell command or Python program.
 | --- | --- | --- |
 | `models`, `const` | Validated definitions, statuses, limits | `PatchDefinition`, `PatchInspection`, `PatchError` |
 | `patch_engine` | Parse and independently inspect forward/reverse exact matches; no I/O | `UnifiedDiffEngine.parse`, `UnifiedDiffEngine.inspect` |
+| `patch_builder` | Generate a bounded diff from edited text and prove exact forward and reverse bytes | `build_patch`, `validate_editor_text` |
 | `safe_io` | Descriptor-relative traversal and file snapshots | `GuardedDirectory`, `GuardedFile` |
 | `atomic_writer`, `backup` | Durable transaction and backup retention | `AtomicFileWriter`, `BackupManager` |
 | `patch_source` | Bounded managed/local/HTTPS source reads | `PatchSourceClient` |
@@ -17,7 +18,7 @@ Assistant lifecycle. No patch is executed as a shell command or Python program.
 | `coordinator` | HA loop state, serialized admission and drained teardown | `PatchManagerRuntime` |
 | `watcher` | Observer ownership, loop debounce and root recovery | `PatchWatcher` |
 | `state_store`, `repairs` | Metadata persistence and native issue projection | `StateStore`, `IssueManager` |
-| `config_flow`, `validation` | Native configuration and read-only validation | HA flow hooks |
+| `config_flow`, `validation` | Native configuration, guarded editor snapshots and read-only validation | HA flow hooks, `read_editable_target`, `verify_editable_snapshot` |
 | `sensor`, `services`, `diagnostics`, `__init__` | Thin HA projections/composition | HA integration hooks |
 
 The engine uses patch-ng only to parse/check the diff structure. Owned matching
@@ -37,6 +38,13 @@ active saves. Managed files are published before their references are configured
 without overwriting existing revisions. Upload processing and discovery run in
 the executor.
 
+The new-rule file editor captures an authorized snapshot in the executor and
+holds it only in flow memory. It publishes a managed diff only after the target
+and grants are rechecked under the configuration lock. HA assigns the subentry
+after the flow returns, so the ordinary runtime reload schedules backed-up
+Apply asynchronously; the sensor and Repairs, rather than the save dialog,
+report its outcome.
+
 Native subentries own patch definitions. Operator YAML owns directory grants;
 HAPatchY does not write it. At startup the integration compares raw YAML and
 HA's loaded configuration, snapshots configuration sources, and denies a target
@@ -47,8 +55,9 @@ and state records a controlled error. HA storage and the target file do not shar
 one filesystem transaction.
 
 Tests cover decisions independently and exercise native flows, sensors, service
-permissions, watcher threads and filesystem failures. An end-to-end HACS update
-has not yet been exercised.
+permissions, watcher threads and filesystem failures. The editor and its
+asynchronous Apply were also checked in disposable HA and Chromium; a future
+published release is a separate verification boundary.
 
 ## Working on the project
 
@@ -75,9 +84,10 @@ fake network/GitHub boundaries in tests; no test should need household HA, a rea
 GitHub token, or publication permissions.
 The CI functional smoke starts a separate HA process in each Python/HA lane.
 The minimum runtime input adds the HA 2025.3 frontend to its test lock; the
-recent lane uses the complete Dev Container HA lock. Each process creates a
-managed patch through HA's API, verifies Apply/Revert bytes, and checks that an
-unlisted target is denied without a write.
+recent lane uses the complete Dev Container HA lock. Each process creates manual
+and editor-generated managed patches through HA's API, verifies Apply/Revert
+and backup bytes, checks failed Apply status, and denies an unlisted target
+without a write.
 
 ## Packaging and release boundaries
 

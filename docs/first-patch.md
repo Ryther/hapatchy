@@ -2,55 +2,115 @@
 
 [← Installation](installation.md) · [Settings reference →](reference.md)
 
-This exercise changes an unused text file from `interval = 30` to `interval = 5`.
-**Home Assistant does not read this demo file**, so no device or integration is
-changed. You select the target in HA, paste the patch, then try Apply and Revert.
-You do not need to create a patch file in HA's configuration folder.
+This walkthrough changes an **unused** text file from `interval = 30` to
+`interval = 5`. Home Assistant does not read the demo file, so no device or
+integration changes. The default Add patch flow shows the file in a text editor,
+creates a unified diff for you, then requests Apply with a backup. You do not
+need to write a `.patch` file.
 
-This exact example was performed in Chromium on disposable HA **2026.9.0** on
-24 September 2026. The resulting file bytes were checked after every write.
-This HA version calls Developer tools **Tools**.
+The editor flow was performed in Chromium on disposable HA **2026.9.0** on
+25 September 2026 using the development source. The browser captures used
+`scripts/interval.txt` with the same text below; the applied target and retained
+backup were checked byte for byte. The same native API flow also passed the HA
+boot smoke test, including a failed-write status check. This does not certify a
+published HACS release or a change to another integration.
 
-## 1. Prepare an unused target
+## 1. Prepare and authorize the target
 
 In your HA configuration folder, create `hapatchy_ui_demo/settings.txt` with
-exactly these two lines and a newline after the last line:
+exactly these two lines **and a newline after the last line**:
 
 ```text
 # HAPatchY example
 interval = 30
 ```
 
-Use a plain-text editor and UTF-8 encoding, or download [settings.txt](examples/settings.txt).
-Authorize `hapatchy_ui_demo` in **both** YAML directory lists and restart HA as
-shown in [the directory-permissions guide](directory-permissions.md). Without
-that step, HAPatchY refuses the target even if you can enter its path in the form.
-This is the **target**: the existing file HAPatchY will modify. For a real patch,
-the target would already exist, for example inside another custom integration.
-The file picker selects files on HA's server, not files on your computer.
+Use a plain-text UTF-8 editor, or download [settings.txt](examples/settings.txt).
+The configuration folder is the one containing `configuration.yaml`; the file
+picker selects files on **HA's server**, not your computer.
 
-## 2. Select the target in HA
+Authorize the `hapatchy_ui_demo` folder in **both** YAML directory lists and
+restart HA as shown in the [directory-permissions guide](directory-permissions.md).
+The same grant also permits an HA administrator using this flow to **read the
+file's full contents**. Grant only folders whose contents may be read and patched
+through the administrator API. HAPatchY cannot approve a folder from its form.
+
+## 2. Select the file
 
 Open **Settings → Devices & services → HAPatchY → Add patch**.
 
-- Set **Name** to `UI interval`.
-- Open **File to patch**, search for `hapatchy_ui_demo`, and select
-  `hapatchy_ui_demo/settings.txt`.
-- Keep **Write or paste patch contents** selected.
-- Leave **Watch directory** and **Watch pattern** empty. HAPatchY will watch
-  the selected file's parent directory and match that file.
+1. Set **Name** to `UI interval`.
+2. Select **File to patch** → `hapatchy_ui_demo/settings.txt`.
+3. Keep the default **Edit selected file** input.
+4. Leave **Watch directory** and **Watch pattern** empty. The selected file's
+   parent directory and exact filename are used.
+5. Select **Submit**.
 
-Only files inside permitted subdirectories are suggested. If an eligible file
-is absent from the limited list, type its full configuration-relative path and
-choose **Add custom item**. Paths are validated again when submitted.
+The picker lists only a bounded set of eligible files. If yours is absent,
+enter its configuration-relative path, such as `hapatchy_ui_demo/settings.txt`,
+and select **Add custom item**. The backend checks the path and both grants again.
+A brief loading screen can appear before the editor opens.
 
-Select **Submit** to open the patch editor.
+## 3. Edit, save, and check the result
 
-![The Add patch form with the server-side target picker](images/first-patch-target-picker.png)
+The **File contents** field is prefilled from the authorized target. Change only
+`interval = 30` to `interval = 5`; keep the comment and final newline. Select
+**Submit** and then **Finish**. The editor accepts a nonempty UTF-8 file up to
+**256 KiB**, with LF line endings and a final newline. It refuses binary text,
+CRLF, missing final newlines and edits whose generated diff cannot be applied
+and reversed unambiguously. Use a patch-file input for a supported file that the
+editor cannot handle.
 
-## 3. Paste and save the patch
+![Native editor containing the revised demo text in disposable HA](images/file-editor-form.png)
 
-Paste this complete unified diff into **Patch contents**:
+HAPatchY saves the generated diff as a managed patch, enables startup checking
+and automatic application, and requires a backup. **“Created configuration”
+means the rule was saved; it does not mean Apply succeeded.** Open **Developer
+tools → States** and find `sensor.ui_interval_status` (or search by the rule
+name). Wait for **`applied`** and check the target file itself. A brief `unknown`
+state is normal. If the sensor reports `apply_error`, `conflict` or
+`security_error`, inspect **Settings → System → Repairs** and follow
+[troubleshooting](troubleshooting.md); do not assume the file changed.
+
+![The demo sensor reports applied after the target and backup were checked](images/file-editor-applied.png)
+
+The demo target should now contain `interval = 5`. A recovery copy of its
+**original** bytes is retained under `.hapatchy/backups/<patch_id>/` inside the
+HA configuration folder. This is HAPatchY's internal folder; you need not create
+or edit it. Your file editor may need **Show hidden files** to display it. Keep a
+separate full HA backup as well.
+
+## 4. Revert and clean up
+
+Find the sensor's **`patch_id`** attribute in Developer tools → States. This ID
+is different from the sensor's entity ID. Open **Developer tools → Actions**,
+choose **HAPatchY: Revert**, enter the ID and perform the action. In YAML mode:
+
+```yaml
+action: hapatchy.revert
+data:
+  patch_id: "paste-your-patch-id-here"
+```
+
+Check that the target is back to `interval = 30` and the sensor is `applicable`.
+Revert makes a backup of the pre-revert bytes and disables automatic
+reapplication. It reverses only an exact match; it does not blindly restore an
+old backup. You can then remove the rule from the HAPatchY integration page.
+Removing a rule without Revert does **not** undo its target change or delete
+retained backups and patch revisions.
+
+## Prefer to supply a `.patch` file?
+
+Choose **Write or paste patch contents** or **Upload a patch file** at step 2.
+These existing methods open a diff editor, then **Behavior and verification**.
+For a first manual test, keep backup and startup checking on, turn automatic
+application off, save the rule, confirm `applicable`, and run **HAPatchY: Apply**
+from Developer tools using the sensor's `patch_id`. Its status should become
+`applied`. Upload accepts a UTF-8 `.patch` or `.diff` file up to **2 MiB** from
+your computer; it does not upload or replace the target itself. You can use the
+[ready-made example](examples/interval.patch).
+
+The complete diff for this target is:
 
 ```diff
 --- a/hapatchy_ui_demo/settings.txt
@@ -61,55 +121,17 @@ Paste this complete unified diff into **Patch contents**:
 +interval = 5
 ```
 
-Keep the **one leading space** before `# HAPatchY example` and the final newline.
-Do not copy the Markdown fence lines. The first two lines name the target;
-`-` removes a line, `+` adds a line, and the space marks unchanged context.
-The `@@` line describes the hunk's line counts. For real patches, obtain a
-correct unified diff from the author rather than inventing those counts.
+Keep the **leading space** before `# HAPatchY example` and a final newline.
+The `---` and `+++` paths must match the selected target. Do not copy Markdown
+fences into a patch file. Paste the diff into a plain-text editor on your
+computer and save it as `interval.patch` in UTF-8, or use the downloaded example.
+If your target already has an editor-created rule, Revert and remove it before
+adding a new rule for the same file; duplicate target paths are rejected.
 
-Select **Submit**. On **Behavior and verification**:
-
-- Keep **Enabled**, **Check at Home Assistant startup**, and **Back up before applying** on.
-- Turn **Apply compatible patches automatically** **off** for this exercise.
-- Leave the SHA-256 empty and the wait at **1.5 seconds**.
-- Select **Submit**, then **Finish**.
-
-HAPatchY now stores the patch in its own `.hapatchy/patches/` directory.
-Before the final submit, editing does not save a managed patch or change the
-target. With automatic application and startup checking enabled, saving can
-start an apply immediately; that is why this tutorial turns automatic application off.
-
-The new sensor, **UI interval status**, should become **Applicable**. The target
-still contains `interval = 30`. A brief `unknown` state before the check is normal.
-
-![The tutorial rule is applicable before the target is changed](images/first-patch-applicable.png)
-
-### Prefer uploading a patch file?
-
-At step 2 choose **Upload a patch file** instead. Select a UTF-8 `.patch` or
-`.diff` from your computer (maximum **2 MiB**) and submit. HA then opens the same
-editor with the uploaded contents, so you can review or change them before saving.
-
-For the main tutorial target, you can use
-[interval.patch](examples/interval.patch).
-The patch headers must match whichever target you selected. Uploading a patch
-does not upload or replace the target itself.
-
-### Create a `.patch` file yourself
-
-A patch file is plain text. For the demo, open a plain-text editor on **your
-computer**, copy the complete diff from step 3 (from `---` through
-`+interval = 5`, including the space at the start of the context line), and save
-it as `interval.patch` in UTF-8 with a final newline. Do not include the Markdown
-fences. You can compare your file with [the ready-made example](examples/interval.patch).
-Then choose **Upload a patch file** as described above. The upload opens an editor
-for review; it does not change `settings.txt` until you finish configuring the
-rule and later apply it.
-
-For a real change, make **two copies** of the target file on your computer:
-`original.txt` with the bytes currently on HA and `desired.txt` with only the
-change you want. Leave the HA target untouched. On Linux or in the Dev Container,
-GNU `diff` can create the patch without hand-editing hunk line counts:
+For a real file, make two copies on your computer: `original.txt` containing the
+current HA bytes and `desired.txt` containing only the intended change. Leave
+the HA target untouched. On Linux or in the Dev Container, GNU `diff` generates
+the correct hunk counts:
 
 ```sh
 diff -u \
@@ -118,71 +140,24 @@ diff -u \
   original.txt desired.txt > interval.patch
 ```
 
-Replace **both** label paths with the target's path relative to the HA
-configuration folder, keeping the `a/` and `b/` prefixes. Replace the two input
-filenames and the output filename as appropriate. `diff` exits with status **1**
-when it finds differences; that is expected. Status **0** produces an empty file
-and means there is no change to patch. Any other status is an error: inspect it
-before using the output. Open the result and confirm that it describes **one
-existing file**, that the `---`/`+++` paths match your chosen target, and that
-it contains only the intended change. The old copy must match the current HA
-file; otherwise HAPatchY will report a conflict rather than guess. Do not use a
-patch containing secrets or unreviewed changes from another source.
+Replace both label paths with your target's configuration-relative path, keeping
+`a/` and `b/`. `diff` exits **1** when it finds differences; that is expected.
+Exit **0** creates an empty patch, and any other exit needs investigation. Review
+the output before upload: it must describe one existing target, use the correct
+headers, and contain only the intended change. An upstream change to the target
+can cause a conflict; HAPatchY will not force an ambiguous match.
 
-## 4. Apply once, then revert
+## Edit an existing rule or try automatic reapplication
 
-1. Open **Developer tools → States**, find `sensor.ui_interval_status`, and copy
-   its **`patch_id`** attribute. This is different from the sensor's entity ID.
-2. Open **Developer tools → Actions** and choose **HAPatchY: Apply**.
-3. Enter that ID into **Patch ID** and perform the action.
+**Edit selected file** creates a new rule. To change a saved managed diff, use
+**Reconfigure patch** and **Write or paste patch contents**. If that diff is
+already applied, first run Revert and verify the target; the old revision stays
+available for exact reversal. HAPatchY retains previous managed revisions when
+you save an edit.
 
-In YAML mode, substitute your own ID:
-
-```yaml
-action: hapatchy.apply
-data:
-  patch_id: "paste-your-patch-id-here"
-```
-
-The sensor becomes **Applied**, the file contains `interval = 5`, and a backup
-is retained under `.hapatchy/backups/<patch_id>/`. Your file editor may need
-**Show hidden files** to display that folder.
-
-Run **HAPatchY: Revert** with the same ID. The target returns to `interval = 30`
-and the status becomes **Applicable**. Revert disables automatic application
-and keeps it off. It reverses the current patch only when the target matches
-exactly, making a mandatory backup; it does not blindly restore an old backup.
-
-## 5. Edit a saved patch
-
-Use **Reconfigure patch** beside `UI interval`. Keep the target and the
-**Write or paste patch contents** choice, then submit. The editor contains the
-saved patch. Change `+interval = 5` to `+interval = 7` and submit.
-
-If the patch is still applied, HAPatchY asks you to cancel, run Revert and reopen
-the form. The old patch remains configured so Revert can still use it.
-
-After Revert, the edit can be saved. Submit the final **Behavior and verification**
-form to save the edit; reconfiguration returns to the integration page without
-another Finish button. HAPatchY keeps the previous patch revision
-and gives the new contents their own file; it does not overwrite the old revision.
-The rule and sensor keep their identity.
-
-![Reconfigure opens the saved patch text in the editor](images/first-patch-reconfigure.png)
-
-## 6. Try automatic reapplication
-
-While saving that edit, turn **Apply compatible patches automatically** on and
-keep the startup check on. Saving reloads the integration; the file should now
-contain `interval = 7`.
-
-Replace the demo target with its original two lines (`interval = 30`). Wait a
-few seconds: HAPatchY should restore `interval = 7` and show **Applied**.
-
-This exercises the watcher, not an actual HACS update. An upstream update that
-changes the context can correctly produce **Conflict** instead. Review that
-version and obtain an updated patch; do not force the old change.
-
-Finish with **Revert** so this demo remains inactive. To remove it, follow the
-[cleanup instructions](troubleshooting.md#remove-a-patch-or-uninstall-hapatchy).
-Removing a rule does not undo its target changes or delete its retained files.
+With automatic application enabled, replacing a target with its exact original
+bytes should cause HAPatchY to reapply a matching diff after the watcher settles.
+This is useful after an upstream update, but a changed context may instead
+produce `conflict`. Review the upstream version and obtain a new patch; never
+force the old change. Python files already loaded by HA may require an HA restart
+after their bytes change. HAPatchY does not restart HA for you.

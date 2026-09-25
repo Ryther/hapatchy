@@ -21,10 +21,12 @@ HAPatchY paths are relative to this folder. If a file is
 
 ## HACS availability
 
-A HACS update to v0.2.1 reached the Add patch form on one HA installation;
-Apply and Revert have not yet been checked on that version. Manual installation
-from the published v0.2.0 archive was exercised in disposable HA, including
-Apply, Revert and a denied destination.
+Use the [HACS custom-repository button](../README.md) if HACS is already
+installed, or add `Ryther/hapatchy` as a custom **Integration** repository in
+HACS. Install the available release and restart HA. The file-editor procedure
+in this documentation was checked against this repository revision in disposable
+HA; a published HACS version includes it only after a release containing this
+revision. Check that version's release notes if its Add patch form differs.
 
 ## Manual installation
 
@@ -73,7 +75,9 @@ installation. Internet access may be required for dependency installation.
 4. Open the HAPatchY integration page. You should see **Add patch**.
 
 Create HAPatchY only once. Multiple patches live inside that one integration.
-No sensor appears until you add a patch. Continue with
+No sensor appears until you add a patch. The default Add patch path reads the
+selected file into an editor, so an administrator using the HA API can read the
+full contents of files in authorized folders. Continue with
 [Your first patch](first-patch.md) before configuring an important file.
 
 If HAPatchY is missing from the search, check the folder layout, restart HA and
@@ -83,7 +87,6 @@ import or dependency error needs investigation. See
 
 ## Updates
 
-An installation through HACS reached the Add patch form on v0.2.0. An update
-through HACS to v0.2.1 also reached the form on one HA installation. This does
-not yet verify creating, applying and reverting a patch on v0.2.1. Keep a full
-HA backup before updating an installed integration.
+Keep a full HA backup before updating. After an update, restart HA and inspect
+the patch status sensors and Repairs. A changed Python file may require an HA
+restart even after HAPatchY reports its bytes as applied.

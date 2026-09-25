@@ -11,14 +11,16 @@
 [![Open HAPatchY in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Ryther&repository=hapatchy&category=integration)
 
 The button opens this **custom repository** in an existing HACS installation;
-it does not add HAPatchY to HACS's default catalog. HACS installation and updates
-have not yet been exercised in disposable HA. The [verified manual installation](docs/installation.md)
-is available now.
+it does not add HAPatchY to HACS's default catalog. The published release may
+lag behind the current source and these guides; check its release notes before
+following the file-editor procedure. See [installation](docs/installation.md).
 
 HAPatchY helps you keep a small, deliberate change to a file after an update
-replaces that file. You provide a **patch**: a text file describing which lines
-should change and the surrounding lines that identify them. HAPatchY watches the
-chosen file and reapplies the change only when the patch matches unambiguously.
+replaces that file. You can edit an authorized file in the native HA form and
+let HAPatchY generate a **patch**: a record of which lines should change and the
+surrounding lines that identify them. You can also supply a patch yourself.
+HAPatchY watches the chosen file and reapplies the change only when the patch
+matches unambiguously.
 
 For example, if an upstream integration update restores a setting you had changed,
 HAPatchY can restore your change automatically. If the upstream code has changed
@@ -28,8 +30,8 @@ instead of guessing. Patches for other integrations are **not bundled**.
 ## Start here
 
 1. Read the [installation guide](docs/installation.md).
-2. Follow [Your first patch](docs/first-patch.md): a copy-and-paste example using
-   an unused text file, with the expected result at each step and instructions
+2. Follow [Your first patch](docs/first-patch.md): edit an unused text file in
+   HA's native form, with the expected result at each step and instructions
    to [create your own `.patch` file](docs/first-patch.md#create-a-patch-file-yourself).
 3. Use the [settings and actions reference](docs/reference.md) when configuring
    a real patch, and [troubleshooting and recovery](docs/troubleshooting.md) if
@@ -38,8 +40,10 @@ instead of guessing. Patches for other integrations are **not bundled**.
 The operator first authorizes destination folders in `configuration.yaml` using
 [both directory lists](docs/directory-permissions.md), then restarts HA. You
 configure each patch from **Settings → Devices & services**. Select the target
-file from HA’s configuration, then paste a patch into the editor or upload a
-`.patch`/`.diff` file. HAPatchY saves it and lets you edit it later. Existing local
+file from HA’s configuration, then edit its contents in the native form. HAPatchY
+generates a patch and requests immediate backed-up Apply; check the status sensor
+for the actual result. You can also paste or upload a `.patch`/`.diff` file.
+HAPatchY saves the patch and lets you edit it later. Existing local
 patch files and direct HTTPS URLs remain available as advanced inputs. Each patch has a
 status sensor; Home Assistant's Repairs page reports problems. The YAML contains
 only operator-owned directory grants, not patch definitions. There is no custom
@@ -62,9 +66,11 @@ This screenshot shows a local development installation, not a HACS certification
   There is no fuzzy matching, forced application, or multi-file patch support.
 - No directory is authorized by default. Both HA's explicit
   `allowlist_external_dirs` and HAPatchY's `allowed_directories` must permit
-  the target and watch directory; see [directory permissions](docs/directory-permissions.md).
-- Automatic application, startup checks and backups are enabled by default.
-  The introductory example explains how to start with automatic application off.
+  the target and watch directory; the file editor also reads the full contents
+  of files in these folders. See [directory permissions](docs/directory-permissions.md).
+- The file editor supports nonempty UTF-8 LF text with a final newline, up to
+  256 KiB. It always enables automatic application, startup checks and backup.
+  Other patch inputs have separate behavior settings.
 - Changing a Python file on disk may require an HA restart to affect running
   code. **HAPatchY never restarts HA for you.**
 - Removing HAPatchY does **not** undo changes to files. Use the checked Revert
@@ -86,12 +92,11 @@ The Dev Container's Python 3.14 requirement does not raise the product minimum.
 
 HAPatchY is experimental. Download the
 [latest release](https://github.com/Ryther/hapatchy/releases/latest) for manual
-installation and use its `custom_components/hapatchy` folder. The first public
-v0.2.0 archive was checksum-checked and exercised in disposable HA. A HACS
-installation of v0.2.0 and update to v0.2.1 reached the native Add patch form;
-Apply and Revert on v0.2.1 have not yet been verified, and default-store
-inclusion is not claimed. See
-[installation](docs/installation.md) for the setup steps.
+installation and use its `custom_components/hapatchy` folder. The file editor
+in this repository revision was exercised in disposable HA, including automatic
+Apply, an `applied` sensor state, original backup bytes and a failed-write
+status. This verifies the development source, not a HACS installation of a
+future release. See [installation](docs/installation.md) for setup.
 
 ## Help and development
 

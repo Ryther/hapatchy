@@ -17,6 +17,29 @@
 Do not edit `.storage` or restore random backup files as an initial troubleshooting
 step. Preserve the current target and patch before investigating a mismatch.
 
+## The file editor will not open or save
+
+**Edit selected file** requires an existing regular target in a folder approved
+by both directory lists. The same grant allows an administrator using HA's API
+to read its full contents. The editor accepts nonempty UTF-8 LF text with a
+final newline, at most 256 KiB before and after editing. It refuses symlinks,
+hard links, special files, binary text, CRLF and missing final newlines. For a
+supported target outside those editor-specific limits, use the paste/upload
+patch input instead; the general target and patch limits still apply.
+
+If the file or its grants changed while the form was open, close it and start
+**Add patch** again so HAPatchY reads a fresh snapshot. An unchanged edit or a
+diff that cannot be applied and reversed uniquely is refused before saving.
+Do not try to force it; use a reviewed explicit patch with distinguishing
+context when appropriate. A direct API submission cannot skip the authorized
+read step.
+
+After the form says **Created configuration**, Apply may still be running.
+Check the new status sensor and Repairs. `applied` plus the expected target
+bytes confirms the change; `apply_error` means inspect storage, permissions and
+backup state before retrying. The form's success message alone does not confirm
+a write. A Python change may need a separate HA restart to affect running code.
+
 ## HAPatchY does not appear or fails to load
 
 Check that `custom_components/hapatchy/manifest.json` exists under your actual HA
