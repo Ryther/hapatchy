@@ -196,6 +196,40 @@ async def test_edit_file_direct_step_without_snapshot_does_not_disclose(hass, fi
     assert b"context\nold\n" not in str(response).encode()
 
 
+async def test_edit_file_preserves_submitted_text_after_recoverable_save_error(hass, files):
+    from custom_components.hapatchy.models import PatchError
+
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(hass, result["flow_id"], DATA | {"source_type": "edit_file"})
+    with patch(
+        "custom_components.hapatchy.config_flow.ManagedPatchStore.save",
+        side_effect=PatchError("managed_source_write_failed"),
+    ):
+        result = await configure(hass, result["flow_id"], {"edited_text": "context\nnew\n"})
+    assert result["step_id"] == "edit_file"
+    assert result["errors"] == {"base": "managed_source_write_failed"}
+    assert result["data_schema"]({})["edited_text"] == "context\nnew\n"
+    assert not entry.subentries
+
+
+async def test_edit_file_refuses_invalid_unicode_from_direct_api(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(hass, result["flow_id"], DATA | {"source_type": "edit_file"})
+    flow = hass.config_entries.subentries._progress[result["flow_id"]]
+    result = await flow.async_step_edit_file({"edited_text": "bad\ud800\n"})
+    assert result["step_id"] == "edit_file"
+    assert result["errors"] == {"base": "editor_text_format"}
+    assert not entry.subentries
+
+
 @pytest.mark.parametrize(
     "extra", [{"target_path": "../outside"}, {"watch_root": "."}, {"source": "scripts/a.py"}]
 )

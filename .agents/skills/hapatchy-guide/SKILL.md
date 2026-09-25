@@ -81,6 +81,9 @@ The native editor accepts nonempty UTF-8 LF text with a final newline, at most
 special files, stale targets/grants, unchanged edits and generated diffs that
 cannot be applied and reversed uniquely. It always saves a managed diff and
 requests immediate Apply with a backup, startup check and automatic application.
+After a recoverable save or validation error, the submitted bounded text stays
+in the editor for correction; a changed target or grant instead requires
+reopening Add patch. Malformed Unicode or oversized API input is refused.
 **Created configuration does not confirm that Apply succeeded.** Wait for the
 sensor's raw state `applied`, check the target bytes, and inspect Repairs on an
 error. A brief `unknown` is normal. The original bytes are retained under

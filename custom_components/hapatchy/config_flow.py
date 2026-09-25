@@ -35,6 +35,18 @@ def _editor_error_reason(error: PatchError) -> str:
     return error.reason
 
 
+def _encode_editor_input(value: str) -> bytes:
+    if len(value) > MAX_EDITOR_BYTES:
+        raise PatchError("editor_size_limit")
+    try:
+        encoded = value.encode("utf-8")
+    except UnicodeEncodeError:
+        raise PatchError("editor_text_format") from None
+    if len(encoded) > MAX_EDITOR_BYTES:
+        raise PatchError("editor_size_limit")
+    return encoded
+
+
 class HAPatchYConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     MINOR_VERSION = 1
@@ -106,6 +118,7 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
         self._targets: list[str] | None = None
         self._edit_snapshot: Snapshot | None = None
         self._editing_file = False
+        self._edited_text: str | None = None
         self._selected_source_type: str | None = None
 
     def _entry(self):
@@ -223,10 +236,12 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             if not isinstance(edited_text, str):
                 errors["base"] = "editor_text_format"
             else:
-                edited = edited_text.encode("utf-8") if len(edited_text) <= MAX_EDITOR_BYTES else b""
-                if len(edited_text) > MAX_EDITOR_BYTES or len(edited) > MAX_EDITOR_BYTES:
-                    errors["base"] = "editor_size_limit"
+                try:
+                    edited = _encode_editor_input(edited_text)
+                except PatchError as error:
+                    errors["base"] = error.reason
                 else:
+                    self._edited_text = edited_text
                     definition = PatchDefinition.from_mapping("pending", self._data)
                     try:
                         self._draft = await self.hass.async_add_executor_job(
@@ -261,7 +276,14 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             errors=errors,
             data_schema=vol.Schema(
                 {
-                    vol.Required("edited_text", default=snapshot.data.decode("utf-8")):
+                    vol.Required(
+                        "edited_text",
+                        default=(
+                            self._edited_text
+                            if self._edited_text is not None
+                            else snapshot.data.decode("utf-8")
+                        ),
+                    ):
                     selector.TextSelector(selector.TextSelectorConfig(multiline=True))
                 }
             ),

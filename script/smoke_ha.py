@@ -32,6 +32,7 @@ def prepare_config(root: Path, port: int) -> None:
     (root / "scripts" / "smoke.txt").write_text("original\n")
     (root / "scripts" / "editor.txt").write_text("before\n")
     (root / "scripts" / "failure.txt").write_text("safe\n")
+    (root / "scripts" / "ambiguous.txt").write_text("before\n")
     (root / "www").mkdir()
     (root / "www" / "denied.txt").write_text("untouched\n")
     shutil.copytree(
@@ -291,6 +292,35 @@ def verify_patch_flow(base: str, root: Path) -> None:
     if target.read_bytes() != b"before\n":
         raise RuntimeError("Editor-generated patch did not revert to original bytes")
 
+    retry_flow = api_request(
+        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
+    )["flow_id"]
+    retry_path = "/api/config/config_entries/subentries/flow/" + retry_flow
+    retry = api_request(
+        base,
+        retry_path,
+        {
+            "name": "CI retry",
+            "target_path": "scripts/ambiguous.txt",
+            "source_type": "edit_file",
+            "watch_root": "scripts",
+            "watch_pattern": "",
+        },
+        token=token,
+    )
+    if retry.get("step_id") != "edit_file":
+        raise RuntimeError("Retry-case editor did not open")
+    retry = api_request(base, retry_path, {"edited_text": "before\nafter\n"}, token=token)
+    if retry.get("step_id") != "edit_file" or retry.get("errors", {}).get("base") != "editor_context_not_unique":
+        raise RuntimeError("Ambiguous edit was not refused")
+    if not any(
+        field.get("name") == "edited_text" and field.get("default") == "before\nafter\n"
+        for field in retry.get("data_schema", [])
+    ):
+        raise RuntimeError("Recoverable editor error discarded the user's edit")
+    if (root / "scripts" / "ambiguous.txt").read_bytes() != b"before\n":
+        raise RuntimeError("Rejected ambiguous edit changed target bytes")
+
     failure_flow = api_request(
         base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
     )["flow_id"]
@@ -355,7 +385,7 @@ def run_smoke() -> None:
                 verify_patch_flow(f"http://127.0.0.1:{port}", root)
                 print(
                     "Disposable HA native editor, backed-up Apply, failed Apply status, "
-                    "Revert, denied target and byte checks: PASS"
+                    "Revert, retry text retention, denied target and byte checks: PASS"
                 )
             except Exception:
                 log.flush()

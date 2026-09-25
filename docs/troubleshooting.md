@@ -30,7 +30,10 @@ patch input instead; the general target and patch limits still apply.
 If the file or its grants changed while the form was open, close it and start
 **Add patch** again so HAPatchY reads a fresh snapshot. An unchanged edit or a
 diff that cannot be applied and reversed uniquely is refused before saving.
-Do not try to force it; use a reviewed explicit patch with distinguishing
+For a recoverable validation or save error, the bounded text you submitted
+remains in the editor so you can correct it. An oversized or invalid Unicode
+API submission is refused without keeping that malformed input. Do not try to
+force an ambiguous edit; use a reviewed explicit patch with distinguishing
 context when appropriate. A direct API submission cannot skip the authorized
 read step.
 
