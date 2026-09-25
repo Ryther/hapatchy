@@ -106,6 +106,12 @@ rules require it. The Release workflow also requires the commit check itself.
 | `feat!: ...` or a `BREAKING CHANGE:` footer | Minor increment before 1.0; major afterward |
 | `docs: ...`, `ci: ...`, `build: ...`, `chore: ...` | No release by themselves |
 
+For an explicitly approved major version such as 1.0.0, add a
+`Release-As: 1.0.0` footer to a Conventional Commit on `main`. Release Please
+then proposes that version in its release PR; review the three version files
+and changelog before merging. Do not set a persistent `release-as` value in
+`release-please-config.json` or edit the version files by hand.
+
 **Do not run `cz bump`.** Release Please alone updates versions and the changelog.
 The Commitizen configuration intentionally has no bump/version-file settings.
 Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
