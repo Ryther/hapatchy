@@ -184,6 +184,94 @@ async def test_edit_file_denied_target_never_opens_contents(hass, files):
     assert "never disclose me" not in str(result)
 
 
+@pytest.mark.parametrize(
+    ("original", "reason"),
+    [
+        (b"context\r\nold\r\n", "editor_text_format"),
+        (b"x" * (512 * 1024) + b"\n", "editor_size_limit"),
+    ],
+)
+async def test_edit_file_unsupported_text_stays_on_initial_form(hass, files, original, reason):
+    target = files / "scripts/a.py"
+    target.write_bytes(original)
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "name": "Unsupported text",
+            "target_path": "scripts/a.py",
+            "source_type": "edit_file",
+        },
+    )
+
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": reason}
+    assert target.read_bytes() == original
+    assert not entry.subentries
+
+
+async def test_edit_file_opens_text_larger_than_256_kib(hass, files):
+    target = files / "scripts/a.py"
+    original = b"".join(
+        f"line {index:05d} ".encode() + b"x" * 29 + b"\n" for index in range(6900)
+    )
+    assert 256 * 1024 < len(original) < 512 * 1024
+    target.write_bytes(original)
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "name": "Large text",
+            "target_path": "scripts/a.py",
+            "source_type": "edit_file",
+        },
+    )
+
+    assert result["step_id"] == "edit_file"
+    assert result["data_schema"]({})["edited_text"].encode() == original
+    assert target.read_bytes() == original
+    assert not entry.subentries
+
+    edited = original.replace(b"line 03450 ", b"line 03450 changed ", 1)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"edited_text": edited.decode()}
+    )
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert target.read_bytes() == original
+    assert len(entry.subentries) == 1
+
+
+async def test_edit_file_missing_target_stays_on_initial_form(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "name": "Missing text",
+            "target_path": "scripts/missing.py",
+            "source_type": "edit_file",
+        },
+    )
+
+    assert result["step_id"] == "user"
+    assert result["errors"] == {"base": "missing_target"}
+    assert not entry.subentries
+
+
 async def test_edit_file_direct_step_without_snapshot_does_not_disclose(hass, files):
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.add_to_hass(hass)

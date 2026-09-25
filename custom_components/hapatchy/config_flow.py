@@ -181,11 +181,12 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                         self._data["source"] = placeholder
                         self._editing_file = True
                         return await self.async_step_edit_file()
-                if method == "upload":
+                elif method == "upload":
                     return await self.async_step_upload()
-                if method == "managed":
+                elif method == "managed":
                     return await self.async_step_editor()
-                return await self.async_step_source()
+                else:
+                    return await self.async_step_source()
         try:
             self._targets = await self.hass.async_add_executor_job(
                 list_targets, self._root, self._policy

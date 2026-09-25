@@ -6,7 +6,7 @@ from .const import MAX_PATCH_BYTES
 from .models import PatchError, Status, relative_parts
 from .patch_engine import UnifiedDiffEngine
 
-MAX_EDITOR_BYTES = 256 * 1024
+MAX_EDITOR_BYTES = 512 * 1024
 
 
 def validate_editor_text(data: bytes) -> str:
