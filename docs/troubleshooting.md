@@ -19,6 +19,14 @@ step. Preserve the current target and patch before investigating a mismatch.
 
 ## The file editor will not open or save
 
+Each patch's device has a **Needs attention** binary sensor. It turns on when
+the status reports a problem or a watched directory becomes unavailable after
+an initial check. Open the status sensor and Repairs for the reason; neither
+entity contains the diff. An administrator can read the current diff with
+**Developer tools → Actions → HAPatchY: View patch** using the status sensor's
+`patch_id`. A refused read can mean the directory grant changed, the source is
+unavailable, or the rule is disabled.
+
 **Edit selected file** requires an existing regular target in a folder approved
 by both directory lists. The same grant allows an administrator using HA's API
 to read its full contents. The editor accepts nonempty UTF-8 LF text with a

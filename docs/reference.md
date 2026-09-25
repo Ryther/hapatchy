@@ -8,7 +8,8 @@ the native API flow and a failed Apply. Other behavior below is covered by tests
 
 ## Patch settings
 
-Each item added with **Add patch** is an independent rule with its own sensor.
+Each item added with **Add patch** is an independent rule shown as a device with
+its own status sensor and **Needs attention** binary sensor.
 Use its settings/menu to reconfigure or remove it. Keep one HAPatchY integration
 entry; you do not need a separate integration for each file.
 
@@ -19,7 +20,7 @@ entry; you do not need a separate integration for each file.
 | Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
 | Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
 | Patch input | Edit selected file, write/paste a diff, upload, existing local file, or HTTPS URL | Edit selected file for new rules |
-| File contents | Prefilled target text in the native editor; saved as a generated managed diff | Nonempty UTF-8 LF text with final newline; original and edit at most 512 KiB |
+| File contents | Prefilled target text in HA's plain multiline text area; a managed diff is generated on submission | Nonempty UTF-8 LF text with final newline; original and edit at most 512 KiB; no syntax highlighting, line numbers, or live diff |
 | Patch contents | Complete unified diff, typed or prefilled from an upload | UTF-8, maximum 2 MiB |
 | External source | Existing local patch path or direct HTTPS URL, requested on the next screen | Only for advanced local/HTTPS input |
 | Enabled | Allows checks, watching and actions for this rule | On |
@@ -108,7 +109,7 @@ use **Refresh source** to check it or **Reconcile** to check and, if enabled, ap
 
 ## Status sensor
 
-Open the integration's entity list or **Developer tools → States**. UI translations
+Open the patch's device, the integration's entity list or **Developer tools → States**. UI translations
 may display friendly labels; the raw state values below are stable identifiers.
 
 | State | What it means | Your next step |
@@ -142,6 +143,13 @@ A status describes the last completed check, not continuous proof of the current
 file contents. A missing watch root can produce a Repair even when a previous
 status was `applied`. Missing/replaced roots are rechecked every 60 seconds.
 
+The **Needs attention** binary sensor turns on for a conflict, missing target,
+source error, invalid patch, security error, write error, or unavailable watcher
+after an initial check. It remains off for an unchecked or disabled patch. It
+contains no file or patch text. The status sensor's stable unique ID is retained
+when an existing patch gains a device; an entity ID previously customized in HA
+is not deliberately renamed.
+
 ## Administrator actions
 
 Use **Developer tools → Actions**. These actions require administrator access;
@@ -154,6 +162,17 @@ Copy the ID from the patch's sensor before running an action.
 | `hapatchy.apply` | `patch_id` | Explicitly apply one enabled patch if uniquely applicable |
 | `hapatchy.revert` | `patch_id` | Attempt an exact reversal with a mandatory backup, then persist automatic application off if no security denial occurred |
 | `hapatchy.refresh_source` | `patch_id` | Fetch/read and validate the source and current target; never modify the target |
+| `hapatchy.get_patch` | `patch_id` | Return the current UTF-8 diff as an action response; read-only and administrator-only |
+
+To inspect the diff, choose **HAPatchY: View patch** under **Developer tools →
+Actions**, enter the status sensor's `patch_id`, and run the action. HA displays
+the response data, including `patch`. This reads the current managed, local or
+HTTPS source; it may therefore differ from a previously applied revision. It
+does not change target bytes or update the status sensor. The response is shown
+only to the caller; do not copy it into an issue or log without reviewing it
+for secrets. A source that is no longer a valid single-file diff is refused.
+Ordinary users cannot call this action. Trusted internal HA
+automations have HA's own service privileges.
 
 For all enabled patches:
 

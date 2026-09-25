@@ -66,6 +66,8 @@
 !/docs/images/yaml-directory-authorization.png
 !/docs/images/file-editor-form.png
 !/docs/images/file-editor-applied.png
+!/docs/images/patch-device.png
+!/docs/images/view-patch-response.png
 !/script/
 !/script/build_release.py
 !/script/smoke_ha.py

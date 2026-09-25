@@ -19,7 +19,7 @@ Assistant lifecycle. No patch is executed as a shell command or Python program.
 | `watcher` | Observer ownership, loop debounce and root recovery | `PatchWatcher` |
 | `state_store`, `repairs` | Metadata persistence and native issue projection | `StateStore`, `IssueManager` |
 | `config_flow`, `validation` | Native configuration, guarded editor snapshots and read-only validation | HA flow hooks, `read_editable_target`, `verify_editable_snapshot` |
-| `sensor`, `services`, `diagnostics`, `__init__` | Thin HA projections/composition | HA integration hooks |
+| `sensor`, `binary_sensor`, `patch_device`, `services`, `diagnostics`, `__init__` | Thin HA projections/composition | HA integration hooks |
 
 The engine uses patch-ng only to parse/check the diff structure. Owned matching
 requires unique whole-context placement and inspects both directions against the
@@ -53,6 +53,12 @@ independent condition. Revert persists auto-apply off after a non-security
 reconciliation; if that persistence fails, automatic reapplication is suppressed
 and state records a controlled error. HA storage and the target file do not share
 one filesystem transaction.
+
+Each patch subentry owns one HA device, grouping a status sensor and a binary
+attention indicator. They publish bounded metadata only. The administrator
+`get_patch` action reads the current source on demand under the same runtime
+lock and rechecks the target's frozen and live grants before returning text;
+it does not store source text in HA state.
 
 Tests cover decisions independently and exercise native flows, sensors, service
 permissions, watcher threads and filesystem failures. The editor and its
