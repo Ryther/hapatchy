@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/Ryther/hapatchy/compare/v0.2.1...v0.3.0) (2026-09-25)
+
+
+### Features
+
+* build exact patches from edited text ([143c70e](https://github.com/Ryther/hapatchy/commit/143c70e404598c1c6a042b47d6887e12531b2c71))
+* create managed patches from file edits ([b32507d](https://github.com/Ryther/hapatchy/commit/b32507d9fb0496b24fccc3047abb16e50e3dbf96))
+* read editable targets through guarded policy ([3466be3](https://github.com/Ryther/hapatchy/commit/3466be3cd5392632b1c9e5a4e463dd9ae3f78b9d))
+
+
+### Bug Fixes
+
+* preserve edits after recoverable editor errors ([938d376](https://github.com/Ryther/hapatchy/commit/938d37699a4ff1f97de87f750286b091fd07ba8c))
+* recheck file and grants while saving editor patch ([249ec0e](https://github.com/Ryther/hapatchy/commit/249ec0ecf7c51f64eb772f0dd8353d784b43df37))
+* require generated patches to reverse exactly ([e37b964](https://github.com/Ryther/hapatchy/commit/e37b964fa733cc4acd6358a8fcd20084c4f1d639))
+
+
+### Documentation
+
+* explain how to create a patch file ([857b176](https://github.com/Ryther/hapatchy/commit/857b176f7812d330dc047a68d57fa3a3b509d4f0))
+* guide users through native file editing ([424ec03](https://github.com/Ryther/hapatchy/commit/424ec038ac4244a4f9e86cbfc5fbb5c0bcc6051f))
+
 ## [0.2.1](https://github.com/Ryther/hapatchy/compare/v0.2.0...v0.2.1) (2026-09-24)
 
 
