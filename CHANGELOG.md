@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/Ryther/hapatchy/compare/v0.3.0...v0.3.1) (2026-09-25)
+
+
+### Performance Improvements
+
+* accelerate YAML source verification ([#27](https://github.com/Ryther/hapatchy/issues/27)) ([fcd6ad8](https://github.com/Ryther/hapatchy/commit/fcd6ad86ae372c2ca976f26560951f969541ab80))
+
+
+### Documentation
+
+* schedule review of Dependabot exclusions ([e3e5e37](https://github.com/Ryther/hapatchy/commit/e3e5e37f4a62e0d9ea244222a81bd1f82bd44875))
+
 ## [0.3.0](https://github.com/Ryther/hapatchy/compare/v0.2.1...v0.3.0) (2026-09-25)
 
 
