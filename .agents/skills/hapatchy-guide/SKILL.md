@@ -164,9 +164,11 @@ affect already imported code; HAPatchY never restarts HA.
 
 Each patch is shown as a device with a status sensor and a **Patch health**
 binary sensor. It displays **Problem** for a failed check or unavailable watcher
-after an initial check, and **OK** otherwise. Its raw states are `on` and `off`
-for automations. OK before the first check does not prove the file was inspected;
-use the status sensor for that. Neither entity contains the patch text. To inspect the
+after an initial check, **OK** after a successful check, and **Unknown** before
+the first check or while the rule is disabled. Its raw states are `on`, `off`
+and `unknown`; automations must handle `unknown` explicitly. OK reports the last
+check, not continuous proof of the file's current contents. Neither entity
+contains the patch text. To inspect the
 current diff, an HA administrator opens **Developer tools → Actions → HAPatchY:
 View patch**, enters `patch_id`, and reads the `patch` field in the response.
 The read does not alter the target or status. External local/HTTPS sources may
