@@ -2,8 +2,9 @@
 
 [← Documentation home](../README.md) · [First-patch tutorial](first-patch.md)
 
-The current Add patch form and a managed patch were exercised on HA 2026.9.0;
-other behavior below is covered by automated tests.
+The current Add patch form, file editor, automatic Apply, status and retained
+backup were exercised on disposable HA 2026.9.0; the smoke test also checks
+the native API flow and a failed Apply. Other behavior below is covered by tests.
 
 ## Patch settings
 
@@ -17,7 +18,8 @@ entry; you do not need a separate integration for each file.
 | File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file below both explicitly authorized directories |
 | Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
 | Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
-| Patch input | Write/paste, upload, existing local file, or HTTPS URL | Write or paste patch contents |
+| Patch input | Edit selected file, write/paste a diff, upload, existing local file, or HTTPS URL | Edit selected file for new rules |
+| File contents | Prefilled target text in the native editor; saved as a generated managed diff | Nonempty UTF-8 LF text with final newline; original and edit at most 256 KiB |
 | Patch contents | Complete unified diff, typed or prefilled from an upload | UTF-8, maximum 2 MiB |
 | External source | Existing local patch path or direct HTTPS URL, requested on the next screen | Only for advanced local/HTTPS input |
 | Enabled | Allows checks, watching and actions for this rule | On |
@@ -57,10 +59,21 @@ applies, including [both YAML directory lists](directory-permissions.md). The
 upload chooser selects a patch on your computer; the target picker
 selects an existing file on the HA server.
 
-Only the final form submission saves a managed revision. Saving configuration
-reloads HAPatchY and can apply it when startup checking and automatic application
-are enabled. Cancel before saving to discard edits. An interrupted save can
+Only the final form submission saves a managed revision. **Edit selected file**
+reads the target through both directory grants and a guarded file handle, then
+generates a diff that must match the original and edited bytes in both Apply and
+Revert directions. It refuses files and edits outside its text/size limits, an
+unchanged edit, stale target bytes, changed grants or ambiguous context. This
+new-rule mode always enables the rule, startup checking, automatic application
+and backup; those settings are not optional in its form. The same directory
+grant authorizes an HA administrator API caller to read the file in the editor.
+
+Saving configuration reloads HAPatchY and requests immediate Apply for an
+editor-created rule. The native dialog reports **configuration saved**, not a
+completed write. Check the sensor and Repairs for the actual result, and inspect
+the target bytes. Cancel before saving to discard edits. An interrupted save can
 leave an unreferenced revision; old revisions are not automatically deleted.
+The other input modes still offer Behavior and verification settings.
 
 ## Local files and HTTPS
 
@@ -180,6 +193,9 @@ patched file. It cannot determine whether a text change is semantically correct
 Python or safe for the upstream integration.
 
 Limits: patch source **2 MiB**, target/result **16 MiB**, HTTPS timeout **30 seconds**.
+The native file editor has a stricter **256 KiB** input/output limit and requires
+LF text with a final newline; other patch inputs retain their existing format
+support, including uniform CRLF targets and no-final-newline markers.
 Writes preserve target permissions/ownership and use atomic replacement. Snapshot
 checks detect concurrent changes during preparation, but independent writers can
 still race between the final check and replacement. Let upstream updates finish;

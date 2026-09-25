@@ -17,8 +17,8 @@ HA version, intended target and current status before giving case-specific steps
 
 HAPatchY supports HA 2025.3.0 or newer; the tested endpoints are 2025.3.0 and
 2026.9.0. HA supplies Python and installs declared dependencies. HAPatchY does
-not create a Python environment. A HACS update to v0.2.1 reached the Add patch
-form on one HA installation; that alone does not verify Apply or Revert.
+not create a Python environment. A published HACS release may lag behind this
+skill; ask what Add patch options the user actually sees before giving UI steps.
 
 For manual installation, get the current archive from
 `https://github.com/Ryther/hapatchy/releases/latest`. Copy the entire
@@ -52,8 +52,9 @@ HA's list; use a configuration-relative subdirectory in HAPatchY's list. Create
 the directory and target, save the YAML, then **restart HA**. Reloading only the
 integration does not approve new grants. Do not grant `.`, the configuration
 root, protected folders, symlinks, or directories whose future contents the
-operator is unwilling to let the API agent change. The form/API cannot add a
-grant. If the agent can edit `configuration.yaml`, this separation does not
+operator is unwilling to let the API agent read or change. The file editor
+shows the full contents to an HA administrator using the API; the form/API
+cannot add a grant. If the agent can edit `configuration.yaml`, this separation does not
 protect against that agent.
 
 ## Create a controlled first patch
@@ -68,12 +69,28 @@ interval = 30
 
 In **Settings → Devices & services → HAPatchY → Add patch**, name the rule
 `UI interval`, select **File to patch** `hapatchy_ui_demo/settings.txt`, and keep
-**Write or paste patch contents**. The picker sees files on the HA server; a
-patch-file upload sees a `.patch` or `.diff` on the user's computer. If the
-eligible target is absent from suggestions, enter its configuration-relative
-path manually. Leave Watch directory/pattern empty for the target's parent.
-Submit, then paste the entire diff below into **Patch contents**, excluding
-the Markdown fences and retaining the leading space on the context line:
+the default **Edit selected file** input. The picker sees files on the HA
+server. If an eligible target is absent from suggestions, enter its
+configuration-relative path and choose **Add custom item**. Leave Watch
+directory/pattern empty for the target's parent. Submit; the **File contents**
+field should show the exact original text. Change `interval = 30` to
+`interval = 5`, preserve the comment and final newline, then Submit and Finish.
+
+The native editor accepts nonempty UTF-8 LF text with a final newline, at most
+256 KiB for original and edited bytes. It refuses CRLF, binary data, links,
+special files, stale targets/grants, unchanged edits and generated diffs that
+cannot be applied and reversed uniquely. It always saves a managed diff and
+requests immediate Apply with a backup, startup check and automatic application.
+**Created configuration does not confirm that Apply succeeded.** Wait for the
+sensor's raw state `applied`, check the target bytes, and inspect Repairs on an
+error. A brief `unknown` is normal. The original bytes are retained under
+`.hapatchy/backups/<patch_id>/` inside HA's configuration folder; users need
+not create this internal folder. Revert makes another backup and disables
+automatic reapplication.
+
+If the user's installed release lacks this editor or they prefer a patch file,
+choose **Write or paste patch contents** or **Upload a patch file** instead.
+The complete diff for the same demo target is:
 
 ```diff
 --- a/hapatchy_ui_demo/settings.txt
@@ -84,12 +101,13 @@ the Markdown fences and retaining the leading space on the context line:
 +interval = 5
 ```
 
-Submit. Keep **Enabled**, **Check at Home Assistant startup**, and **Back up
-before applying** on; turn **Apply compatible patches automatically** off for
-this exercise. Submit and finish. The new status sensor should become
-`applicable`; the target should still contain `interval = 30`. Saving with
-automatic application on can write immediately. Uploaded patches open the same
-editor for review; upload never replaces the target file.
+Paste the diff without Markdown fences, keeping the leading space on the
+context line and final newline. For a controlled manual test, keep Enabled,
+startup checking and backup on; turn automatic application off in **Behavior
+and verification**. Submit and finish. The sensor should become `applicable`
+and the target should still contain `interval = 30`; run Apply explicitly.
+An uploaded patch opens the same diff editor for review. Upload never replaces
+the target file and has a 2 MiB limit.
 
 For a real patch, require an existing regular target inside both grants, a
 complete UTF-8 unified diff whose old/new headers name that one target, and
@@ -121,10 +139,11 @@ uploading. The patch must describe the current target exactly and only one file.
 ## Apply, revert, and inspect
 
 Open **Developer tools → States**, find the rule's sensor, and copy its
-`patch_id` attribute. It is not the sensor entity ID. Under **Developer tools →
-Actions**, run **HAPatchY: Apply** with that ID. The demo should become `applied`
-and the target should contain `interval = 5`; check the actual file. A backup
-is retained under `.hapatchy/backups/<patch_id>/`. Run **HAPatchY: Revert** with
+`patch_id` attribute. It is not the sensor entity ID. The editor-created rule
+requests Apply automatically; for a manually configured rule use **Developer
+tools → Actions → HAPatchY: Apply** with that ID. The demo should become
+`applied` and the target should contain `interval = 5`; check the actual file.
+Run **HAPatchY: Revert** with
 the same ID; an exact reverse match should restore `interval = 30` and leave
 automatic application off. Revert makes another backup. It does not blindly
 restore an old snapshot. Removing a rule or uninstalling HAPatchY does not undo

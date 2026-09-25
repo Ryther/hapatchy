@@ -5,6 +5,9 @@
 HAPatchY starts with **no permitted patch destinations**. The Home Assistant
 operator must name each permitted subdirectory in two settings in
 `configuration.yaml`. HAPatchY's forms and API cannot add these grants.
+The native file editor also reads the full contents of a selected file inside
+these folders. An administrator with HA API access can therefore read as well
+as patch files there. Grant a folder only when both forms of access are intended.
 
 For the [first-patch tutorial](first-patch.md), add the following entries to your
 existing `configuration.yaml`:
@@ -54,7 +57,7 @@ typing a path manually or using HA's API receives the same backend checks.
 Home Assistant's live path-permission check still applies after the YAML checks.
 
 Grant only folders whose **future contents** you are willing to let the API
-agent alter. A directory grant does not review an individual diff. Patching
+agent read and alter. A directory grant does not review an individual diff. Patching
 Python or other executable configuration can change what HA later runs. An agent
 that can edit `configuration.yaml`, invoke another unrestricted file-writing API,
 or obtain filesystem access is outside this API-only boundary. Review the patch
