@@ -55,18 +55,45 @@ async def setup(hass, tmp_path, changes=None):
 
 async def test_sensor_is_bound_to_native_subentry(hass, tmp_path):
     entry, runtime, pid = await setup(hass, tmp_path)
+    from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
     entities = [
         e for e in er.async_get(hass).entities.values() if e.config_entry_id == entry.entry_id
     ]
-    assert len(entities) == 1
-    assert entities[0].config_subentry_id == pid
-    assert entities[0].device_id is None
-    assert hass.states.get(entities[0].entity_id).state == "unknown"
+    assert {entity.domain for entity in entities} == {"sensor", "binary_sensor"}
+    assert all(entity.config_subentry_id == pid for entity in entities)
+    device_ids = {entity.device_id for entity in entities}
+    assert len(device_ids) == 1 and None not in device_ids
+    device = dr.async_get(hass).async_get(next(iter(device_ids)))
+    assert device is not None and device.name == "Example"
+    # HA 2025.3 groups entities into devices but has no device subentry field.
+    if hasattr(device, "config_subentry_id"):
+        assert device.config_subentry_id == pid
+    status = next(entity for entity in entities if entity.domain == "sensor")
+    attention = next(entity for entity in entities if entity.domain == "binary_sensor")
+    assert hass.states.get(status.entity_id).state == "unknown"
+    assert hass.states.get(attention.entity_id).state == "off"
     await runtime.async_action(pid, "apply")
-    assert hass.states.get(entities[0].entity_id).state == "applied"
+    assert hass.states.get(status.entity_id).state == "applied"
+    assert hass.states.get(attention.entity_id).state == "off"
     assert runtime.states[pid].restart_may_be_required
+
+
+async def test_attention_turns_on_for_conflict_and_off_after_recovery(hass, tmp_path):
+    _, runtime, pid = await setup(hass, tmp_path)
+    from homeassistant.helpers import entity_registry as er
+
+    attention = next(
+        entity for entity in er.async_get(hass).entities.values()
+        if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
+    )
+    (tmp_path / "scripts/a.py").write_bytes(b"context\nupstream\n")
+    await runtime.async_action(pid, "reconcile")
+    assert hass.states.get(attention.entity_id).state == "on"
+    (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
+    await runtime.async_action(pid, "reconcile")
+    assert hass.states.get(attention.entity_id).state == "off"
 
 
 async def test_startup_reconciles_only_when_requested(hass, tmp_path):

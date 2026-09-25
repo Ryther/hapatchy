@@ -26,3 +26,10 @@ refresh_source:
       example: "01J00000000000000000000000"
       selector:
         text:
+get_patch:
+  fields:
+    patch_id:
+      required: true
+      example: "01J00000000000000000000000"
+      selector:
+        text:

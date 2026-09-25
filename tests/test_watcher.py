@@ -59,16 +59,26 @@ async def test_real_move_over_replacement(hass, tmp_path):
 
 async def test_missing_root_is_restored_without_broad_watch(hass, tmp_path):
     _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
+    from homeassistant.helpers import entity_registry as er
+
+    attention = next(
+        entity for entity in er.async_get(hass).entities.values()
+        if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
+    )
     owner = watcher(runtime)
+    await runtime.async_action(pid, "apply")
+    assert hass.states.get(attention.entity_id).state == "off"
     (tmp_path / "scripts/a.py").unlink()
     (tmp_path / "scripts").rmdir()
     await owner.async_refresh()
     assert not runtime.states[pid].watcher_available
+    assert hass.states.get(attention.entity_id).state == "on"
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
     await owner.async_refresh()
     await ready(runtime, pid, "applied")
     assert runtime.states[pid].watcher_available
+    assert hass.states.get(attention.entity_id).state == "off"
     assert set(owner.roots) == {"scripts"}
 
 
