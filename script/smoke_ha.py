@@ -211,11 +211,12 @@ def verify_patch_flow(base: str, root: Path) -> None:
         state = next(
             (item for item in states if item["entity_id"].startswith("sensor.ci_smoke")), None
         )
-        if state is not None:
+        if state is not None and state["state"] == "applicable":
             break
         time.sleep(0.25)
-    if state is None:
-        raise RuntimeError("Managed patch sensor did not appear")
+    if state is None or state["state"] != "applicable":
+        observed = state["state"] if state else "missing"
+        raise RuntimeError(f"Managed patch did not become applicable: {observed}")
     patch_id = state["attributes"]["patch_id"]
     api_request(base, "/api/services/hapatchy/apply", {"patch_id": patch_id}, token=token)
     if target.read_bytes() != b"patched\n":
