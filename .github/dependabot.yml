@@ -24,6 +24,12 @@ updates:
       # pytest-homeassistant-custom-component 0.13.363 pins both exactly.
       - dependency-name: tqdm
       - dependency-name: unidiff
+      # The 0.13.363 plugin requires HA 2026.9.0, pipdeptree 2.26.1,
+      # and pytest-socket 0.8.0. Re-resolve this lane together on upgrade.
+      - dependency-name: pytest-homeassistant-custom-component
+      - dependency-name: pytest-socket
+      # HA's camera and stream integrations pin PyTurboJPEG 1.8.3.
+      - dependency-name: PyTurboJPEG
       # HA 2026.9.0 pins SQLAlchemy; its stream integration pins av.
       - dependency-name: SQLAlchemy
       - dependency-name: av
@@ -44,6 +50,9 @@ updates:
       # HA 2025.3.0 pins aiodns; its bleak pin excludes newer adapters.
       - dependency-name: aiodns
       - dependency-name: bluetooth-adapters
+      # The 0.13.221 plugin pins these exact test-tool versions.
+      - dependency-name: pytest-socket
+      - dependency-name: pipdeptree
       # HA 2025.3.0 pins these core dependencies exactly.
       - dependency-name: awesomeversion
       - dependency-name: fnv-hash-fast

@@ -133,6 +133,13 @@ baseline or test plugin. An ignored dependency can also suppress Dependabot
 security-update PRs; keep security alerts under review and change the whole
 compatible lock deliberately when a fix is needed.
 
+In particular, the 2025.3.0 test plugin pins `pytest-socket==0.7.0` and
+`pipdeptree==2.25.0`; the 2026.9.0 plugin pins `pytest-socket==0.8.0` and
+`pipdeptree==2.26.1` and requires that HA release. The recent HA camera and
+stream manifests pin `PyTurboJPEG==1.8.3`. A passing generic test run cannot
+authorize changing an optional integration's pin: inspect HA's manifest and
+re-resolve the relevant lane when upgrading HA.
+
 Tests, local metadata validation and hassfest use the candidate SHA. When the
 repository is public, HACS checks remote repository metadata in its event
 context; it does **not** install the candidate into HA. A successful HACS job is
