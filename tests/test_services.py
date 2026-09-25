@@ -46,6 +46,59 @@ async def test_non_admin_cannot_mutate(hass, tmp_path, hass_read_only_user):
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
 
 
+async def test_admin_reads_current_diff_only_on_request(hass, tmp_path, hass_admin_user):
+    _, _, pid = await setup(hass, tmp_path)
+    before = (tmp_path / "scripts/a.py").read_bytes()
+    response = await hass.services.async_call(
+        "hapatchy", "get_patch", {"patch_id": pid}, blocking=True,
+        return_response=True, context=Context(user_id=hass_admin_user.id),
+    )
+    assert response == {"patch_id": pid, "patch": "--- a/scripts/a.py\n+++ b/scripts/a.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n"}
+    assert (tmp_path / "scripts/a.py").read_bytes() == before
+    assert all("--- a/scripts/a.py" not in str(state) for state in hass.states.async_all())
+
+
+async def test_trusted_internal_context_can_read_current_diff(hass, tmp_path):
+    _, _, pid = await setup(hass, tmp_path)
+    response = await hass.services.async_call(
+        "hapatchy", "get_patch", {"patch_id": pid}, blocking=True,
+        return_response=True, context=Context(),
+    )
+    assert response["patch_id"] == pid
+    assert response["patch"].startswith("--- a/scripts/a.py\n")
+
+
+async def test_patch_read_refuses_non_admin_and_revoked_grants(
+    hass, tmp_path, hass_read_only_user, hass_admin_user
+):
+    _, _, pid = await setup(hass, tmp_path)
+    request = {"patch_id": pid}
+    with pytest.raises(Unauthorized):
+        await hass.services.async_call(
+            "hapatchy", "get_patch", request, blocking=True, return_response=True,
+            context=Context(user_id=hass_read_only_user.id),
+        )
+    hass.config.allowlist_external_dirs = set()
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            "hapatchy", "get_patch", request, blocking=True, return_response=True,
+            context=Context(user_id=hass_admin_user.id),
+        )
+
+
+async def test_patch_read_refuses_source_that_stopped_being_a_patch(
+    hass, tmp_path, hass_admin_user
+):
+    _, _, pid = await setup(hass, tmp_path)
+    (tmp_path / "patches/a.patch").write_text("private content, not a diff\n")
+    with pytest.raises(ServiceValidationError):
+        await hass.services.async_call(
+            "hapatchy", "get_patch", {"patch_id": pid}, blocking=True,
+            return_response=True, context=Context(user_id=hass_admin_user.id),
+        )
+    assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
+
+
 async def test_service_rejects_injected_source_and_unknown_patch(hass, tmp_path):
     require_services()
     _, _, pid = await setup(hass, tmp_path)

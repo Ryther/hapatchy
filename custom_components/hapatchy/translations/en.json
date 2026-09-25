@@ -206,6 +206,11 @@
           "apply_error": "Write error"
         }
       }
+    },
+    "binary_sensor": {
+      "patch_attention": {
+        "name": "Needs attention"
+      }
     }
   },
   "services": {
@@ -242,6 +247,16 @@
     "refresh_source": {
       "name": "Refresh source",
       "description": "Reload and inspect the source without changing the target.",
+      "fields": {
+        "patch_id": {
+          "name": "Patch ID",
+          "description": "The patch_id attribute of the status sensor."
+        }
+      }
+    },
+    "get_patch": {
+      "name": "View patch",
+      "description": "Read the current patch source on demand. Requires an administrator; does not change the target.",
       "fields": {
         "patch_id": {
           "name": "Patch ID",

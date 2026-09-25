@@ -206,6 +206,11 @@
           "apply_error": "Errore di scrittura"
         }
       }
+    },
+    "binary_sensor": {
+      "patch_attention": {
+        "name": "Richiede attenzione"
+      }
     }
   },
   "services": {
@@ -242,6 +247,16 @@
     "refresh_source": {
       "name": "Verifica sorgente",
       "description": "Ricarica e verifica la sorgente senza modificare il file.",
+      "fields": {
+        "patch_id": {
+          "name": "ID patch",
+          "description": "Attributo patch_id del sensore di stato."
+        }
+      }
+    },
+    "get_patch": {
+      "name": "Mostra patch",
+      "description": "Legge la sorgente corrente della patch su richiesta. Richiede un amministratore; non modifica il file.",
       "fields": {
         "patch_id": {
           "name": "ID patch",

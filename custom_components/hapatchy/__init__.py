@@ -72,13 +72,17 @@ async def async_setup_entry(hass, entry):
     shared["runtime"] = runtime
     try:
         await runtime.async_load()
-        await hass.config_entries.async_forward_entry_setups(entry, [Platform.SENSOR])
+        await hass.config_entries.async_forward_entry_setups(
+            entry, [Platform.SENSOR, Platform.BINARY_SENSOR]
+        )
         await runtime.async_start()
     except BaseException:
         # Setup failures must not strand observers or block a later retry.
         try:
             await runtime.async_close()
-            await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR])
+            await hass.config_entries.async_unload_platforms(
+                entry, [Platform.SENSOR, Platform.BINARY_SENSOR]
+            )
         finally:
             if shared.get("runtime") is runtime:
                 shared.pop("runtime")
@@ -104,7 +108,9 @@ async def async_unload_entry(hass, entry):
     # Pause admission first, but retain observer ownership until HA accepts unload.
     runtime.closing = True
     try:
-        unloaded = await hass.config_entries.async_unload_platforms(entry, [Platform.SENSOR])
+        unloaded = await hass.config_entries.async_unload_platforms(
+            entry, [Platform.SENSOR, Platform.BINARY_SENSOR]
+        )
     except BaseException:
         runtime.closing = False
         raise

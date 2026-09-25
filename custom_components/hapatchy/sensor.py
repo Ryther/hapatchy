@@ -1,4 +1,4 @@
-"""One status sensor per native patch subentry, without a fictitious device."""
+"""Status sensor for each native patch subentry."""
 
 from dataclasses import asdict
 
@@ -6,6 +6,7 @@ from homeassistant.components.sensor import SensorDeviceClass, SensorEntity
 from homeassistant.core import callback
 
 from .models import Status
+from .patch_device import patch_device_info
 
 
 async def async_setup_entry(hass, entry, async_add_entities):
@@ -24,7 +25,8 @@ class PatchStatusSensor(SensorEntity):
     def __init__(self, runtime, patch_id):
         self.runtime, self.patch_id = runtime, patch_id
         self._attr_unique_id = f"{runtime.entry.entry_id}_{patch_id}_status"
-        self._attr_name = f"{runtime.definitions[patch_id].name} status"
+        self._attr_name = "Status"
+        self._attr_device_info = patch_device_info(runtime, patch_id)
 
     @property
     def native_value(self):

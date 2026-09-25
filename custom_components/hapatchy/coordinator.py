@@ -13,6 +13,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DEFAULT_RETENTION, DOMAIN
 from .models import PatchDefinition, PatchError, PatchInspection, PatchRuntimeState, Status
+from .patch_engine import UnifiedDiffEngine
 from .patch_source import PatchSourceClient
 from .reconciler import Reconciler, ReconcileResult
 from .repairs import IssueManager
@@ -154,6 +155,20 @@ class PatchManagerRuntime:
             raise PatchError("disabled_patch")
         if not self.matches_entry():
             raise PatchError("runtime_reloading")
+
+    async def async_read_patch(self, patch_id: str) -> str:
+        """Read current source for an authorized, explicit administrator request."""
+        if self.closing:
+            raise PatchError("runtime_closing")
+        async with self._lock:
+            self._validate_current(patch_id)
+            definition = self.definitions[patch_id]
+            await self.run_io(partial(self.path_policy.check_definition, definition))
+            data = await self.source.load(definition)
+            await self.run_io(partial(self.path_policy.check_definition, definition))
+            self._validate_current(patch_id)
+            await self.run_io(partial(UnifiedDiffEngine().parse, data, definition.target_path))
+            return data.decode("utf-8")
 
     @asynccontextmanager
     async def configuration_guard(self):
