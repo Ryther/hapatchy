@@ -14,6 +14,13 @@ updates:
     open-pull-requests-limit: 2
     commit-message:
       prefix: build(deps)
+    # This is a fully resolved HA/test-plugin lock. Only standalone tools may
+    # move alone; update the HA dependency graph as a unit with its baseline.
+    allow:
+      - dependency-name: commitizen
+      - dependency-name: mypy
+      - dependency-name: ruff
+      - dependency-name: supervisor
     ignore:
       - dependency-name: homeassistant
       - dependency-name: home-assistant-frontend
@@ -40,6 +47,11 @@ updates:
     open-pull-requests-limit: 2
     commit-message:
       prefix: build(deps)
+    # The minimum lane is another fully resolved HA/test-plugin lock.
+    allow:
+      - dependency-name: mypy
+      - dependency-name: ruff
+      - dependency-name: supervisor
     ignore:
       - dependency-name: homeassistant
       - dependency-name: home-assistant-frontend

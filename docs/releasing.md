@@ -121,17 +121,22 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
 
 [dependabot.yml](../.github/dependabot.yml) proposes weekly updates for Actions
-and Python requirements in `.devcontainer/` and `tests/`. Python lock changes
-require manual review and both CI lanes; Dependabot neither merges PRs nor
-changes the HA baseline pins automatically. Workflow container-image digests
-are reviewed and updated separately.
+and a small allowlist of standalone Python tools (`commitizen` in the recent
+lane, plus `mypy`, `ruff` and `supervisor` where present). The files in
+`.devcontainer/` and `tests/` are fully resolved HA/test-plugin locks; individual
+updates to their HA-owned packages are deliberately withheld. Regenerate a whole
+lane when changing its HA release or test plugin. Python lock changes require
+manual review and both CI lanes; Dependabot neither merges PRs nor changes the
+HA baseline pins automatically. Workflow container-image digests are reviewed
+and updated separately.
 
 The lane-specific `ignore` entries in [dependabot.yml](../.github/dependabot.yml)
 reflect versions pinned by the current HA releases, their optional integrations,
 or the HA pytest plugin. Recheck and remove relevant entries when changing a
-baseline or test plugin. An ignored dependency can also suppress Dependabot
-security-update PRs; keep security alerts under review and change the whole
-compatible lock deliberately when a fix is needed.
+baseline or test plugin. The allowlist and ignores can also suppress Dependabot
+security-update PRs for withheld packages: inspect GitHub security alerts at
+least monthly and after baseline changes, and change the whole compatible lock
+deliberately when a fix is needed.
 
 In particular, the 2025.3.0 test plugin pins `pytest-socket==0.7.0` and
 `pipdeptree==2.25.0`; the 2026.9.0 plugin pins `pytest-socket==0.8.0` and
