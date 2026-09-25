@@ -85,7 +85,7 @@ pillow==12.3.0
 pip==26.2.1
 pipdeptree==2.26.1
 pluggy==1.6.0
-probatio==0.11.4
+probatio==0.12.2
 prompt_toolkit==3.0.53
 propcache==0.5.2
 psutil-home-assistant==0.0.1
