@@ -19,7 +19,7 @@ entry; you do not need a separate integration for each file.
 | Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
 | Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
 | Patch input | Edit selected file, write/paste a diff, upload, existing local file, or HTTPS URL | Edit selected file for new rules |
-| File contents | Prefilled target text in the native editor; saved as a generated managed diff | Nonempty UTF-8 LF text with final newline; original and edit at most 256 KiB |
+| File contents | Prefilled target text in the native editor; saved as a generated managed diff | Nonempty UTF-8 LF text with final newline; original and edit at most 512 KiB |
 | Patch contents | Complete unified diff, typed or prefilled from an upload | UTF-8, maximum 2 MiB |
 | External source | Existing local patch path or direct HTTPS URL, requested on the next screen | Only for advanced local/HTTPS input |
 | Enabled | Allows checks, watching and actions for this rule | On |
@@ -193,7 +193,7 @@ patched file. It cannot determine whether a text change is semantically correct
 Python or safe for the upstream integration.
 
 Limits: patch source **2 MiB**, target/result **16 MiB**, HTTPS timeout **30 seconds**.
-The native file editor has a stricter **256 KiB** input/output limit and requires
+The native file editor has a stricter **512 KiB** input/output limit and requires
 LF text with a final newline; other patch inputs retain their existing format
 support, including uniform CRLF targets and no-final-newline markers.
 Writes preserve target permissions/ownership and use atomic replacement. Snapshot

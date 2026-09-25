@@ -77,10 +77,13 @@ field should show the exact original text. Change `interval = 30` to
 `interval = 5`, preserve the comment and final newline, then Submit and Finish.
 
 The native editor accepts nonempty UTF-8 LF text with a final newline, at most
-256 KiB for original and edited bytes. It refuses CRLF, binary data, links,
+512 KiB for original and edited bytes. It refuses CRLF, binary data, links,
 special files, stale targets/grants, unchanged edits and generated diffs that
 cannot be applied and reversed uniquely. It always saves a managed diff and
 requests immediate Apply with a backup, startup check and automatic application.
+If reading the selected file fails, the Add patch form stays open with an error;
+help the user resolve that error before retrying. The External source form is
+only for a local patch path or HTTPS URL, never the file-editing route.
 After a recoverable save or validation error, the submitted bounded text stays
 in the editor for correction; a changed target or grant instead requires
 reopening Add patch. Malformed Unicode or oversized API input is refused.
