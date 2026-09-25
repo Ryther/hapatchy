@@ -169,6 +169,8 @@ expect to reverse it later. It does not restore arbitrary backup files.
 Use a UTF-8 single-file unified diff. Old and new headers must name the target,
 optionally using paired `a/` and `b/` prefixes. Context must identify each hunk
 uniquely; nominal line numbers do not resolve repeated identical blocks.
+For an example and a verified GNU `diff` command that creates a `.patch` file,
+follow [Create a `.patch` file yourself](first-patch.md#create-a-patch-file-yourself).
 
 Multiple non-overlapping hunks, LF or uniform CRLF targets, and explicit
 missing-final-newline markers are supported. Mixed line endings, binary data,

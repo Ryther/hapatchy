@@ -29,7 +29,8 @@ instead of guessing. Patches for other integrations are **not bundled**.
 
 1. Read the [installation guide](docs/installation.md).
 2. Follow [Your first patch](docs/first-patch.md): a copy-and-paste example using
-   an unused text file, with the expected result at each step.
+   an unused text file, with the expected result at each step and instructions
+   to [create your own `.patch` file](docs/first-patch.md#create-a-patch-file-yourself).
 3. Use the [settings and actions reference](docs/reference.md) when configuring
    a real patch, and [troubleshooting and recovery](docs/troubleshooting.md) if
    something goes wrong.
@@ -87,8 +88,9 @@ HAPatchY is experimental. Download the
 [latest release](https://github.com/Ryther/hapatchy/releases/latest) for manual
 installation and use its `custom_components/hapatchy` folder. The first public
 v0.2.0 archive was checksum-checked and exercised in disposable HA. A HACS
-installation of v0.2.0 reached the native Add patch form; a HACS update has not
-yet been verified, and default-store inclusion is not claimed. See
+installation of v0.2.0 and update to v0.2.1 reached the native Add patch form;
+Apply and Revert on v0.2.1 have not yet been verified, and default-store
+inclusion is not claimed. See
 [installation](docs/installation.md) for the setup steps.
 
 ## Help and development

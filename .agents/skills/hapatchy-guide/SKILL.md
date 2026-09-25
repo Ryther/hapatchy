@@ -17,13 +17,12 @@ HA version, intended target and current status before giving case-specific steps
 
 HAPatchY supports HA 2025.3.0 or newer; the tested endpoints are 2025.3.0 and
 2026.9.0. HA supplies Python and installs declared dependencies. HAPatchY does
-not create a Python environment. HACS installation/update has not been verified
-for this revision; do not present it as a tested route. As of 24 September 2026,
-the v0.2.0 release archive was checksum-checked and smoke-tested in disposable HA.
+not create a Python environment. A HACS update to v0.2.1 reached the Add patch
+form on one HA installation; that alone does not verify Apply or Revert.
 
-For manual installation, get the v0.2.0 archive from
-`https://github.com/Ryther/hapatchy/releases/tag/v0.2.0`, or verify a newer
-published release. Copy the entire `custom_components/hapatchy` folder into
+For manual installation, get the current archive from
+`https://github.com/Ryther/hapatchy/releases/latest`. Copy the entire
+`custom_components/hapatchy` folder into
 the HA configuration folder's
 `custom_components/`, then restart HA. The result must contain
 `custom_components/hapatchy/manifest.json`, without an extra nested `hapatchy`.
@@ -100,6 +99,24 @@ patches are unsupported. Local patch files and direct HTTPS patch URLs are
 advanced sources; URLs must have a public hostname, no embedded credentials or
 redirects, and every DNS answer must be public. A source SHA-256 can detect
 changed bytes but does not establish trust.
+
+To help someone create a patch file without repository access, explain that a
+`.patch` file is plain UTF-8 text: they can copy the complete demo diff above
+into a text editor and save it as `interval.patch` with a final newline, then
+choose **Upload a patch file**. For a real change, keep an untouched copy of the
+current target and a second copy with only the desired edit; do not edit the live
+HA target first. On Linux, generate a unified diff with GNU `diff`:
+
+```sh
+diff -u --label a/hapatchy_ui_demo/settings.txt \
+  --label b/hapatchy_ui_demo/settings.txt \
+  original.txt desired.txt > interval.patch
+```
+
+Substitute the configuration-relative target path in both labels and the actual
+copy filenames. Exit status 1 means differences were found; 0 means no patch;
+other statuses mean failure. Inspect both headers and every changed line before
+uploading. The patch must describe the current target exactly and only one file.
 
 ## Apply, revert, and inspect
 

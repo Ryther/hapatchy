@@ -21,9 +21,10 @@ HAPatchY paths are relative to this folder. If a file is
 
 ## HACS availability
 
-A HACS installation/update has **not been exercised for this revision**. Manual
-installation from the published v0.2.0 archive has been exercised in disposable
-HA, including Apply, Revert and a denied destination.
+A HACS update to v0.2.1 reached the Add patch form on one HA installation;
+Apply and Revert have not yet been checked on that version. Manual installation
+from the published v0.2.0 archive was exercised in disposable HA, including
+Apply, Revert and a denied destination.
 
 ## Manual installation
 
@@ -82,6 +83,7 @@ import or dependency error needs investigation. See
 
 ## Updates
 
-An installation through HACS reached the Add patch form on v0.2.0. Updating an
-installed integration through HACS has not yet been exercised. Keep a full HA
-backup before updating an installed integration.
+An installation through HACS reached the Add patch form on v0.2.0. An update
+through HACS to v0.2.1 also reached the form on one HA installation. This does
+not yet verify creating, applying and reverting a patch on v0.2.1. Keep a full
+HA backup before updating an installed integration.
