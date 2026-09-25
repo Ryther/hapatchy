@@ -36,6 +36,15 @@ HACS uses the installed HA interpreter; it does not create a private interpreter
 or virtual environment for this integration. Do not raise the product minimum
 simply because development uses a newer Python.
 
+Keep the lane-specific Python exclusions in `.github/dependabot.yml` under review.
+They suppress updates to dependencies pinned by the corresponding HA release,
+its optional integrations, or its pytest plugin; they are not permanent upstream
+version policy. Whenever an HA/Python baseline, test plugin, or lock changes,
+compare each exclusion with that baseline's package metadata and integration
+manifests, remove exclusions no longer needed, regenerate the affected lock,
+and run its full CI test and HA boot-smoke lane. Review new Dependabot proposals
+against both HA baselines before changing a pinned transitive dependency.
+
 Run from the repository root inside the container:
 
 ```bash
