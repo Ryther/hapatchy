@@ -32,7 +32,20 @@ def test_reads_authorized_target(tmp_path) -> None:
     assert target.read_bytes() == b"before\n"
 
 
-@pytest.mark.parametrize("content", [b"", b"no newline", b"crlf\r\n", b"nul\x00\n", b"\xff\n", b"a" * (256 * 1024) + b"\n"])
+def test_reads_exact_512_kib_boundary(tmp_path) -> None:
+    (tmp_path / "scripts").mkdir()
+    target = tmp_path / "scripts/example.txt"
+    content = b"a" * (512 * 1024 - 1) + b"\n"
+    target.write_bytes(content)
+    policy = grant_directories(tmp_path)
+    assert read_editable_target(tmp_path, definition(), policy).data == content
+    assert target.read_bytes() == content
+
+
+@pytest.mark.parametrize(
+    "content",
+    [b"", b"no newline", b"crlf\r\n", b"nul\x00\n", b"\xff\n", b"a" * (512 * 1024) + b"\n"],
+)
 def test_refuses_unsupported_text(tmp_path, content: bytes) -> None:
     (tmp_path / "scripts").mkdir()
     target = tmp_path / "scripts/example.txt"

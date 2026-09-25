@@ -52,7 +52,7 @@ def test_refuses_unsafe_target() -> None:
 
 def test_refuses_oversize_editor_input() -> None:
     with pytest.raises(PatchError, match="size_limit"):
-        build_patch(b"a" * (256 * 1024) + b"\n", b"new\n", "scripts/example.txt")
+        build_patch(b"a" * (512 * 1024) + b"\n", b"new\n", "scripts/example.txt")
 
 
 def test_refuses_diff_that_becomes_ambiguous_after_apply() -> None:

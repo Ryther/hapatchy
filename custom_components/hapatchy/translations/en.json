@@ -125,7 +125,7 @@
         "target_outside_watch_root": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "header_target_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "source_too_large": "The patch exceeds the 2 MiB limit.",
-        "missing_target": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "missing_target": "The selected file does not exist. Choose an existing file to edit.",
         "hunk_count_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "invalid_source_hash": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "invalid_hunk_body": "The patch or configuration is invalid. Check paths, patch contents and context.",
@@ -162,7 +162,7 @@
         "editor_text_format": "The editor accepts only UTF-8 text with LF line endings and a final newline.",
         "editor_unchanged": "The file has not changed.",
         "editor_context_not_unique": "Could not generate a unique patch. Use a patch input method instead.",
-        "editor_size_limit": "The original or edited file exceeds 256 KiB, or the generated patch exceeds 2 MiB. Use another patch input method."
+        "editor_size_limit": "The original or edited file exceeds 512 KiB, or the generated patch exceeds 2 MiB. Use another patch input method."
       },
       "abort": {
         "reconfigure_successful": "Configuration updated.",

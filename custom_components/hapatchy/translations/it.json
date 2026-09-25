@@ -125,7 +125,7 @@
         "target_outside_watch_root": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "header_target_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "source_too_large": "La patch supera il limite di 2 MiB.",
-        "missing_target": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "missing_target": "Il file selezionato non esiste. Scegli un file esistente da modificare.",
         "hunk_count_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "invalid_source_hash": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "invalid_hunk_body": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
@@ -162,7 +162,7 @@
         "editor_text_format": "L’editor accetta solo testo UTF-8 con righe LF e una riga finale terminata.",
         "editor_unchanged": "Non hai modificato il file.",
         "editor_context_not_unique": "Impossibile generare una patch univoca. Usa il metodo di inserimento della patch.",
-        "editor_size_limit": "Il file originale o modificato supera 256 KiB, oppure la patch generata supera 2 MiB. Usa un altro metodo di inserimento della patch."
+        "editor_size_limit": "Il file originale o modificato supera 512 KiB, oppure la patch generata supera 2 MiB. Usa un altro metodo di inserimento della patch."
       },
       "abort": {
         "reconfigure_successful": "Configurazione aggiornata.",
