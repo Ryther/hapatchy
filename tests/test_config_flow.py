@@ -86,6 +86,70 @@ async def test_add_native_patch_subentry(hass, files):
     assert (files / "scripts/a.py").read_bytes() == b"context\nold\n"
 
 
+async def test_add_patch_defaults_to_edit_file(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    assert result["data_schema"]({"name": "Example", "target_path": "scripts/a.py"})[
+        "source_type"
+    ] == "edit_file"
+    result = await configure(
+        hass, result["flow_id"], DATA | {"source_type": "edit_file"}
+    )
+    assert result["step_id"] == "edit_file"
+    assert result["data_schema"]({})["edited_text"] == "context\nold\n"
+    result = await configure(hass, result["flow_id"], {"edited_text": "context\nnew\n"})
+    assert result["type"] == FlowResultType.CREATE_ENTRY
+    subentry = next(iter(entry.subentries.values()))
+    assert subentry.data["source_type"] == "managed"
+    assert subentry.data["backup_before_apply"] is True
+    assert subentry.data["auto_apply"] is True
+    assert "edited_text" not in subentry.data
+    assert (files / "scripts/a.py").read_bytes() == b"context\nold\n"
+
+
+async def test_edit_file_refuses_changed_target_before_save(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(hass, result["flow_id"], DATA | {"source_type": "edit_file"})
+    (files / "scripts/a.py").write_bytes(b"third party\n")
+    result = await configure(hass, result["flow_id"], {"edited_text": "context\nnew\n"})
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "editor_target_changed"
+    assert not entry.subentries
+    assert (files / "scripts/a.py").read_bytes() == b"third party\n"
+
+
+async def test_edit_file_refuses_changed_grant_before_save(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(hass, result["flow_id"], DATA | {"source_type": "edit_file"})
+    (files / "configuration.yaml").write_text("homeassistant: {}\nhapatchy: {}\n")
+    result = await configure(hass, result["flow_id"], {"edited_text": "context\nnew\n"})
+    assert result["type"] == FlowResultType.ABORT
+    assert not entry.subentries
+
+
+async def test_edit_file_direct_step_without_snapshot_does_not_disclose(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    flow = hass.config_entries.subentries._progress[result["flow_id"]]
+    response = await flow.async_step_edit_file()
+    assert response["type"] == FlowResultType.ABORT
+    assert b"context\nold\n" not in str(response).encode()
+
+
 @pytest.mark.parametrize(
     "extra", [{"target_path": "../outside"}, {"watch_root": "."}, {"source": "scripts/a.py"}]
 )

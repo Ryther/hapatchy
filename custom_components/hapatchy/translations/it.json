@@ -83,6 +83,13 @@
           "data": {
             "patch_text": "Contenuto della patch"
           }
+        },
+        "edit_file": {
+          "title": "Modifica il file selezionato",
+          "description": "Modifica il testo del file autorizzato. Al salvataggio HAPatchY crea la patch e avvia subito l’applicazione con backup. Controlla il sensore e Riparazioni per l’esito: la chiusura del modulo non conferma ancora la modifica del file.",
+          "data": {
+            "edited_text": "Contenuto del file"
+          }
         }
       },
       "error": {
@@ -150,10 +157,17 @@
         "hapatchy_yaml_invalid": "La sezione hapatchy in configuration.yaml non è valida. Usa allowed_directories con un elenco di cartelle relative.",
         "revert_metadata_unavailable": "Il file è stato ripristinato, ma Home Assistant non ha salvato la disattivazione della riapplicazione automatica. La riapplicazione automatica è sospesa; controlla lo storage e riprova Revert.",
         "hapatchy_package_forbidden": "Le autorizzazioni delle cartelle nei packages di Home Assistant non sono accettate. Metti hapatchy.allowed_directories nella sezione principale di configuration.yaml e riavvia Home Assistant.",
-        "source_network_denied": "La sorgente HTTPS della patch deve risolvere solo a indirizzi di rete pubblici. Scegli un URL HTTPS pubblico diretto o un altro tipo di sorgente."
+        "source_network_denied": "La sorgente HTTPS della patch deve risolvere solo a indirizzi di rete pubblici. Scegli un URL HTTPS pubblico diretto o un altro tipo di sorgente.",
+        "editor_empty": "Il file deve contenere testo.",
+        "editor_text_format": "L’editor accetta solo testo UTF-8 con righe LF e una riga finale terminata.",
+        "editor_unchanged": "Non hai modificato il file.",
+        "editor_context_not_unique": "Impossibile generare una patch univoca. Usa il metodo di inserimento della patch."
       },
       "abort": {
-        "reconfigure_successful": "Configurazione aggiornata."
+        "reconfigure_successful": "Configurazione aggiornata.",
+        "editor_target_changed": "Il file o le autorizzazioni sono cambiati. Riapri Aggiungi patch per rileggere il file.",
+        "editor_session_expired": "La sessione dell’editor non è valida. Riapri Aggiungi patch.",
+        "editor_new_patch_only": "Questa modalità è disponibile solo per una nuova patch."
       },
       "initiate_flow": {
         "user": "Aggiungi patch",
@@ -478,7 +492,8 @@
         "managed": "Scrivi o incolla la patch",
         "upload": "Carica un file patch",
         "local": "File locale esistente (avanzato)",
-        "url": "URL HTTPS (avanzato)"
+        "url": "URL HTTPS (avanzato)",
+        "edit_file": "Modifica il file selezionato"
       }
     }
   }

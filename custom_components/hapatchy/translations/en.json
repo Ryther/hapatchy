@@ -83,6 +83,13 @@
           "data": {
             "patch_text": "Patch contents"
           }
+        },
+        "edit_file": {
+          "title": "Edit selected file",
+          "description": "Edit the authorized file text. Saving creates a patch and requests immediate Apply with a backup. Check the sensor and Repairs for the result; closing this form does not confirm that the file has changed.",
+          "data": {
+            "edited_text": "File contents"
+          }
         }
       },
       "error": {
@@ -150,10 +157,17 @@
         "hapatchy_yaml_invalid": "The hapatchy section in configuration.yaml is invalid. Use allowed_directories with a list of relative folders.",
         "revert_metadata_unavailable": "The file was reverted, but Home Assistant could not save the disabled automatic reapply setting. Automatic reapply is suspended; check storage and retry Revert.",
         "hapatchy_package_forbidden": "Directory grants inside Home Assistant packages are not accepted. Put hapatchy.allowed_directories in the top-level configuration.yaml and restart Home Assistant.",
-        "source_network_denied": "The HTTPS patch source must resolve only to public network addresses. Choose a public direct HTTPS URL or another source type."
+        "source_network_denied": "The HTTPS patch source must resolve only to public network addresses. Choose a public direct HTTPS URL or another source type.",
+        "editor_empty": "The file must contain text.",
+        "editor_text_format": "The editor accepts only UTF-8 text with LF line endings and a final newline.",
+        "editor_unchanged": "The file has not changed.",
+        "editor_context_not_unique": "Could not generate a unique patch. Use a patch input method instead."
       },
       "abort": {
-        "reconfigure_successful": "Configuration updated."
+        "reconfigure_successful": "Configuration updated.",
+        "editor_target_changed": "The file or its permissions changed. Reopen Add patch to read the current file.",
+        "editor_session_expired": "The editor session is invalid. Reopen Add patch.",
+        "editor_new_patch_only": "This mode is available only when adding a patch."
       },
       "initiate_flow": {
         "user": "Add patch",
@@ -478,7 +492,8 @@
         "managed": "Write or paste patch contents",
         "upload": "Upload a patch file",
         "local": "Existing local file (advanced)",
-        "url": "HTTPS URL (advanced)"
+        "url": "HTTPS URL (advanced)",
+        "edit_file": "Edit selected file"
       }
     }
   }
