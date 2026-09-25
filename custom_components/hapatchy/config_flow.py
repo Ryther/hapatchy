@@ -27,6 +27,14 @@ from .validation import (
 from .yaml_policy import policy_for_hass
 
 
+def _editor_error_reason(error: PatchError) -> str:
+    if error.reason == "size_limit":
+        return "editor_size_limit"
+    if error.reason == "unsupported_encoding":
+        return "editor_text_format"
+    return error.reason
+
+
 class HAPatchYConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     VERSION = 1
     MINOR_VERSION = 1
@@ -155,7 +163,7 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                             read_editable_target, self._root, definition, self._policy
                         )
                     except PatchError as error:
-                        errors["base"] = error.reason
+                        errors["base"] = _editor_error_reason(error)
                     else:
                         self._data["source"] = placeholder
                         self._editing_file = True
@@ -215,9 +223,9 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             if not isinstance(edited_text, str):
                 errors["base"] = "editor_text_format"
             else:
-                edited = edited_text.encode("utf-8")
-                if len(edited) > MAX_EDITOR_BYTES:
-                    errors["base"] = "size_limit"
+                edited = edited_text.encode("utf-8") if len(edited_text) <= MAX_EDITOR_BYTES else b""
+                if len(edited_text) > MAX_EDITOR_BYTES or len(edited) > MAX_EDITOR_BYTES:
+                    errors["base"] = "editor_size_limit"
                 else:
                     definition = PatchDefinition.from_mapping("pending", self._data)
                     try:
@@ -232,15 +240,9 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                             snapshot,
                         )
                     except PatchError as error:
-                        if error.reason in (
-                            "target_changed",
-                            "configuration_source_changed",
-                            "hapatchy_path_not_allowed",
-                            "ha_path_not_allowed",
-                            "protected_path",
-                        ):
+                        if error.reason == "editor_target_changed":
                             return self.async_abort(reason="editor_target_changed")
-                        errors["base"] = error.reason
+                        errors["base"] = _editor_error_reason(error)
                     else:
                         digest = hashlib.sha256(self._draft).hexdigest()
                         self._data.update(
@@ -452,7 +454,6 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                 ):
                     raise PatchError("duplicate_target")
                 await self._check_source_change(definition)
-                await self.hass.async_add_executor_job(self._policy.check_definition, definition)
                 if self._editing_file:
                     assert self._edit_snapshot is not None
                     await self.hass.async_add_executor_job(
@@ -461,13 +462,16 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                         definition,
                         self._policy,
                         self._edit_snapshot,
+                    )
+                else:
+                    await self.hass.async_add_executor_job(
+                        self._policy.check_definition, definition
                     )
                 if definition.source_type == "managed":
                     assert self._draft is not None
                     self._data["source"] = await self.hass.async_add_executor_job(
                         ManagedPatchStore(self._root).save, self._draft
                     )
-                await self.hass.async_add_executor_job(self._policy.check_definition, definition)
                 if self._editing_file:
                     assert self._edit_snapshot is not None
                     await self.hass.async_add_executor_job(
@@ -477,18 +481,16 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                         self._policy,
                         self._edit_snapshot,
                     )
+                else:
+                    await self.hass.async_add_executor_job(
+                        self._policy.check_definition, definition
+                    )
                 if runtime and runtime.closing:
                     raise PatchError("runtime_reloading")
                 return self._commit()
         except PatchError as error:
             if self._editing_file:
-                if error.reason in (
-                    "target_changed",
-                    "configuration_source_changed",
-                    "hapatchy_path_not_allowed",
-                    "ha_path_not_allowed",
-                    "protected_path",
-                ):
+                if error.reason == "editor_target_changed":
                     return self.async_abort(reason="editor_target_changed")
                 return await self.async_step_edit_file(save_error=error.reason)
             return await self.async_step_options(save_error=error.reason)

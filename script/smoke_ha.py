@@ -30,6 +30,8 @@ def prepare_config(root: Path, port: int) -> None:
     """Use only synthetic, isolated configuration and authored integration files."""
     (root / "scripts").mkdir()
     (root / "scripts" / "smoke.txt").write_text("original\n")
+    (root / "scripts" / "editor.txt").write_text("before\n")
+    (root / "scripts" / "failure.txt").write_text("safe\n")
     (root / "www").mkdir()
     (root / "www" / "denied.txt").write_text("untouched\n")
     shutil.copytree(
@@ -236,6 +238,101 @@ def verify_patch_flow(base: str, root: Path) -> None:
     if (root / "www" / "denied.txt").read_bytes() != b"untouched\n":
         raise RuntimeError("Unlisted target changed")
 
+    editor_flow = api_request(
+        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
+    )["flow_id"]
+    editor_path = "/api/config/config_entries/subentries/flow/" + editor_flow
+    editor = api_request(
+        base,
+        editor_path,
+        {
+            "name": "CI editor",
+            "target_path": "scripts/editor.txt",
+            "source_type": "edit_file",
+            "watch_root": "scripts",
+            "watch_pattern": "",
+        },
+        token=token,
+    )
+    if editor.get("step_id") != "edit_file":
+        raise RuntimeError("File editor did not open")
+    fields = editor.get("data_schema", [])
+    if not any(field.get("name") == "edited_text" and field.get("default") == "before\n" for field in fields):
+        raise RuntimeError("File editor did not show the authorized original bytes")
+    result = api_request(base, editor_path, {"edited_text": "after\n"}, token=token)
+    if result.get("type") != "create_entry":
+        raise RuntimeError("File editor did not save the generated patch")
+    target = root / "scripts" / "editor.txt"
+    deadline = time.monotonic() + 30
+    while time.monotonic() < deadline and target.read_bytes() != b"after\n":
+        time.sleep(0.25)
+    if target.read_bytes() != b"after\n":
+        raise RuntimeError("Editor patch was not applied automatically")
+    states = api_request(base, "/api/states", token=token)
+    editor_state = next(
+        (item for item in states if item["entity_id"].startswith("sensor.ci_editor")), None
+    )
+    if editor_state is None or editor_state["state"] != "applied":
+        raise RuntimeError("Editor patch did not report applied status")
+    backup_root = root / ".hapatchy" / "backups"
+    if not any(
+        path.read_bytes() == b"before\n"
+        and json.loads(path.with_name("metadata.json").read_text()).get("target_path")
+        == "scripts/editor.txt"
+        for path in backup_root.glob("*/*/target")
+    ):
+        raise RuntimeError("Editor Apply did not retain the original target bytes")
+    api_request(
+        base,
+        "/api/services/hapatchy/revert",
+        {"patch_id": editor_state["attributes"]["patch_id"]},
+        token=token,
+    )
+    if target.read_bytes() != b"before\n":
+        raise RuntimeError("Editor-generated patch did not revert to original bytes")
+
+    failure_flow = api_request(
+        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
+    )["flow_id"]
+    failure_path = "/api/config/config_entries/subentries/flow/" + failure_flow
+    failure = api_request(
+        base,
+        failure_path,
+        {
+            "name": "CI failure",
+            "target_path": "scripts/failure.txt",
+            "source_type": "edit_file",
+            "watch_root": "scripts",
+            "watch_pattern": "",
+        },
+        token=token,
+    )
+    if failure.get("step_id") != "edit_file":
+        raise RuntimeError("Failure-case editor did not open")
+    scripts = root / "scripts"
+    scripts.chmod(0o500)
+    try:
+        failure = api_request(base, failure_path, {"edited_text": "unsafe\n"}, token=token)
+        if failure.get("type") != "create_entry":
+            raise RuntimeError("Failure-case patch was not configured")
+        deadline = time.monotonic() + 30
+        failure_state = None
+        while time.monotonic() < deadline:
+            states = api_request(base, "/api/states", token=token)
+            failure_state = next(
+                (item for item in states if item["entity_id"].startswith("sensor.ci_failure")),
+                None,
+            )
+            if failure_state and failure_state["state"] == "apply_error":
+                break
+            time.sleep(0.25)
+        if failure_state is None or failure_state["state"] != "apply_error":
+            raise RuntimeError("Failed Apply was not reported by the sensor")
+        if (scripts / "failure.txt").read_bytes() != b"safe\n":
+            raise RuntimeError("Failed Apply changed target bytes")
+    finally:
+        scripts.chmod(0o700)
+
 
 def run_smoke() -> None:
     hass = Path(sys.executable).with_name("hass")
@@ -256,7 +353,10 @@ def run_smoke() -> None:
                 wait_for_hapatchy(process, log_path)
                 log.flush()
                 verify_patch_flow(f"http://127.0.0.1:{port}", root)
-                print("Disposable HA Apply, Revert, denied target and byte checks: PASS")
+                print(
+                    "Disposable HA native editor, backed-up Apply, failed Apply status, "
+                    "Revert, denied target and byte checks: PASS"
+                )
             except Exception:
                 log.flush()
                 print(log_path.read_text(errors="replace")[-5000:], file=sys.stderr)
