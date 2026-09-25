@@ -144,7 +144,7 @@ typing_extensions==4.16.0
 tzdata==2026.4
 uart-devices==0.1.1
 ulid-transform==2.2.9
-unidiff==1.0.0
+unidiff==1.0.1
 urllib3==2.8.0
 usb-devices==0.5.1
 uv==0.12.5
