@@ -21,6 +21,9 @@ updates:
       # Revisit them when that baseline or its test plugin changes.
       - dependency-name: pipdeptree
       - dependency-name: pyOpenSSL
+      # pytest-homeassistant-custom-component 0.13.363 pins both exactly.
+      - dependency-name: tqdm
+      - dependency-name: unidiff
       # HA 2026.9.0 pins SQLAlchemy; its stream integration pins av.
       - dependency-name: SQLAlchemy
       - dependency-name: av
@@ -38,6 +41,9 @@ updates:
       # Revisit them when that baseline or its test plugin changes.
       - dependency-name: bleak
       - dependency-name: pydantic-core
+      # HA 2025.3.0 pins aiodns; its bleak pin excludes newer adapters.
+      - dependency-name: aiodns
+      - dependency-name: bluetooth-adapters
       # HA 2025.3.0 pins these core dependencies exactly.
       - dependency-name: awesomeversion
       - dependency-name: fnv-hash-fast
