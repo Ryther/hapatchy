@@ -6,11 +6,25 @@ from pathlib import Path
 from homeassistant.core import HomeAssistant
 
 from .models import PatchDefinition, PatchError, PatchInspection, Status
+from .patch_builder import MAX_EDITOR_BYTES, validate_editor_text
 from .patch_engine import UnifiedDiffEngine
 from .patch_source import PatchSourceClient
 from .path_policy import PathPolicy
-from .safe_io import GuardedFile
+from .safe_io import GuardedFile, Snapshot
 from .yaml_policy import policy_for_hass
+
+
+def read_editable_target(
+    root: Path, definition: PatchDefinition, policy: PathPolicy
+) -> Snapshot:
+    """Read a bounded, authorized text snapshot off the HA event loop."""
+    policy.check_definition(definition)
+    with GuardedFile(root, definition.target_path) as target:
+        snapshot = target.read(MAX_EDITOR_BYTES)
+        validate_editor_text(snapshot.data)
+        policy.check_definition(definition)
+        target.verify_snapshot(snapshot)
+        return snapshot
 
 
 def inspect_target(
