@@ -1,10 +1,41 @@
 """The configuration source graph is protected without constructing HA tags."""
 
 import os
+from time import perf_counter
 
 import pytest
+import yaml
 
 from custom_components.hapatchy.models import PatchError
+
+
+def test_large_include_graph_uses_accelerated_yaml_parser(tmp_path):
+    """Source verification must not reparse large HA includes at Python speed."""
+    if not hasattr(yaml, "CLoader"):
+        pytest.skip("PyYAML CLoader is unavailable")
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    included = tmp_path / "included"
+    included.mkdir()
+    (tmp_path / "configuration.yaml").write_text(
+        "sensor: !include_dir_merge_list included\n"
+    )
+    payload = (("- " + "x" * 100 + "\n") * 900).encode()
+    for index in range(17):
+        (included / f"{index:02}.yaml").write_bytes(payload)
+
+    start = perf_counter()
+    graph = scan_source_graph(tmp_path)
+    scan_seconds = perf_counter() - start
+    start = perf_counter()
+    for _ in range(17):
+        for _event in yaml.parse(payload, Loader=yaml.Loader):
+            pass
+        yaml.compose(payload, Loader=yaml.Loader)
+    pure_python_seconds = perf_counter() - start
+
+    assert len(graph.sources) == 18
+    assert scan_seconds < pure_python_seconds / 2
 
 
 def test_recursive_include_sources_and_future_files_are_protected(tmp_path):
