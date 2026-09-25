@@ -36,17 +36,19 @@ HACS uses the installed HA interpreter; it does not create a private interpreter
 or virtual environment for this integration. Do not raise the product minimum
 simply because development uses a newer Python.
 
-Keep the lane-specific Python exclusions in `.github/dependabot.yml` under review.
-They suppress updates to dependencies pinned by the corresponding HA release,
-its optional integrations, or its pytest plugin; they are not permanent upstream
-version policy. Review them at least monthly and when a security advisory affects
-an ignored package. Whenever an HA/Python baseline, test plugin, or lock changes,
-compare each exclusion with that baseline's package metadata and integration
-manifests, remove exclusions no longer needed, regenerate the affected lock,
-and run its full CI test and HA boot-smoke lane. Review new Dependabot proposals
-against both HA baselines before changing a pinned transitive dependency. If a
-security fix needs a newer pinned dependency, evaluate an HA baseline update
-instead of overriding HA's requirement in one lock.
+Keep the lane-specific Python allowlists and exclusions in `.github/dependabot.yml`
+under review. These are fully resolved HA/test-plugin locks: Dependabot proposes
+individual updates only for standalone tools, while the HA dependency graph is
+updated as a unit. The exclusions document known exact pins from HA, its optional
+integrations and its pytest plugin; they are not permanent upstream version policy.
+Review the whole withheld lock graph at least monthly and whenever a security
+advisory affects it. Whenever an HA/Python baseline, test plugin, or lock changes,
+compare the allowlist and each exclusion with package metadata and integration
+manifests, remove obsolete entries, regenerate the affected lock, and run its full
+CI test and HA boot-smoke lane. Review new Dependabot proposals against both HA
+baselines before changing a pinned transitive dependency. If a security fix needs
+a newer pinned dependency, evaluate an HA baseline update instead of overriding
+HA's requirement in one lock.
 
 Run from the repository root inside the container:
 
