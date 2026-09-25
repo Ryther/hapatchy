@@ -33,7 +33,7 @@ class PatchAttentionSensor(BinarySensorEntity):
     def __init__(self, runtime, patch_id):
         self.runtime, self.patch_id = runtime, patch_id
         self._attr_unique_id = f"{runtime.entry.entry_id}_{patch_id}_attention"
-        self._attr_name = "Needs attention"
+        self._attr_name = "Patch health"
         self._attr_device_info = patch_device_info(runtime, patch_id)
 
     @property

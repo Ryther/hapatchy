@@ -209,7 +209,7 @@
     },
     "binary_sensor": {
       "patch_attention": {
-        "name": "Needs attention"
+        "name": "Patch health"
       }
     }
   },

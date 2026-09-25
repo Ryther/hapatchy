@@ -209,7 +209,7 @@
     },
     "binary_sensor": {
       "patch_attention": {
-        "name": "Richiede attenzione"
+        "name": "Salute della patch"
       }
     }
   },
