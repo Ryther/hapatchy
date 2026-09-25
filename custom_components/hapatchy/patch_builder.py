@@ -52,11 +52,19 @@ def build_patch(original: bytes, edited: bytes, target_path: str) -> bytes:
         if len(candidate) > MAX_PATCH_BYTES:
             raise PatchError("size_limit")
         try:
-            result = engine.inspect(engine.parse(candidate, target_path), original)
+            parsed = engine.parse(candidate, target_path)
+            result = engine.inspect(parsed, original)
+            reverse = engine.inspect(parsed, edited)
         except PatchError:
             result = None
-        if result is not None and result.status == Status.APPLICABLE:
-            if result.forward_output == edited:
+            reverse = None
+        if result is not None and reverse is not None:
+            if (
+                result.status == Status.APPLICABLE
+                and result.forward_output == edited
+                and reverse.status == Status.APPLIED
+                and reverse.reverse_output == original
+            ):
                 return candidate
         if context >= maximum:
             raise PatchError("editor_context_not_unique")

@@ -23,6 +23,9 @@ def test_round_trip(original: bytes, edited: bytes) -> None:
     result = engine.inspect(parsed, original)
     assert result.status == Status.APPLICABLE
     assert result.forward_output == edited
+    reverse = engine.inspect(parsed, edited)
+    assert reverse.status == Status.APPLIED
+    assert reverse.reverse_output == original
 
 
 @pytest.mark.parametrize(
@@ -50,3 +53,8 @@ def test_refuses_unsafe_target() -> None:
 def test_refuses_oversize_editor_input() -> None:
     with pytest.raises(PatchError, match="size_limit"):
         build_patch(b"a" * (256 * 1024) + b"\n", b"new\n", "scripts/example.txt")
+
+
+def test_refuses_diff_that_becomes_ambiguous_after_apply() -> None:
+    with pytest.raises(PatchError, match="editor_context_not_unique"):
+        build_patch(b"before\n", b"before\nafter\n", "scripts/example.txt")
