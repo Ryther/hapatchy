@@ -10,7 +10,7 @@ from .patch_builder import MAX_EDITOR_BYTES, validate_editor_text
 from .patch_engine import UnifiedDiffEngine
 from .patch_source import PatchSourceClient
 from .path_policy import PathPolicy
-from .safe_io import GuardedFile, Snapshot
+from .safe_io import GuardedFile, Snapshot, identity
 from .yaml_policy import policy_for_hass
 
 
@@ -25,6 +25,15 @@ def read_editable_target(
         policy.check_definition(definition)
         target.verify_snapshot(snapshot)
         return snapshot
+
+
+def verify_editable_snapshot(
+    root: Path, definition: PatchDefinition, policy: PathPolicy, expected: Snapshot
+) -> None:
+    """Refuse publication if the authorized file changed while its editor was open."""
+    current = read_editable_target(root, definition, policy)
+    if identity(current.info) != identity(expected.info) or current.sha256 != expected.sha256:
+        raise PatchError("target_changed", Status.APPLY_ERROR)
 
 
 def inspect_target(
