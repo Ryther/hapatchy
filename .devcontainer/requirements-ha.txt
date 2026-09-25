@@ -89,7 +89,7 @@ PyRIC==0.1.6.3
 pyspeex-noise==1.0.2
 python-dateutil==2.9.0.post0
 python-slugify==8.0.4
-PyTurboJPEG==1.8.3
+PyTurboJPEG==2.5.0
 pytz==2026.3.post1
 PyYAML==6.0.3
 regex==2026.9.10
