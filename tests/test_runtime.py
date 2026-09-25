@@ -72,6 +72,9 @@ async def test_sensor_is_bound_to_native_subentry(hass, tmp_path):
         assert device.config_subentry_id == pid
     status = next(entity for entity in entities if entity.domain == "sensor")
     attention = next(entity for entity in entities if entity.domain == "binary_sensor")
+    assert hass.states.get(attention.entity_id).attributes["friendly_name"] == "Example Patch health"
+    assert hass.states.get(attention.entity_id).attributes["device_class"] == "problem"
+    assert attention.unique_id == f"{entry.entry_id}_{pid}_attention"
     assert hass.states.get(status.entity_id).state == "unknown"
     assert hass.states.get(attention.entity_id).state == "off"
     await runtime.async_action(pid, "apply")
