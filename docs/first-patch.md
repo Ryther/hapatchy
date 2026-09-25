@@ -76,9 +76,10 @@ device). Wait for **`applied`** and check the target file itself. A brief `unkno
 state is normal. If the sensor reports `apply_error`, `conflict` or
 `security_error`, inspect **Settings → System → Repairs** and follow
 the [troubleshooting guidance](troubleshooting.md); do not assume the file
-changed. The device's **Patch health** binary sensor displays **Problem** for
-these errors and **OK** otherwise. Its raw states are `on` and `off` for
-automations; it does not contain the patch text.
+changed. The device's **Patch health** binary sensor displays **Unknown** until
+its first completed check, **Problem** for these errors and **OK** after a
+successful check. A disabled rule also displays Unknown. Its raw states after
+a check are `on` and `off` for automations; it does not contain the patch text.
 
 ![A patch device groups Status and Patch health sensors in disposable HA 2026.9.0](images/patch-device.png)
 

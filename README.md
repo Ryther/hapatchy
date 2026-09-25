@@ -54,6 +54,10 @@ entity states or attributes. The YAML contains
 only operator-owned directory grants, not patch definitions. There is no custom
 dashboard to install.
 
+**Patch health** is Unknown before the first completed check and while a rule is
+disabled. After a check, it shows OK or Problem; an OK result describes that
+check, not a continuous guarantee about the target file.
+
 HTTPS sources require a public hostname whose DNS answers are all public
 addresses; numeric hosts, local-network destinations and redirects are refused.
 See the [source rules](docs/reference.md#local-files-and-https).

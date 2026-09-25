@@ -76,7 +76,7 @@ async def test_sensor_is_bound_to_native_subentry(hass, tmp_path):
     assert hass.states.get(attention.entity_id).attributes["device_class"] == "problem"
     assert attention.unique_id == f"{entry.entry_id}_{pid}_attention"
     assert hass.states.get(status.entity_id).state == "unknown"
-    assert hass.states.get(attention.entity_id).state == "off"
+    assert hass.states.get(attention.entity_id).state == "unknown"
     await runtime.async_action(pid, "apply")
     assert hass.states.get(status.entity_id).state == "applied"
     assert hass.states.get(attention.entity_id).state == "off"
@@ -108,6 +108,13 @@ async def test_startup_reconciles_only_when_requested(hass, tmp_path):
 async def test_disabled_patch_stays_visible_and_cannot_apply(hass, tmp_path):
     _, runtime, pid = await setup(hass, tmp_path, {"enabled": False, "reconcile_on_startup": True})
     assert runtime.states[pid].status == "disabled"
+    from homeassistant.helpers import entity_registry as er
+
+    attention = next(
+        entity for entity in er.async_get(hass).entities.values()
+        if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
+    )
+    assert hass.states.get(attention.entity_id).state == "unknown"
     with pytest.raises(ValueError, match="disabled_patch"):
         await runtime.async_action(pid, "apply")
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"

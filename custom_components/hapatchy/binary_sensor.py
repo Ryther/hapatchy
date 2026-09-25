@@ -39,10 +39,12 @@ class PatchAttentionSensor(BinarySensorEntity):
     @property
     def is_on(self):
         state = self.runtime.states[self.patch_id]
-        return self.runtime.definitions[self.patch_id].enabled and (
-            state.status in ATTENTION_STATUSES
-            or (state.status != Status.UNKNOWN and not state.watcher_available)
-        )
+        if not self.runtime.definitions[self.patch_id].enabled or state.status in (
+            Status.UNKNOWN,
+            Status.DISABLED,
+        ):
+            return None
+        return state.status in ATTENTION_STATUSES or not state.watcher_available
 
     async def async_added_to_hass(self):
         self.async_on_remove(self.runtime.subscribe(self.patch_id, self._updated))

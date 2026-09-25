@@ -143,14 +143,17 @@ A status describes the last completed check, not continuous proof of the current
 file contents. A missing watch root can produce a Repair even when a previous
 status was `applied`. Missing/replaced roots are rechecked every 60 seconds.
 
-The **Patch health** binary sensor displays **Problem** for a conflict, missing
-target, source error, invalid patch, security error, write error, or unavailable
-watcher after an initial check. It displays **OK** otherwise, including before
-the first check or when a patch is disabled; use the status sensor to see whether
-a check has run. Its raw states are `on` for Problem and `off` for OK; use those
-values in automations. It contains no file or patch text. The status sensor's
+The **Patch health** binary sensor displays **Unknown** before a completed check
+or while the rule is disabled. After a check, it displays **Problem** for a
+conflict, missing target, source error, invalid patch, security error, write
+error or unavailable watcher, and **OK** otherwise. Its raw states are
+`unknown`, `on` for Problem and `off` for OK; handle `unknown` explicitly in
+automations. An OK state describes the last check, not continuous proof of the
+target file's contents. It contains no file or patch text. The status sensor's
 stable unique ID is retained when an existing patch gains a device; an entity
 ID previously customized in HA is not deliberately renamed.
+
+![Patch health and Status both show Unknown before the first check in disposable HA 2026.9.0](images/patch-health-unknown.png)
 
 ## Administrator actions
 
