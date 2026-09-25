@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.4.0](https://github.com/Ryther/hapatchy/compare/v0.3.1...v0.4.0) (2026-09-25)
+
+
+### Features
+
+* group patches as devices with on-demand diff inspection ([81a0f74](https://github.com/Ryther/hapatchy/commit/81a0f7450ec9a5543696aea2965277673f9baced))
+
+
+### Bug Fixes
+
+* show file editor errors and support 512 KiB files ([142c2a5](https://github.com/Ryther/hapatchy/commit/142c2a510a4a9d715608d7a59079a82463221035))
+
+
+### Documentation
+
+* explain editor limits and validation errors ([7cff88f](https://github.com/Ryther/hapatchy/commit/7cff88f3b9cc203f8c9cbc770344bc2d6717e45c))
+* explain patch devices, diff inspection, and editor limits ([778e91e](https://github.com/Ryther/hapatchy/commit/778e91e8fa45d9a8d0b1ea9e217480e03ff02bb8))
+
 ## [0.3.1](https://github.com/Ryther/hapatchy/compare/v0.3.0...v0.3.1) (2026-09-25)
 
 
