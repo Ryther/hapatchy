@@ -161,7 +161,8 @@
         "editor_empty": "Il file deve contenere testo.",
         "editor_text_format": "L’editor accetta solo testo UTF-8 con righe LF e una riga finale terminata.",
         "editor_unchanged": "Non hai modificato il file.",
-        "editor_context_not_unique": "Impossibile generare una patch univoca. Usa il metodo di inserimento della patch."
+        "editor_context_not_unique": "Impossibile generare una patch univoca. Usa il metodo di inserimento della patch.",
+        "editor_size_limit": "Il file originale o modificato supera 256 KiB, oppure la patch generata supera 2 MiB. Usa un altro metodo di inserimento della patch."
       },
       "abort": {
         "reconfigure_successful": "Configurazione aggiornata.",

@@ -138,6 +138,52 @@ async def test_edit_file_refuses_changed_grant_before_save(hass, files):
     assert not entry.subentries
 
 
+async def test_edit_file_refuses_target_changed_during_publication(hass, files):
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(hass, result["flow_id"], DATA | {"source_type": "edit_file"})
+
+    def change_during_save(store, content):
+        (files / "scripts/a.py").write_bytes(b"external update\n")
+        return "0" * 64
+
+    with patch(
+        "custom_components.hapatchy.config_flow.ManagedPatchStore.save",
+        change_during_save,
+    ):
+        result = await configure(hass, result["flow_id"], {"edited_text": "context\nnew\n"})
+    assert result["type"] == FlowResultType.ABORT
+    assert result["reason"] == "editor_target_changed"
+    assert not entry.subentries
+    assert (files / "scripts/a.py").read_bytes() == b"external update\n"
+
+
+async def test_edit_file_denied_target_never_opens_contents(hass, files):
+    (files / "www").mkdir()
+    (files / "www/secret.txt").write_bytes(b"never disclose me\n")
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+    result = await configure(
+        hass,
+        result["flow_id"],
+        {
+            "name": "Denied",
+            "target_path": "www/secret.txt",
+            "watch_root": "www",
+            "source_type": "edit_file",
+        },
+    )
+    assert result["step_id"] == "user"
+    assert result["errors"]
+    assert "never disclose me" not in str(result)
+
+
 async def test_edit_file_direct_step_without_snapshot_does_not_disclose(hass, files):
     entry = MockConfigEntry(domain=DOMAIN, data={})
     entry.add_to_hass(hass)

@@ -161,7 +161,8 @@
         "editor_empty": "The file must contain text.",
         "editor_text_format": "The editor accepts only UTF-8 text with LF line endings and a final newline.",
         "editor_unchanged": "The file has not changed.",
-        "editor_context_not_unique": "Could not generate a unique patch. Use a patch input method instead."
+        "editor_context_not_unique": "Could not generate a unique patch. Use a patch input method instead.",
+        "editor_size_limit": "The original or edited file exceeds 256 KiB, or the generated patch exceeds 2 MiB. Use another patch input method."
       },
       "abort": {
         "reconfigure_successful": "Configuration updated.",

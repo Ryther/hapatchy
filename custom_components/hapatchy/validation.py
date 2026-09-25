@@ -31,9 +31,12 @@ def verify_editable_snapshot(
     root: Path, definition: PatchDefinition, policy: PathPolicy, expected: Snapshot
 ) -> None:
     """Refuse publication if the authorized file changed while its editor was open."""
-    current = read_editable_target(root, definition, policy)
+    try:
+        current = read_editable_target(root, definition, policy)
+    except PatchError:
+        raise PatchError("editor_target_changed", Status.SECURITY_ERROR) from None
     if identity(current.info) != identity(expected.info) or current.sha256 != expected.sha256:
-        raise PatchError("target_changed", Status.APPLY_ERROR)
+        raise PatchError("editor_target_changed", Status.SECURITY_ERROR)
 
 
 def inspect_target(
