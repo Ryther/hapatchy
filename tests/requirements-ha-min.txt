@@ -91,7 +91,7 @@ pyRFC3339==2.1.0
 PyRIC==0.1.6.3
 pytest==8.3.4
 pytest-aiohttp==1.1.0
-pytest-asyncio==0.25.3
+pytest-asyncio==1.4.0
 pytest-cov==6.0.0
 pytest-github-actions-annotate-failures==0.3.0
 pytest-homeassistant-custom-component==0.13.221
