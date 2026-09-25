@@ -74,7 +74,7 @@ patch-ng==1.19.1
 pathspec==1.1.1
 pillow==11.1.0
 pip==25.3
-pipdeptree==2.25.0
+pipdeptree==4.2.5
 pluggy==1.6.0
 propcache==0.3.0
 psutil==7.2.2
