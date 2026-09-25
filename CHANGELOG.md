@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.0.0](https://github.com/Ryther/hapatchy/compare/v0.4.1...v1.0.0) (2026-09-25)
+
+
+### Bug Fixes
+
+* report unknown patch health before checks ([9e3bac9](https://github.com/Ryther/hapatchy/commit/9e3bac997e5bd82e0815f0d492a1033a2a474ba6))
+
+
+### Documentation
+
+* define 1.0 compatibility contract ([627f2e7](https://github.com/Ryther/hapatchy/commit/627f2e71ebcd755d0666f9b30d98b294a5455c5a))
+
 ## [0.4.1](https://github.com/Ryther/hapatchy/compare/v0.4.0...v0.4.1) (2026-09-25)
 
 
