@@ -95,6 +95,40 @@ For the main tutorial target, you can use
 The patch headers must match whichever target you selected. Uploading a patch
 does not upload or replace the target itself.
 
+### Create a `.patch` file yourself
+
+A patch file is plain text. For the demo, open a plain-text editor on **your
+computer**, copy the complete diff from step 3 (from `---` through
+`+interval = 5`, including the space at the start of the context line), and save
+it as `interval.patch` in UTF-8 with a final newline. Do not include the Markdown
+fences. You can compare your file with [the ready-made example](examples/interval.patch).
+Then choose **Upload a patch file** as described above. The upload opens an editor
+for review; it does not change `settings.txt` until you finish configuring the
+rule and later apply it.
+
+For a real change, make **two copies** of the target file on your computer:
+`original.txt` with the bytes currently on HA and `desired.txt` with only the
+change you want. Leave the HA target untouched. On Linux or in the Dev Container,
+GNU `diff` can create the patch without hand-editing hunk line counts:
+
+```sh
+diff -u \
+  --label a/hapatchy_ui_demo/settings.txt \
+  --label b/hapatchy_ui_demo/settings.txt \
+  original.txt desired.txt > interval.patch
+```
+
+Replace **both** label paths with the target's path relative to the HA
+configuration folder, keeping the `a/` and `b/` prefixes. Replace the two input
+filenames and the output filename as appropriate. `diff` exits with status **1**
+when it finds differences; that is expected. Status **0** produces an empty file
+and means there is no change to patch. Any other status is an error: inspect it
+before using the output. Open the result and confirm that it describes **one
+existing file**, that the `---`/`+++` paths match your chosen target, and that
+it contains only the intended change. The old copy must match the current HA
+file; otherwise HAPatchY will report a conflict rather than guess. Do not use a
+patch containing secrets or unreviewed changes from another source.
+
 ## 4. Apply once, then revert
 
 1. Open **Developer tools → States**, find `sensor.ui_interval_status`, and copy
