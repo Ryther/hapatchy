@@ -76,7 +76,7 @@ installation. Internet access may be required for dependency installation.
 
 Create HAPatchY only once. Multiple patches live inside that one integration.
 No patch device or sensor appears until you add a patch. Each patch then has a
-status sensor and a **Needs attention** binary sensor. The default Add patch
+status sensor and a **Patch health** binary sensor. The default Add patch
 path reads the selected file into a text field, so an administrator using the
 HA API can read the full contents of files in authorized folders. Continue with
 [Your first patch](first-patch.md) before configuring an important file.

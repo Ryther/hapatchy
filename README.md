@@ -47,7 +47,7 @@ immediate backed-up Apply; check the status sensor for the actual result. You
 can also paste or upload a `.patch`/`.diff` file.
 HAPatchY saves the patch and lets you edit it later. Existing local
 patch files and direct HTTPS URLs remain available as advanced inputs. Each patch
-appears as a device with a status sensor and a **Needs attention** binary sensor;
+appears as a device with a status sensor and a **Patch health** binary sensor;
 Home Assistant's Repairs page reports problems. Administrators can request the
 current diff through the **View patch** action. The diff is never published in
 entity states or attributes. The YAML contains

@@ -17,15 +17,19 @@
 Do not edit `.storage` or restore random backup files as an initial troubleshooting
 step. Preserve the current target and patch before investigating a mismatch.
 
-## The file editor will not open or save
+## Patch health shows Problem
 
-Each patch's device has a **Needs attention** binary sensor. It turns on when
-the status reports a problem or a watched directory becomes unavailable after
-an initial check. Open the status sensor and Repairs for the reason; neither
-entity contains the diff. An administrator can read the current diff with
+Each patch's device has a **Patch health** binary sensor. It displays
+**Problem** when the status reports a problem or a watched directory becomes
+unavailable after an initial check, and **OK** otherwise. OK before the first
+check does not confirm the file has been inspected. Open the status sensor and
+Repairs for the reason; neither entity contains the diff. An administrator can
+read the current diff with
 **Developer tools → Actions → HAPatchY: View patch** using the status sensor's
 `patch_id`. A refused read can mean the directory grant changed, the source is
 unavailable, or the rule is disabled.
+
+## The file editor will not open or save
 
 **Edit selected file** requires an existing regular target in a folder approved
 by both directory lists. The same grant allows an administrator using HA's API
