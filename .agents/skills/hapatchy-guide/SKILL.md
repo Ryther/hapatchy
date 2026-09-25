@@ -162,9 +162,11 @@ restore an old snapshot. Removing a rule or uninstalling HAPatchY does not undo
 target bytes. A Python file changed on disk may still need an HA restart to
 affect already imported code; HAPatchY never restarts HA.
 
-Each patch is shown as a device with a status sensor and a **Needs attention**
-binary sensor. The latter turns on for a failed check or unavailable watcher
-after an initial check; neither entity contains the patch text. To inspect the
+Each patch is shown as a device with a status sensor and a **Patch health**
+binary sensor. It displays **Problem** for a failed check or unavailable watcher
+after an initial check, and **OK** otherwise. Its raw states are `on` and `off`
+for automations. OK before the first check does not prove the file was inspected;
+use the status sensor for that. Neither entity contains the patch text. To inspect the
 current diff, an HA administrator opens **Developer tools → Actions → HAPatchY:
 View patch**, enters `patch_id`, and reads the `patch` field in the response.
 The read does not alter the target or status. External local/HTTPS sources may

@@ -9,7 +9,7 @@ the native API flow and a failed Apply. Other behavior below is covered by tests
 ## Patch settings
 
 Each item added with **Add patch** is an independent rule shown as a device with
-its own status sensor and **Needs attention** binary sensor.
+its own status sensor and **Patch health** binary sensor.
 Use its settings/menu to reconfigure or remove it. Keep one HAPatchY integration
 entry; you do not need a separate integration for each file.
 
@@ -143,12 +143,14 @@ A status describes the last completed check, not continuous proof of the current
 file contents. A missing watch root can produce a Repair even when a previous
 status was `applied`. Missing/replaced roots are rechecked every 60 seconds.
 
-The **Needs attention** binary sensor turns on for a conflict, missing target,
-source error, invalid patch, security error, write error, or unavailable watcher
-after an initial check. It remains off for an unchecked or disabled patch. It
-contains no file or patch text. The status sensor's stable unique ID is retained
-when an existing patch gains a device; an entity ID previously customized in HA
-is not deliberately renamed.
+The **Patch health** binary sensor displays **Problem** for a conflict, missing
+target, source error, invalid patch, security error, write error, or unavailable
+watcher after an initial check. It displays **OK** otherwise, including before
+the first check or when a patch is disabled; use the status sensor to see whether
+a check has run. Its raw states are `on` for Problem and `off` for OK; use those
+values in automations. It contains no file or patch text. The status sensor's
+stable unique ID is retained when an existing patch gains a device; an entity
+ID previously customized in HA is not deliberately renamed.
 
 ## Administrator actions
 
