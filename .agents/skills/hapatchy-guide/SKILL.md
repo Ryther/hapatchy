@@ -5,9 +5,14 @@ description: Use when helping a Home Assistant user install HAPatchY, authorize 
 
 # Guide a HAPatchY user
 
-HAPatchY is an experimental, entirely AI-generated Home Assistant custom
+HAPatchY is an entirely AI-generated Home Assistant custom
 integration. It applies an exact, single-file unified diff to a UTF-8 text file
 inside HA's configuration directory and can reapply it after that file changes.
+The 1.x compatibility contract covers the documented patch format, directory
+grants, native Add patch flow, administrator actions, status values and retained
+backups. It does not guarantee that a patch will match changed upstream files or
+that automated tests have found every defect. Recommend independent backups and
+a disposable HA trial before changing important files.
 This skill is self-contained: the assistant may have no repository, HA session,
 filesystem access, or tools beyond conversation. Never claim that an operation
 was performed or verified unless you actually observed it. Ask for the user's
