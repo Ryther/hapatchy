@@ -17,6 +17,8 @@ from .models import PatchError, Status
 _DIRECTORY = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC
 _FILE = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
 _YAML_TAG = "tag:yaml.org,2002:"
+# Parse and compose only; no YAML constructors run. Keep the same bounded walk.
+_YAML_LOADER = getattr(yaml, "CLoader", yaml.Loader)
 _KNOWN_TAGS = {
     "!include",
     "!include_dir_named",
@@ -135,11 +137,11 @@ class _Scanner:
 
     def _compose_and_visit(self, data: bytes, current: tuple[str, ...], depth: int) -> None:
         try:
-            for _ in yaml.parse(data, Loader=yaml.Loader):
+            for _ in yaml.parse(data, Loader=_YAML_LOADER):
                 self.events += 1
                 if self.events > _MAX_EVENTS:
                     self._deny()
-            node = yaml.compose(data, Loader=yaml.Loader)
+            node = yaml.compose(data, Loader=_YAML_LOADER)
         except PatchError:
             raise
         except yaml.YAMLError:
