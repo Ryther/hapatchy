@@ -22,10 +22,13 @@ step. Preserve the current target and patch before investigating a mismatch.
 **Edit selected file** requires an existing regular target in a folder approved
 by both directory lists. The same grant allows an administrator using HA's API
 to read its full contents. The editor accepts nonempty UTF-8 LF text with a
-final newline, at most 256 KiB before and after editing. It refuses symlinks,
+final newline, at most 512 KiB before and after editing. It refuses symlinks,
 hard links, special files, binary text, CRLF and missing final newlines. For a
 supported target outside those editor-specific limits, use the paste/upload
 patch input instead; the general target and patch limits still apply.
+If the initial read fails, the **Add patch** form remains open and shows the
+reason. **External source** is only the next step for a local patch path or
+HTTPS URL, not for **Edit selected file**.
 
 If the file or its grants changed while the form was open, close it and start
 **Add patch** again so HAPatchY reads a fresh snapshot. An unchanged edit or a

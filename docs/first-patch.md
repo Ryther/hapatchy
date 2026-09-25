@@ -56,7 +56,7 @@ A brief loading screen can appear before the editor opens.
 The **File contents** field is prefilled from the authorized target. Change only
 `interval = 30` to `interval = 5`; keep the comment and final newline. Select
 **Submit** and then **Finish**. The editor accepts a nonempty UTF-8 file up to
-**256 KiB**, with LF line endings and a final newline. It refuses binary text,
+**512 KiB**, with LF line endings and a final newline. It refuses binary text,
 CRLF, missing final newlines and edits whose generated diff cannot be applied
 and reversed unambiguously. Use a patch-file input for a supported file that the
 editor cannot handle.

@@ -69,7 +69,7 @@ This screenshot shows a local development installation, not a HACS certification
   the target and watch directory; the file editor also reads the full contents
   of files in these folders. See [directory permissions](docs/directory-permissions.md).
 - The file editor supports nonempty UTF-8 LF text with a final newline, up to
-  256 KiB. It always enables automatic application, startup checks and backup.
+  512 KiB. It always enables automatic application, startup checks and backup.
   Other patch inputs have separate behavior settings.
 - Changing a Python file on disk may require an HA restart to affect running
   code. **HAPatchY never restarts HA for you.**
