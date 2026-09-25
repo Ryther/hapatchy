@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.4.1](https://github.com/Ryther/hapatchy/compare/v0.4.0...v0.4.1) (2026-09-25)
+
+
+### Bug Fixes
+
+* name problem entity patch health ([b44a69a](https://github.com/Ryther/hapatchy/commit/b44a69a42d820836eadfcb7873be472b56543c16))
+
+
+### Documentation
+
+* show patch health states in the device guide ([7de397e](https://github.com/Ryther/hapatchy/commit/7de397e30051871383ed823588664e5bcbad1090))
+
 ## [0.4.0](https://github.com/Ryther/hapatchy/compare/v0.3.1...v0.4.0) (2026-09-25)
 
 
