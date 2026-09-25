@@ -126,12 +126,12 @@ require manual review and both CI lanes; Dependabot neither merges PRs nor
 changes the HA baseline pins automatically. Workflow container-image digests
 are reviewed and updated separately.
 
-The `ignore` entries for `pipdeptree` and `pyOpenSSL` in the recent lane and
-`bleak` and `pydantic-core` in the minimum lane reflect exact versions required
-by their current HA or HA test-plugin dependency graph. Recheck and remove the
-relevant entries when changing either baseline. An ignored dependency can also
-suppress Dependabot security-update PRs; keep security alerts under review and
-change the whole compatible lock deliberately when a fix is needed.
+The lane-specific `ignore` entries in [dependabot.yml](../.github/dependabot.yml)
+reflect versions pinned by the current HA releases, their optional integrations,
+or the HA pytest plugin. Recheck and remove relevant entries when changing a
+baseline or test plugin. An ignored dependency can also suppress Dependabot
+security-update PRs; keep security alerts under review and change the whole
+compatible lock deliberately when a fix is needed.
 
 Tests, local metadata validation and hassfest use the candidate SHA. When the
 repository is public, HACS checks remote repository metadata in its event
