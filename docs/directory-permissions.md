@@ -8,6 +8,9 @@ operator must name each permitted subdirectory in two settings in
 The native file editor also reads the full contents of a selected file inside
 these folders. An administrator with HA API access can therefore read as well
 as patch files there. Grant a folder only when both forms of access are intended.
+The administrator **View patch** action also returns the current diff on demand;
+the diff is not included in HA entity states or diagnostics. It rechecks that
+the patch's target directory is still authorized before reading its source.
 
 For the [first-patch tutorial](first-patch.md), add the following entries to your
 existing `configuration.yaml`:
@@ -55,6 +58,19 @@ such as `.storage`, `.hapatchy`, and HAPatchY's own integration code. A target's
 watch directory must also be within a grant. The target selector is a convenience;
 typing a path manually or using HA's API receives the same backend checks.
 Home Assistant's live path-permission check still applies after the YAML checks.
+
+If an integration update temporarily removes an authorized directory, HAPatchY
+does not recreate it. Its watcher becomes unavailable and a Repair is raised;
+the status sensor can retain its last successful state until another check.
+The watcher checks for the directory every 60 seconds, then checks the patch
+again when the directory returns. Automatic application still requires an
+exact match against the reinstalled target. A changed Python file needs an HA
+restart before the running integration uses the changed code.
+
+`watch_pattern` belongs to an individual patch and filters filesystem events
+for that patch's one exact target. It does not restrict which new targets can
+be configured within an authorized directory. The YAML grants accept explicit
+directory paths, not wildcard patterns.
 
 Grant only folders whose **future contents** you are willing to let the API
 agent read and alter. A directory grant does not review an individual diff. Patching

@@ -40,12 +40,17 @@ instead of guessing. Patches for other integrations are **not bundled**.
 The operator first authorizes destination folders in `configuration.yaml` using
 [both directory lists](docs/directory-permissions.md), then restarts HA. You
 configure each patch from **Settings → Devices & services**. Select the target
-file from HA’s configuration, then edit its contents in the native form. HAPatchY
-generates a patch and requests immediate backed-up Apply; check the status sensor
-for the actual result. You can also paste or upload a `.patch`/`.diff` file.
+file from HA’s configuration, then edit its contents in the native multiline
+text field. This is a plain text area, without syntax highlighting, line
+numbers, or a side-by-side diff. HAPatchY generates a patch and requests
+immediate backed-up Apply; check the status sensor for the actual result. You
+can also paste or upload a `.patch`/`.diff` file.
 HAPatchY saves the patch and lets you edit it later. Existing local
-patch files and direct HTTPS URLs remain available as advanced inputs. Each patch has a
-status sensor; Home Assistant's Repairs page reports problems. The YAML contains
+patch files and direct HTTPS URLs remain available as advanced inputs. Each patch
+appears as a device with a status sensor and a **Needs attention** binary sensor;
+Home Assistant's Repairs page reports problems. Administrators can request the
+current diff through the **View patch** action. The diff is never published in
+entity states or attributes. The YAML contains
 only operator-owned directory grants, not patch definitions. There is no custom
 dashboard to install.
 

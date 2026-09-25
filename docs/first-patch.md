@@ -61,16 +61,32 @@ CRLF, missing final newlines and edits whose generated diff cannot be applied
 and reversed unambiguously. Use a patch-file input for a supported file that the
 editor cannot handle.
 
+This field is Home Assistant's plain multiline text area. It does not show line
+numbers, syntax highlighting, or a live diff. You edit the complete file text;
+HAPatchY generates and validates the unified diff when you submit the form.
+Keep a copy of substantial edits until the status sensor confirms Apply.
+
 ![Native editor containing the revised demo text in disposable HA](images/file-editor-form.png)
 
 HAPatchY saves the generated diff as a managed patch, enables startup checking
 and automatic application, and requires a backup. **“Created configuration”
 means the rule was saved; it does not mean Apply succeeded.** Open **Developer
-tools → States** and find `sensor.ui_interval_status` (or search by the rule
-name). Wait for **`applied`** and check the target file itself. A brief `unknown`
+tools → States** and find `sensor.ui_interval_status` (or open the new patch
+device). Wait for **`applied`** and check the target file itself. A brief `unknown`
 state is normal. If the sensor reports `apply_error`, `conflict` or
 `security_error`, inspect **Settings → System → Repairs** and follow
-[troubleshooting](troubleshooting.md); do not assume the file changed.
+the [troubleshooting guidance](troubleshooting.md); do not assume the file
+changed. The device's **Needs attention** binary sensor turns on for these
+errors and can be used in automations; it does not contain the patch text.
+
+![A patch device groups its status and attention sensors in disposable HA 2026.9.0](images/patch-device.png)
+
+To inspect the exact current diff, copy `patch_id` from **Developer tools →
+States**, then open **Developer tools → Actions → HAPatchY: View patch**. Enter
+that ID and perform the action. The response contains the unified diff; this
+read leaves the target file unchanged. Review its contents before sharing it.
+
+![The administrator action returns the generated diff in disposable HA 2026.9.0](images/view-patch-response.png)
 
 ![The demo sensor reports applied after the target and backup were checked](images/file-editor-applied.png)
 

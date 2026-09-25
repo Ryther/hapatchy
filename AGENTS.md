@@ -98,7 +98,8 @@ write collision requires it. Preserve unrelated user changes.
 - `coordinator.py`, `watcher.py`: admission, serialization, tracked executor work,
   filesystem events and drained lifecycle teardown.
 - `config_flow.py`, `validation.py`: native forms and read-only validation.
-- `services.py`, `sensor.py`, `diagnostics.py`, `repairs.py`: thin HA interfaces.
+- `services.py`, `sensor.py`, `binary_sensor.py`, `patch_device.py`,
+  `diagnostics.py`, `repairs.py`: thin HA interfaces and stable patch-device grouping.
 
 Before growing a module, identify its responsibilities and dependencies. Split
 when distinct responsibilities require separate ownership, not merely to satisfy

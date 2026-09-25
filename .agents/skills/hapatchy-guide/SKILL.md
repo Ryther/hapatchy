@@ -76,6 +76,11 @@ directory/pattern empty for the target's parent. Submit; the **File contents**
 field should show the exact original text. Change `interval = 30` to
 `interval = 5`, preserve the comment and final newline, then Submit and Finish.
 
+File contents is a plain HA multiline text area, without syntax highlighting,
+line numbers or a live diff. The user edits the complete file text; HAPatchY
+generates and validates the diff on submission. For substantial edits, suggest
+keeping a copy until the status sensor confirms Apply.
+
 The native editor accepts nonempty UTF-8 LF text with a final newline, at most
 512 KiB for original and edited bytes. It refuses CRLF, binary data, links,
 special files, stale targets/grants, unchanged edits and generated diffs that
@@ -144,7 +149,8 @@ uploading. The patch must describe the current target exactly and only one file.
 
 ## Apply, revert, and inspect
 
-Open **Developer tools → States**, find the rule's sensor, and copy its
+Open the patch's device or **Developer tools → States**, find the rule's status
+sensor, and copy its
 `patch_id` attribute. It is not the sensor entity ID. The editor-created rule
 requests Apply automatically; for a manually configured rule use **Developer
 tools → Actions → HAPatchY: Apply** with that ID. The demo should become
@@ -155,6 +161,14 @@ automatic application off. Revert makes another backup. It does not blindly
 restore an old snapshot. Removing a rule or uninstalling HAPatchY does not undo
 target bytes. A Python file changed on disk may still need an HA restart to
 affect already imported code; HAPatchY never restarts HA.
+
+Each patch is shown as a device with a status sensor and a **Needs attention**
+binary sensor. The latter turns on for a failed check or unavailable watcher
+after an initial check; neither entity contains the patch text. To inspect the
+current diff, an HA administrator opens **Developer tools → Actions → HAPatchY:
+View patch**, enters `patch_id`, and reads the `patch` field in the response.
+The read does not alter the target or status. External local/HTTPS sources may
+have changed since the last Apply; review the returned text before sharing it.
 
 **Refresh source** checks the source/target without writing. **Reconcile** may
 write if automatic application is enabled. A disabled rule rejects actions;
