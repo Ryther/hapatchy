@@ -265,3 +265,73 @@ def test_failed_upload_keeps_release_draft(committed_release_repo, monkeypatch):
         release_module.publish_release(root, github, "v0.2.0", sha, 42)
     assert github.release["draft"]
     assert not github.writes
+
+
+def test_pending_release_cli_reports_exact_verified_draft(tmp_path, monkeypatch, capsys):
+    publisher = module("release_github")
+    github = FakeGitHub("a" * 40)
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    output = tmp_path / "step-output"
+    output.write_text("previous=value\n")
+    monkeypatch.setattr("sys.argv", ["release_github", "pending", "--output", str(output)])
+    publisher.main()
+    assert output.read_text() == "previous=value\ntag=v0.2.0\n"
+    assert capsys.readouterr().out == "v0.2.0\n"
+    assert github.writes == []
+    assert github.release["draft"] is True
+
+
+def test_pending_release_cli_refuses_ambiguous_drafts(tmp_path, monkeypatch):
+    publisher = module("release_github")
+    github = FakeGitHub("a" * 40)
+    second = github.release | {"id": 43, "tag_name": "v0.3.0"}
+    monkeypatch.setattr(github, "releases", lambda: [github.release, second])
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    output = tmp_path / "step-output"
+    monkeypatch.setattr("sys.argv", ["release_github", "pending", "--output", str(output)])
+    with pytest.raises(SystemExit, match="Multiple release drafts"):
+        publisher.main()
+    assert not output.exists()
+    assert github.writes == []
+
+
+def test_pending_release_cli_ignores_published_releases(tmp_path, monkeypatch, capsys):
+    publisher = module("release_github")
+    github = FakeGitHub("a" * 40)
+    github.release["draft"] = False
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    output = tmp_path / "step-output"
+    monkeypatch.setattr("sys.argv", ["release_github", "pending", "--output", str(output)])
+    publisher.main()
+    assert not output.exists()
+    assert capsys.readouterr().out == ""
+    assert github.writes == []
+
+
+def test_inspect_release_cli_emits_candidate_identity(tmp_path, monkeypatch, capsys):
+    import json
+
+    publisher = module("release_github")
+    sha = "a" * 40
+    github = FakeGitHub(sha)
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    output = tmp_path / "step-output"
+    monkeypatch.setattr(
+        "sys.argv", ["release_github", "inspect", "--tag", "v0.2.0", "--output", str(output)]
+    )
+    publisher.main()
+    assert output.read_text() == f"tag=v0.2.0\nsha={sha}\nrelease_id=42\n"
+    assert json.loads(capsys.readouterr().out) == {"tag": "v0.2.0", "sha": sha, "release_id": 42}
+    assert github.writes == []
+
+
+def test_pending_release_cli_refuses_moving_target(tmp_path, monkeypatch):
+    publisher = module("release_github")
+    github = FakeGitHub("main")
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    output = tmp_path / "step-output"
+    monkeypatch.setattr("sys.argv", ["release_github", "pending", "--output", str(output)])
+    with pytest.raises(SystemExit, match="full commit SHA"):
+        publisher.main()
+    assert not output.exists()
+    assert github.writes == []
