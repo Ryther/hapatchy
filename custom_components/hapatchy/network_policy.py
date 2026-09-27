@@ -49,7 +49,7 @@ def checked_url(source: str) -> URL:
         return url
     except PatchError:
         raise
-    except (TypeError, ValueError, UnicodeError):
+    except (TypeError, ValueError):
         raise _denied() from None
 
 
@@ -62,9 +62,7 @@ def _globally_routable(address: str) -> bool:
         return False
     if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped is not None:
         ip = ip.ipv4_mapped
-    return ip.is_global and not (
-        ip.is_multicast or ip.is_reserved or ip.is_unspecified
-    )
+    return ip.is_global and not (ip.is_multicast or ip.is_reserved or ip.is_unspecified)
 
 
 class PublicDNSResolver(AbstractResolver):
@@ -77,9 +75,7 @@ class PublicDNSResolver(AbstractResolver):
         self, host: str, port: int = 0, family: socket.AddressFamily = socket.AF_INET
     ) -> list[Any]:
         records = await self._delegate.resolve(host, port, family)
-        if not records or any(
-            not _globally_routable(record["host"]) for record in records
-        ):
+        if not records or any(not _globally_routable(record["host"]) for record in records):
             raise _denied()
         return records
 

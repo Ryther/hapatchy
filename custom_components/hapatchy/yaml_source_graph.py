@@ -19,17 +19,19 @@ _FILE = os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC
 _YAML_TAG = "tag:yaml.org,2002:"
 # Parse and compose only; no YAML constructors run. Keep the same bounded walk.
 _YAML_LOADER = getattr(yaml, "CLoader", yaml.Loader)
+_INCLUDE_TAG = "!include"
+_SECRET_TAG = "!secret"
 _KNOWN_TAGS = {
-    "!include",
+    _INCLUDE_TAG,
     "!include_dir_named",
     "!include_dir_merge_named",
     "!include_dir_list",
     "!include_dir_merge_list",
-    "!secret",
+    _SECRET_TAG,
     "!env_var",
     "!input",
 }
-_DIRECTORY_TAGS = _KNOWN_TAGS - {"!include", "!secret", "!env_var", "!input"}
+_DIRECTORY_TAGS = _KNOWN_TAGS - {_INCLUDE_TAG, _SECRET_TAG, "!env_var", "!input"}
 _MAX_FILES = 256
 _MAX_INCLUDES = 512
 _MAX_LOADS = 512
@@ -102,14 +104,14 @@ class _Scanner:
         self.total_bytes = self.events = self.nodes = 0
 
     def scan(self) -> SourceGraph:
-        self._load(("configuration.yaml",), 0, "source")
+        self._load(("configuration.yaml",), 0)
         return SourceGraph(
             tuple(sorted(self.sources.values(), key=lambda source: source.path)),
             tuple(sorted(self.directories.values(), key=lambda scope: scope.path)),
             tuple(sorted(self.secrets)),
         )
 
-    def _load(self, parts: tuple[str, ...], depth: int, kind: str) -> None:
+    def _load(self, parts: tuple[str, ...], depth: int) -> None:
         if depth > _MAX_DEPTH:
             self._deny()
         if parts in self.stack:
@@ -123,8 +125,15 @@ class _Scanner:
             self._deny()
         digest = hashlib.sha256(data).hexdigest()
         source = SourceFile(
-            parts, "yaml", info.st_dev, info.st_ino, info.st_mode, info.st_size,
-            info.st_mtime_ns, info.st_ctime_ns, digest,
+            parts,
+            "yaml",
+            info.st_dev,
+            info.st_ino,
+            info.st_mode,
+            info.st_size,
+            info.st_mtime_ns,
+            info.st_ctime_ns,
+            digest,
         )
         previous = self.sources.setdefault(parts, source)
         if previous != source or len(self.sources) > _MAX_FILES:
@@ -165,43 +174,56 @@ class _Scanner:
         if not (node.tag.startswith(_YAML_TAG) or node.tag in _KNOWN_TAGS):
             self._deny()
         if node.tag in _KNOWN_TAGS:
-            if not isinstance(node, ScalarNode):
-                self._deny()
-            if node.tag == "!include":
-                operand = self._path_operand(node)
-                self.includes += 1
-                if self.includes > _MAX_INCLUDES:
-                    self._deny()
-                self._load(current[:-1] + _parts(operand), include_depth + 1, "include")
-            elif node.tag in _DIRECTORY_TAGS:
-                operand = self._path_operand(node)
-                self.includes += 1
-                if self.includes > _MAX_INCLUDES:
-                    self._deny()
-                self._include_directory(current[:-1] + _parts(operand), include_depth + 1)
-            elif node.tag == "!secret":
-                self._literal_operand(node)
-                self._secret_candidates(current[:-1])
+            self._visit_tag(node, current, include_depth)
             return
         active.add(id(node))
         try:
-            if isinstance(node, SequenceNode):
-                for child in node.value:
-                    self._visit(child, current, include_depth, node_depth + 1, active)
-            elif isinstance(node, MappingNode):
-                keys: set[tuple[str, str]] = set()
-                for key, value in node.value:
-                    if isinstance(key, ScalarNode):
-                        marker = (key.tag, key.value)
-                        if marker in keys:
-                            self._deny()
-                        keys.add(marker)
-                    self._visit(key, current, include_depth, node_depth + 1, active)
-                    self._visit(value, current, include_depth, node_depth + 1, active)
-            elif not isinstance(node, ScalarNode):
-                self._deny()
+            self._visit_children(node, current, include_depth, node_depth, active)
         finally:
             active.remove(id(node))
+
+    def _visit_tag(self, node: Node, current: tuple[str, ...], include_depth: int) -> None:
+        if not isinstance(node, ScalarNode):
+            self._deny()
+        if node.tag == _INCLUDE_TAG:
+            operand = self._path_operand(node)
+            self.includes += 1
+            if self.includes > _MAX_INCLUDES:
+                self._deny()
+            self._load(current[:-1] + _parts(operand), include_depth + 1)
+        elif node.tag in _DIRECTORY_TAGS:
+            operand = self._path_operand(node)
+            self.includes += 1
+            if self.includes > _MAX_INCLUDES:
+                self._deny()
+            self._include_directory(current[:-1] + _parts(operand), include_depth + 1)
+        elif node.tag == _SECRET_TAG:
+            self._literal_operand(node)
+            self._secret_candidates(current[:-1])
+
+    def _visit_children(
+        self,
+        node: Node,
+        current: tuple[str, ...],
+        include_depth: int,
+        node_depth: int,
+        active: set[int],
+    ) -> None:
+        if isinstance(node, SequenceNode):
+            for child in node.value:
+                self._visit(child, current, include_depth, node_depth + 1, active)
+        elif isinstance(node, MappingNode):
+            keys: set[tuple[str, str]] = set()
+            for key, value in node.value:
+                if isinstance(key, ScalarNode):
+                    marker = (key.tag, key.value)
+                    if marker in keys:
+                        self._deny()
+                    keys.add(marker)
+                self._visit(key, current, include_depth, node_depth + 1, active)
+                self._visit(value, current, include_depth, node_depth + 1, active)
+        elif not isinstance(node, ScalarNode):
+            self._deny()
 
     def _include_directory(self, parts: tuple[str, ...], depth: int) -> None:
         fd, info = self._open_directory(parts)
@@ -209,17 +231,23 @@ class _Scanner:
             inventory: list[tuple[str, ...]] = []
             files: list[tuple[str, ...]] = []
             self._walk_directory(fd, parts, (), inventory, files)
-            scope = DirectoryScope(parts, info.st_dev, info.st_ino, info.st_mode, tuple(sorted(inventory)))
+            scope = DirectoryScope(
+                parts, info.st_dev, info.st_ino, info.st_mode, tuple(sorted(inventory))
+            )
             if self.directories.setdefault(parts, scope) != scope:
                 self._deny()
         finally:
             os.close(fd)
         for path in files:
-            self._load(path, depth, "include_directory")
+            self._load(path, depth)
 
     def _walk_directory(
-        self, fd: int, scope: tuple[str, ...], relative: tuple[str, ...],
-        inventory: list[tuple[str, ...]], files: list[tuple[str, ...]],
+        self,
+        fd: int,
+        scope: tuple[str, ...],
+        relative: tuple[str, ...],
+        inventory: list[tuple[str, ...]],
+        files: list[tuple[str, ...]],
     ) -> None:
         self.directories_seen += 1
         if self.directories_seen > _MAX_DIRECTORIES:
@@ -232,38 +260,48 @@ class _Scanner:
             self._deny()
         with iterator:
             for entry in iterator:
-                name = entry.name
-                if name.startswith("."):
-                    continue
-                self.entries += 1
-                if self.entries > _MAX_ENTRIES:
-                    self._deny()
-                try:
-                    info = os.stat(name, dir_fd=fd, follow_symlinks=False)
-                except OSError:
-                    self._deny()
-                path = scope + relative + (name,)
-                if stat.S_ISDIR(info.st_mode):
-                    child = self._open_child_directory(fd, name, info)
-                    try:
-                        self._walk_directory(child, scope, relative + (name,), inventory, files)
-                    finally:
-                        os.close(child)
-                elif stat.S_ISREG(info.st_mode):
-                    if info.st_nlink != 1:
-                        self._deny()
-                    if name != "secrets.yaml" and name.endswith(".yaml"):
-                        inventory.append(relative + (name,))
-                        files.append(path)
-                else:
-                    self._deny()
+                self._walk_entry(fd, entry.name, scope, relative, inventory, files)
+
+    def _walk_entry(
+        self,
+        fd: int,
+        name: str,
+        scope: tuple[str, ...],
+        relative: tuple[str, ...],
+        inventory: list[tuple[str, ...]],
+        files: list[tuple[str, ...]],
+    ) -> None:
+        if name.startswith("."):
+            return
+        self.entries += 1
+        if self.entries > _MAX_ENTRIES:
+            self._deny()
+        try:
+            info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+        except OSError:
+            self._deny()
+        path = scope + relative + (name,)
+        if stat.S_ISDIR(info.st_mode):
+            child = self._open_child_directory(fd, name, info)
+            try:
+                self._walk_directory(child, scope, relative + (name,), inventory, files)
+            finally:
+                os.close(child)
+        elif stat.S_ISREG(info.st_mode):
+            if info.st_nlink != 1:
+                self._deny()
+            if name != "secrets.yaml" and name.endswith(".yaml"):
+                inventory.append(relative + (name,))
+                files.append(path)
+        else:
+            self._deny()
 
     def _secret_candidates(self, parent: tuple[str, ...]) -> None:
         for index in range(len(parent), -1, -1):
             candidate = parent[:index] + ("secrets.yaml",)
             self.secrets.add(candidate)
             try:
-                self._load(candidate, 0, "secret")
+                self._load(candidate, 0)
             except FileNotFoundError:
                 continue
 
@@ -271,7 +309,11 @@ class _Scanner:
         parent, name = self._parent_fd(parts)
         try:
             before = os.stat(name, dir_fd=parent, follow_symlinks=False)
-            if not stat.S_ISREG(before.st_mode) or before.st_nlink != 1 or before.st_size > _MAX_FILE_BYTES:
+            if (
+                not stat.S_ISREG(before.st_mode)
+                or before.st_nlink != 1
+                or before.st_size > _MAX_FILE_BYTES
+            ):
                 self._deny()
             try:
                 fd = os.open(name, _FILE, dir_fd=parent)
@@ -299,7 +341,10 @@ class _Scanner:
         try:
             fd = os.open(self.root, _DIRECTORY)
             root_info = self.root.lstat()
-            if not stat.S_ISDIR(root_info.st_mode) or (root_info.st_dev, root_info.st_ino) != (os.fstat(fd).st_dev, os.fstat(fd).st_ino):
+            if not stat.S_ISDIR(root_info.st_mode) or (root_info.st_dev, root_info.st_ino) != (
+                os.fstat(fd).st_dev,
+                os.fstat(fd).st_ino,
+            ):
                 self._deny()
             for part in parts[:-1]:
                 info = os.stat(part, dir_fd=fd, follow_symlinks=False)
@@ -374,7 +419,15 @@ def _parts(path: str) -> tuple[str, ...]:
 
 
 def _stat_identity(info: os.stat_result) -> tuple[int, ...]:
-    return (info.st_dev, info.st_ino, info.st_mode, info.st_size, info.st_mtime_ns, info.st_ctime_ns, info.st_nlink)
+    return (
+        info.st_dev,
+        info.st_ino,
+        info.st_mode,
+        info.st_size,
+        info.st_mtime_ns,
+        info.st_ctime_ns,
+        info.st_nlink,
+    )
 
 
 def scan_source_graph(root: Path) -> SourceGraph:

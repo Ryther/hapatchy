@@ -14,45 +14,59 @@ MAX_ENTRIES = 10000
 MAX_DEPTH = 16
 
 
-def list_targets(root: Path, policy: PathPolicy) -> list[str]:
-    grants = policy.load_directories()
-    results: list[str] = []
-    remaining = MAX_ENTRIES
+class _TargetInventory:
+    """Own one discovery budget shared by every authorized directory traversal."""
 
-    def visit(parts: tuple[str, ...], check_path: Callable[[str], None]) -> None:
-        nonlocal remaining
-        if not remaining or len(results) >= MAX_SUGGESTIONS or len(parts) > MAX_DEPTH:
+    def __init__(self, root: Path, check_path: Callable[[str], None]):
+        self.root = root
+        self.check_path = check_path
+        self.results: list[str] = []
+        self.remaining = MAX_ENTRIES
+
+    @property
+    def full(self) -> bool:
+        return not self.remaining or len(self.results) >= MAX_SUGGESTIONS
+
+    def visit(self, parts: tuple[str, ...]) -> None:
+        if self.full or len(parts) > MAX_DEPTH:
             return
         try:
-            with GuardedDirectory(root, parts) as directory:
+            with GuardedDirectory(self.root, parts) as directory:
                 with os.scandir(directory.fd) as entries:
                     for entry in entries:
-                        if not remaining or len(results) >= MAX_SUGGESTIONS:
+                        if self.full:
                             break
-                        remaining -= 1
-                        if entry.name.startswith("."):
-                            continue
-                        path = (*parts, entry.name)
-                        try:
-                            relative_parts("/".join(path))
-                            info = entry.stat(follow_symlinks=False)
-                        except (OSError, PatchError):
-                            continue
-                        if stat.S_ISDIR(info.st_mode):
-                            visit(path, check_path)
-                        elif parts and stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
-                            candidate = "/".join(path)
-                            try:
-                                check_path(candidate)
-                            except PatchError:
-                                continue
-                            results.append(candidate)
+                        self.remaining -= 1
+                        self._entry(parts, entry)
                 directory.verify()
         except (OSError, PatchError):
-            # A disappearing/inaccessible directory is not a reason to block manual input.
+            # A disappearing/inaccessible directory must not block manual input.
             return
 
+    def _entry(self, parts: tuple[str, ...], entry: os.DirEntry) -> None:
+        if entry.name.startswith("."):
+            return
+        path = (*parts, entry.name)
+        try:
+            relative_parts("/".join(path))
+            info = entry.stat(follow_symlinks=False)
+        except (OSError, PatchError):
+            return
+        if stat.S_ISDIR(info.st_mode):
+            self.visit(path)
+        elif parts and stat.S_ISREG(info.st_mode) and info.st_nlink == 1:
+            candidate = "/".join(path)
+            try:
+                self.check_path(candidate)
+            except PatchError:
+                return
+            self.results.append(candidate)
+
+
+def list_targets(root: Path, policy: PathPolicy) -> list[str]:
+    grants = policy.load_directories()
     with policy.checked_read_only_paths() as check_path:
+        inventory = _TargetInventory(root, check_path)
         for grant in grants:
-            visit(tuple(grant.split("/")), check_path)
-    return sorted(set(results))
+            inventory.visit(tuple(grant.split("/")))
+    return sorted(set(inventory.results))
