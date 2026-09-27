@@ -73,3 +73,29 @@ HA, capture the actual UI, and record the checks and their limits in the PR.
 Use synthetic examples; keep credentials, diagnostics and HA state private.
 The repository uses a default-deny `.gitignore`: add narrow exceptions for new
 source/docs/screenshots and check them before staging. Do not use `git add -f`.
+
+## Optional Sonar analysis
+
+Run SonarScanner from the repository root against your own SonarQube server.
+The tracked `sonar-project.properties` defines sources, tests and targeted
+rule/file exclusions; those exclusions are sent with each analysis, so they do
+not depend on retained server settings. They preserve HA-required hook signatures
+and the immutable Docker image pin. Other rules continue checking those files.
+Review exclusions as described in [AGENTS.md](AGENTS.md).
+
+Set `SONAR_HOST_URL` to your server and `SONAR_TOKEN` to a project analysis token
+in your shell or secret store. Never commit either credentials or generated
+scanner reports. Then run an installed SonarScanner CLI:
+
+```bash
+sonar-scanner -Dsonar.scm.revision="$(git rev-parse HEAD)"
+```
+
+For coverage, first generate a fresh coverage.py XML report from the current
+checkout's test runs, then pass its path with
+`-Dsonar.python.coverage.reportPaths=/path/to/coverage.xml`. A stale report can
+misrepresent coverage or refer to lines that no longer exist. Server quality
+gates and quality profiles are separate server configuration: scanner exclusions
+do not recreate them. Record their names, analyzer version, exact commit and
+actual results when reporting an analysis. Sonar does not replace both HA test
+lanes, the native smoke tests or security review.

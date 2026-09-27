@@ -16,6 +16,7 @@
 !/README.md
 !/CONTRIBUTING.md
 !/LICENSE
+!/sonar-project.properties
 !/pyproject.toml
 !/hacs.json
 !/.github/

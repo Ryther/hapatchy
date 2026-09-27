@@ -83,6 +83,14 @@ workflows before executing them; use a disposable checkout without credentials
 or household mounts. A Dev Container is a reproducibility tool, not a guarantee
 that malicious contributed code is safe to execute.
 
+Sonar analysis uses the tracked `sonar-project.properties`. Its rule/file
+exclusions cover HA-mandated coroutine/context signatures and the deliberate
+Docker tag-plus-digest pin. Review each exclusion when its file changes, when HA
+contracts change, or when the analyzer is upgraded. Rule/file exclusions also
+cover future functions in those files: check new helpers manually and remove or
+narrow exclusions that no longer apply. Never suppress a whole file or mark a
+runtime defect as a framework convention merely to pass the quality gate.
+
 ## Implementation boundaries
 
 Choose the smallest complete solution within the approved scope. Preserve clear
