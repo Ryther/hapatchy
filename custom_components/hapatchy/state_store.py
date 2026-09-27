@@ -33,20 +33,24 @@ class StateStore:
             if not isinstance(item, dict):
                 _LOGGER.warning("metadata_invalid")
                 continue
-            for field in ("target_sha256", "patch_sha256"):
-                value = item.get(field)
-                if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value):
-                    setattr(state, field, value)
-            for field in ("last_checked_at", "last_applied_at"):
-                value = item.get(field)
-                if isinstance(value, str) and re.fullmatch(r"[0-9T:.+Z-]{10,40}", value):
-                    setattr(state, field, value)
-            # These failures remain safety gates across reloads.
-            if item.get("last_error") in (
-                "durability_unconfirmed",
-                "revert_metadata_unavailable",
-            ):
-                state.last_error = item["last_error"]
+            self._restore(state, item)
+
+    @staticmethod
+    def _restore(state: PatchRuntimeState, item: dict) -> None:
+        for field in ("target_sha256", "patch_sha256"):
+            value = item.get(field)
+            if isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value):
+                setattr(state, field, value)
+        for field in ("last_checked_at", "last_applied_at"):
+            value = item.get(field)
+            if isinstance(value, str) and re.fullmatch(r"[0-9T:.+Z-]{10,40}", value):
+                setattr(state, field, value)
+        # These failures remain safety gates across reloads.
+        if item.get("last_error") in (
+            "durability_unconfirmed",
+            "revert_metadata_unavailable",
+        ):
+            state.last_error = item["last_error"]
 
     async def save(self, states: dict[str, PatchRuntimeState]) -> None:
         await self.store.async_save(

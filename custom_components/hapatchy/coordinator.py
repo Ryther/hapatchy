@@ -70,16 +70,21 @@ class PatchManagerRuntime:
     async def async_load(self):
         await self.store.load(self.states)
         self._suppress_reapply.update(
-            key for key, state in self.states.items()
+            key
+            for key, state in self.states.items()
             if state.last_error == "revert_metadata_unavailable"
         )
         restart = self.hass.data[DOMAIN]["restart_required"]
         for key, state in self.states.items():
             state.restart_may_be_required = key in restart
-            if state.last_error in (
-                "durability_unconfirmed",
-                "revert_metadata_unavailable",
-            ) and self.definitions[key].enabled:
+            if (
+                state.last_error
+                in (
+                    "durability_unconfirmed",
+                    "revert_metadata_unavailable",
+                )
+                and self.definitions[key].enabled
+            ):
                 state.status = Status.APPLY_ERROR
                 self.issues.update(self.definitions[key], state)
 
@@ -235,27 +240,7 @@ class PatchManagerRuntime:
                         )
                     else:
                         self._suppress_reapply.discard(patch_id)
-                state.status = result.inspection.status
-                # Policy denial must not erase an outstanding fsync retry.
-                state.last_error = (
-                    "durability_unconfirmed"
-                    if pending and result.inspection.status == Status.SECURITY_ERROR
-                    else result.inspection.reason
-                )
-                state.last_checked_at = datetime.now(UTC).isoformat()
-                state.target_sha256 = result.target_sha256
-                state.patch_sha256 = result.source_sha256 or None
-                if result.mutated:
-                    if action != "revert":
-                        state.last_applied_at = state.last_checked_at
-                    if definition.target_path.endswith(".py"):
-                        self.hass.data[DOMAIN]["restart_required"].add(patch_id)
-                        state.restart_may_be_required = True
-                    _LOGGER.info("patch_bytes_changed: %s", patch_id)
-                elif result.service_error:
-                    _LOGGER.warning("patch_check_failed: %s %s", patch_id, result.service_error)
-                else:
-                    _LOGGER.debug("patch_checked: %s %s", patch_id, state.status)
+                self._record_result(patch_id, definition, state, action, result, pending)
                 await self.store.save(self.states)
                 self._publish(patch_id)
                 return result
@@ -263,6 +248,29 @@ class PatchManagerRuntime:
             self._admitted.discard(task)
             self._busy.discard(patch_id)
             self.watcher.action_complete(patch_id)
+
+    def _record_result(self, patch_id, definition, state, action, result, pending) -> None:
+        state.status = result.inspection.status
+        # Policy denial must not erase an outstanding fsync retry.
+        state.last_error = (
+            "durability_unconfirmed"
+            if pending and result.inspection.status == Status.SECURITY_ERROR
+            else result.inspection.reason
+        )
+        state.last_checked_at = datetime.now(UTC).isoformat()
+        state.target_sha256 = result.target_sha256
+        state.patch_sha256 = result.source_sha256 or None
+        if result.mutated:
+            if action != "revert":
+                state.last_applied_at = state.last_checked_at
+            if definition.target_path.endswith(".py"):
+                self.hass.data[DOMAIN]["restart_required"].add(patch_id)
+                state.restart_may_be_required = True
+            _LOGGER.info("patch_bytes_changed: %s", patch_id)
+        elif result.service_error:
+            _LOGGER.warning("patch_check_failed: %s %s", patch_id, result.service_error)
+        else:
+            _LOGGER.debug("patch_checked: %s %s", patch_id, state.status)
 
     async def async_close(self):
         self.closing = True

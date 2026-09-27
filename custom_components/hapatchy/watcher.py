@@ -77,39 +77,48 @@ class PatchWatcher:
             if self._closed:
                 return
             for root in sorted(self.roots):
-                identity = await self.runtime.run_io(
-                    partial(_root_identity, self.config_dir, root, self.runtime.path_policy)
+                available = await self._refresh_root(root)
+                if available is not None:
+                    self._publish_root(root, available, reconcile_recovered)
+
+    async def _refresh_root(self, root: str) -> bool | None:
+        """Replace one observer watch; None means its identity is unchanged."""
+        identity = await self.runtime.run_io(
+            partial(_root_identity, self.config_dir, root, self.runtime.path_policy)
+        )
+        previous = self._watches.get(root)
+        if previous is not None and previous[1] == identity:
+            return None
+        if previous is not None:
+            try:
+                await self.runtime.run_io(partial(self.observer.unschedule, previous[0]))
+            except KeyError:
+                pass
+            self._watches.pop(root, None)
+        available = False
+        if identity is not None:
+            try:
+                watch = await self.runtime.run_io(
+                    partial(
+                        self.observer.schedule,
+                        self._handler,
+                        str(self.config_dir / root),
+                        recursive=True,
+                    )
                 )
-                previous = self._watches.get(root)
-                if previous is not None and previous[1] == identity:
-                    continue
-                if previous is not None:
-                    try:
-                        await self.runtime.run_io(partial(self.observer.unschedule, previous[0]))
-                    except KeyError:
-                        pass
-                    self._watches.pop(root, None)
-                available = False
-                if identity is not None:
-                    try:
-                        watch = await self.runtime.run_io(
-                            partial(
-                                self.observer.schedule,
-                                self._handler,
-                                str(self.config_dir / root),
-                                recursive=True,
-                            )
-                        )
-                    except OSError:
-                        pass
-                    else:
-                        self._watches[root] = (watch, identity)
-                        available = True
-                for key, definition in self.runtime.definitions.items():
-                    if definition.watch_root == root and definition.enabled:
-                        self.runtime.watch_available(key, available)
-                        if available and reconcile_recovered:
-                            self._debounce(key)
+            except OSError:
+                pass
+            else:
+                self._watches[root] = (watch, identity)
+                available = True
+        return available
+
+    def _publish_root(self, root: str, available: bool, reconcile_recovered: bool) -> None:
+        for key, definition in self.runtime.definitions.items():
+            if definition.watch_root == root and definition.enabled:
+                self.runtime.watch_available(key, available)
+                if available and reconcile_recovered:
+                    self._debounce(key)
 
     def _relative(self, value: str) -> str | None:
         if not value:
