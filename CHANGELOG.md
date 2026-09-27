@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/Ryther/hapatchy/compare/v1.0.0...v1.0.1) (2026-09-27)
+
+
+### Bug Fixes
+
+* render repository documentation in HACS ([77c02f8](https://github.com/Ryther/hapatchy/commit/77c02f8b8638d6faf2bc22d552dac752aff17fde))
+
 ## [1.0.0](https://github.com/Ryther/hapatchy/compare/v0.4.1...v1.0.0) (2026-09-25)
 
 
