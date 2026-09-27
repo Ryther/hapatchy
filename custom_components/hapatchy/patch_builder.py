@@ -58,14 +58,17 @@ def build_patch(original: bytes, edited: bytes, target_path: str) -> bytes:
         except PatchError:
             result = None
             reverse = None
-        if result is not None and reverse is not None:
-            if (
+        if (
+            result is not None
+            and reverse is not None
+            and (
                 result.status == Status.APPLICABLE
                 and result.forward_output == edited
                 and reverse.status == Status.APPLIED
                 and reverse.reverse_output == original
-            ):
-                return candidate
+            )
+        ):
+            return candidate
         if context >= maximum:
             raise PatchError("editor_context_not_unique")
         context = min(maximum, context * 2)
