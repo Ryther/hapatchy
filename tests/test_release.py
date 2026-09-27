@@ -70,6 +70,22 @@ def test_tag_must_match_version_exactly(release_repo, tag):
     assert not (release_repo / "dist").exists()
 
 
+@pytest.mark.parametrize("version", ["1٢.0.0", "1.2٣.0", "1.2.3٤"])
+def test_unicode_digits_cannot_identify_release_artifacts(release_repo, version):
+    """Matching version authorities must still obey ASCII release/tag syntax."""
+    for name in (
+        "custom_components/hapatchy/manifest.json",
+        "pyproject.toml",
+        ".release-please-manifest.json",
+    ):
+        path = release_repo / name
+        path.write_text(path.read_text().replace("0.2.0", version))
+    builder = module("build_release")
+    with pytest.raises(ValueError, match="stable MAJOR.MINOR.PATCH"):
+        builder.build_archive(release_repo)
+    assert not (release_repo / "dist").exists()
+
+
 def test_tracked_symlink_is_not_packaged(release_repo):
     path = release_repo / "custom_components/hapatchy/link.py"
     path.symlink_to(release_repo / "LICENSE")
