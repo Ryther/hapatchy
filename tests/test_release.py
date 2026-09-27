@@ -64,8 +64,9 @@ def test_version_disagreement_prevents_build(release_repo, version_file):
 
 @pytest.mark.parametrize("tag", ["v0.3.0", "0.2.0", "v0.2.0;echo bad", "v0.2.0\nmalicious"])
 def test_tag_must_match_version_exactly(release_repo, tag):
+    release_module = module("build_release")
     with pytest.raises(ValueError, match="tag"):
-        module("build_release").build_archive(release_repo, expected_tag=tag)
+        release_module.build_archive(release_repo, expected_tag=tag)
     assert not (release_repo / "dist").exists()
 
 
@@ -73,8 +74,9 @@ def test_tracked_symlink_is_not_packaged(release_repo):
     path = release_repo / "custom_components/hapatchy/link.py"
     path.symlink_to(release_repo / "LICENSE")
     subprocess.run(["git", "-C", str(release_repo), "add", str(path)], check=True)
+    release_module = module("build_release")
     with pytest.raises(ValueError, match="regular file"):
-        module("build_release").build_archive(release_repo)
+        release_module.build_archive(release_repo)
 
 
 def test_documented_example_applies_and_reverts_exactly():
@@ -157,8 +159,9 @@ def test_publish_refuses_wrong_release_identity(committed_release_repo, change):
         github.release["id"] = 43
     else:
         github.ref = "a" * 40
+    release_module = module("release_github")
     with pytest.raises(ValueError):
-        module("release_github").publish_release(root, github, "v0.2.0", sha, 42)
+        release_module.publish_release(root, github, "v0.2.0", sha, 42)
     assert github.writes == []
 
 
@@ -166,8 +169,9 @@ def test_publish_refuses_uncommitted_source(committed_release_repo):
     root, sha = committed_release_repo
     (root / "custom_components/hapatchy/__init__.py").write_text("changed")
     github = FakeGitHub(sha)
+    release_module = module("release_github")
     with pytest.raises(ValueError, match="clean"):
-        module("release_github").publish_release(root, github, "v0.2.0", sha, 42)
+        release_module.publish_release(root, github, "v0.2.0", sha, 42)
     assert not github.writes
 
 
@@ -192,8 +196,9 @@ def test_publish_refuses_commit_outside_main(committed_release_repo):
     )
     sha = subprocess.check_output(["git", "-C", str(root), "rev-parse", "HEAD"]).decode().strip()
     github = FakeGitHub(sha)
+    release_module = module("release_github")
     with pytest.raises(ValueError, match="main"):
-        module("release_github").publish_release(root, github, "v0.2.0", sha, 42)
+        release_module.publish_release(root, github, "v0.2.0", sha, 42)
     assert not github.writes
 
 
@@ -225,8 +230,9 @@ def test_different_existing_asset_is_never_overwritten(committed_release_repo):
     root, sha = committed_release_repo
     github = FakeGitHub(sha)
     github.release["assets"] = [{"name": "hapatchy-0.2.0.zip", "digest": "sha256:" + "0" * 64}]
+    release_module = module("release_github")
     with pytest.raises(ValueError, match="asset"):
-        module("release_github").publish_release(root, github, "v0.2.0", sha, 42)
+        release_module.publish_release(root, github, "v0.2.0", sha, 42)
     assert not github.writes
 
 
@@ -238,6 +244,8 @@ def test_failed_upload_keeps_release_draft(committed_release_repo, monkeypatch):
         raise RuntimeError("upload failed")
 
     monkeypatch.setattr(github, "upload", fail)
+    release_module = module("release_github")
     with pytest.raises(RuntimeError, match="upload failed"):
-        module("release_github").publish_release(root, github, "v0.2.0", sha, 42)
-    assert github.release["draft"] and not github.writes
+        release_module.publish_release(root, github, "v0.2.0", sha, 42)
+    assert github.release["draft"]
+    assert not github.writes

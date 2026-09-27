@@ -92,12 +92,11 @@ async def test_add_patch_defaults_to_edit_file(hass, files):
     result = await hass.config_entries.subentries.async_init(
         (entry.entry_id, "patch"), context={"source": "user"}
     )
-    assert result["data_schema"]({"name": "Example", "target_path": "scripts/a.py"})[
-        "source_type"
-    ] == "edit_file"
-    result = await configure(
-        hass, result["flow_id"], DATA | {"source_type": "edit_file"}
+    assert (
+        result["data_schema"]({"name": "Example", "target_path": "scripts/a.py"})["source_type"]
+        == "edit_file"
     )
+    result = await configure(hass, result["flow_id"], DATA | {"source_type": "edit_file"})
     assert result["step_id"] == "edit_file"
     assert result["data_schema"]({})["edited_text"] == "context\nold\n"
     result = await configure(hass, result["flow_id"], {"edited_text": "context\nnew\n"})
@@ -217,9 +216,7 @@ async def test_edit_file_unsupported_text_stays_on_initial_form(hass, files, ori
 
 async def test_edit_file_opens_text_larger_than_256_kib(hass, files):
     target = files / "scripts/a.py"
-    original = b"".join(
-        f"line {index:05d} ".encode() + b"x" * 29 + b"\n" for index in range(6900)
-    )
+    original = b"".join(f"line {index:05d} ".encode() + b"x" * 29 + b"\n" for index in range(6900))
     assert 256 * 1024 < len(original) < 512 * 1024
     target.write_bytes(original)
     entry = MockConfigEntry(domain=DOMAIN, data={})
@@ -547,7 +544,8 @@ async def test_managed_editor_defers_disk_write_until_save(hass, files):
     data = next(iter(entry.subentries.values())).data
     assert data["source_type"] == "managed"
     assert ManagedPatchStore(files).load(data["source"]) == DIFF
-    assert "patch_text" not in data and "file" not in data
+    assert "patch_text" not in data
+    assert "file" not in data
     assert (files / "scripts/a.py").read_bytes() == b"context\nold\n"
 
 
@@ -561,8 +559,10 @@ async def test_editor_rejects_bad_patch_without_writing(hass, files):
         hass, result["flow_id"], DATA | {"source_type": "managed", "source": ""}
     )
     result = await configure(hass, result["flow_id"], {"patch_text": "not a patch"})
-    assert result["step_id"] == "editor" and result["errors"]
-    assert not (files / ".hapatchy/patches").exists() and not entry.subentries
+    assert result["step_id"] == "editor"
+    assert result["errors"]
+    assert not (files / ".hapatchy/patches").exists()
+    assert not entry.subentries
 
 
 async def test_managed_reconfigure_prefills_editor_and_preserves_old_revision(hass, files):
@@ -670,7 +670,8 @@ async def test_upload_is_reviewed_before_persisting(hass, files):
     result = await configure(hass, result["flow_id"], {"file": file_id})
     assert result["step_id"] == "editor"
     assert result["data_schema"]({})["patch_text"] == DIFF.decode()
-    assert not entry.subentries and not (files / ".hapatchy/patches").exists()
+    assert not entry.subentries
+    assert not (files / ".hapatchy/patches").exists()
     assert not (uploads / file_id).exists()
     result = await configure(hass, result["flow_id"], {"patch_text": DIFF.decode()})
     result = await configure(hass, result["flow_id"], {"auto_apply": False})

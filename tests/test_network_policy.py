@@ -100,11 +100,13 @@ async def test_connector_refuses_private_answer_before_socket_attempt(monkeypatc
     monkeypatch.setattr(connector, "_wrap_create_connection", forbidden_dial)
     try:
         async with aiohttp.ClientSession(connector=connector, trust_env=False) as session:
+            source_url = checked_url("https://patch.example/file")
+            request_timeout = aiohttp.ClientTimeout(total=2)
             with pytest.raises(PatchError, match="source_network_denied"):
                 async with session.get(
-                    checked_url("https://patch.example/file"),
+                    source_url,
                     allow_redirects=False,
-                    timeout=aiohttp.ClientTimeout(total=2),
+                    timeout=request_timeout,
                 ):
                     pass
         assert delegate.calls == 1
@@ -126,11 +128,13 @@ async def test_connector_dials_only_vetted_public_answer(monkeypatch):
     try:
         async with aiohttp.ClientSession(connector=connector, trust_env=False) as session:
             # Older aiohttp releases propagate the synthetic dial exception directly.
+            source_url = checked_url("https://patch.example/file")
+            request_timeout = aiohttp.ClientTimeout(total=2)
             with pytest.raises((aiohttp.ClientError, OSError)):
                 async with session.get(
-                    checked_url("https://patch.example/file"),
+                    source_url,
                     allow_redirects=False,
-                    timeout=aiohttp.ClientTimeout(total=2),
+                    timeout=request_timeout,
                 ):
                     pass
         assert delegate.calls == 1
@@ -145,6 +149,7 @@ async def test_policy_failure_leaves_synthetic_target_unchanged(tmp_path):
     target = tmp_path / "target.txt"
     target.write_bytes(b"original\n")
     resolver = PublicDNSResolver(FakeResolver("127.0.0.1"))
+    pending_resolve = resolver.resolve("patch.example", 443)
     with pytest.raises(PatchError, match="source_network_denied"):
-        await asyncio.wait_for(resolver.resolve("patch.example", 443), 1)
+        await asyncio.wait_for(pending_resolve, 1)
     assert target.read_bytes() == b"original\n"

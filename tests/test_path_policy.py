@@ -23,11 +23,26 @@ def test_missing_boot_policy_denies_direct_calls(hass, tmp_path):
 
     hass.config.config_dir = str(tmp_path)
     hass.config.allowlist_external_dirs = {str(tmp_path)}
+    policy_for_hass_operation = policy_for_hass(hass)
     with pytest.raises(PatchError, match="configuration_source_unavailable"):
-        policy_for_hass(hass).check_path("scripts/file.py")
+        policy_for_hass_operation.check_path("scripts/file.py")
 
 
-@pytest.mark.parametrize("grant", [".", "", "/config", "../outside", "scripts/../other", "scripts/", "scripts/*", ".storage", ".hapatchy", "custom_components/hapatchy"])
+@pytest.mark.parametrize(
+    "grant",
+    [
+        ".",
+        "",
+        "/config",
+        "../outside",
+        "scripts/../other",
+        "scripts/",
+        "scripts/*",
+        ".storage",
+        ".hapatchy",
+        "custom_components/hapatchy",
+    ],
+)
 def test_bad_yaml_grants_fail_closed(tmp_path, grant):
     from custom_components.hapatchy.yaml_policy import validate_hapatchy_directories
 
@@ -44,8 +59,9 @@ def test_component_prefix_and_watch_scope(hass, tmp_path):
         gate.check_path("scripts_other/file.py")
     with pytest.raises(PatchError, match="protected_path"):
         gate.check_path("custom_components/hapatchy/config_flow.py")
+    patch_definition = definition(target_path="scripts/nested/file.py", watch_root="scripts")
     with pytest.raises(PatchError, match="hapatchy_path_not_allowed"):
-        gate.check_definition(definition(target_path="scripts/nested/file.py", watch_root="scripts"))
+        gate.check_definition(patch_definition)
 
 
 @pytest.mark.parametrize("action", ["apply", "revert", "reconcile", "refresh_source"])
@@ -66,9 +82,10 @@ async def test_runtime_refuses_revoked_permission(hass, tmp_path, action, deny):
         (tmp_path / "configuration.yaml").write_text("homeassistant: {}\n")
     else:
         (tmp_path / "configuration.yaml").unlink()
+    request_context = Context()
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
-            "hapatchy", action, {"patch_id": pid}, blocking=True, context=Context()
+            "hapatchy", action, {"patch_id": pid}, blocking=True, context=request_context
         )
     assert runtime.states[pid].status == "security_error"
     assert (tmp_path / "scripts/a.py").read_bytes() == before
@@ -109,7 +126,8 @@ def test_source_change_during_backup_blocks_replace(hass, tmp_path, monkeypatch)
     monkeypatch.setattr(BackupManager, "create", change_source)
     result = Reconciler(tmp_path, gate).run(definition(), DIFF, "apply", 10, False)
     assert result.inspection.status == "security_error"
-    assert not result.mutated and target.read_bytes() == b"context\nold\n"
+    assert not result.mutated
+    assert target.read_bytes() == b"context\nold\n"
 
 
 async def test_late_denied_revert_keeps_target_and_auto_apply(hass, tmp_path, monkeypatch):
@@ -120,7 +138,11 @@ async def test_late_denied_revert_keeps_target_and_auto_apply(hass, tmp_path, mo
     assert (await runtime.async_action(pid, "apply")).mutated
     target = tmp_path / "scripts/a.py"
     backup_root = tmp_path / ".hapatchy/backups" / pid
-    prior_backups = {path.relative_to(backup_root): path.read_bytes() for path in backup_root.rglob("*") if path.is_file()}
+    prior_backups = {
+        path.relative_to(backup_root): path.read_bytes()
+        for path in backup_root.rglob("*")
+        if path.is_file()
+    }
     original = BackupManager.create
 
     def change_source(*args, **kwargs):
@@ -131,7 +153,8 @@ async def test_late_denied_revert_keeps_target_and_auto_apply(hass, tmp_path, mo
     monkeypatch.setattr(BackupManager, "create", change_source)
     result = await runtime.async_action(pid, "revert")
     assert result.inspection.status == "security_error"
-    assert not result.mutated and target.read_bytes() == b"context\nnew\n"
+    assert not result.mutated
+    assert target.read_bytes() == b"context\nnew\n"
     assert all((backup_root / name).read_bytes() == data for name, data in prior_backups.items())
     assert entry.subentries[pid].data.get("auto_apply", True) is True
     assert runtime.definitions[pid].auto_apply is True
@@ -165,7 +188,9 @@ def test_picker_intersects_both_allowlists(hass, tmp_path):
     assert list_targets(tmp_path, gate) == ["scripts/allowed/a.py"]
 
 
-@pytest.mark.parametrize("target", [".storage/auth", "configuration.yaml", "custom_components/hapatchy/manifest.json"])
+@pytest.mark.parametrize(
+    "target", [".storage/auth", "configuration.yaml", "custom_components/hapatchy/manifest.json"]
+)
 def test_policy_cannot_authorize_protected_targets(hass, tmp_path, target):
     gate = grant_directories(tmp_path, ("custom_components", "scripts"), hass=hass)
     with pytest.raises(PatchError, match="protected_path"):
@@ -191,7 +216,8 @@ async def test_security_denial_redacts_diagnostics_repairs_and_sensor(hass, tmp_
     assert not issue.translation_placeholders
     entity = next(e for e in er.async_get(hass).entities.values() if e.config_subentry_id == pid)
     attributes = hass.states.get(entity.entity_id).attributes
-    assert "target_path" not in attributes and "target_sha256" not in attributes
+    assert "target_path" not in attributes
+    assert "target_sha256" not in attributes
 
 
 async def test_revert_metadata_failure_suppresses_watcher_reapply(hass, tmp_path, monkeypatch):

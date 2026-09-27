@@ -62,7 +62,8 @@ async def test_missing_root_is_restored_without_broad_watch(hass, tmp_path):
     from homeassistant.helpers import entity_registry as er
 
     attention = next(
-        entity for entity in er.async_get(hass).entities.values()
+        entity
+        for entity in er.async_get(hass).entities.values()
         if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
     )
     owner = watcher(runtime)
@@ -158,7 +159,8 @@ async def test_two_roots_reload_and_reconcile_independently(hass, tmp_path):
     await hass.async_block_till_done(wait_background_tasks=True)
     runtime = entry.runtime_data
     owner = watcher(runtime)
-    assert runtime is not old and not old.watcher.observer.is_alive()
+    assert runtime is not old
+    assert not old.watcher.observer.is_alive()
     assert owner.roots == {"scripts", "other"}
     assert len(owner.observer.emitters) == 2
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\nfirst suffix\n")

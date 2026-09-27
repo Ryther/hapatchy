@@ -51,8 +51,9 @@ def test_refuses_unsupported_text(tmp_path, content: bytes) -> None:
     target = tmp_path / "scripts/example.txt"
     target.write_bytes(content)
     policy = grant_directories(tmp_path)
+    patch_definition = definition()
     with pytest.raises(PatchError) as error:
-        read_editable_target(tmp_path, definition(), policy)
+        read_editable_target(tmp_path, patch_definition, policy)
     if content:
         assert content not in str(error.value).encode()
     assert target.read_bytes() == content
@@ -62,8 +63,9 @@ def test_refuses_unauthorized_target(tmp_path) -> None:
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts/example.txt").write_bytes(b"secret\n")
     policy = grant_directories(tmp_path, ("other",))
+    patch_definition = definition()
     with pytest.raises(PatchError, match="hapatchy_path_not_allowed"):
-        read_editable_target(tmp_path, definition(), policy)
+        read_editable_target(tmp_path, patch_definition, policy)
 
 
 @pytest.mark.parametrize("kind", ["symlink", "hardlink", "directory", "fifo"])
@@ -81,6 +83,7 @@ def test_refuses_alias_or_special_file(tmp_path, kind: str) -> None:
     else:
         os.mkfifo(target)
     policy = grant_directories(tmp_path)
+    patch_definition = definition()
     with pytest.raises(PatchError):
-        read_editable_target(tmp_path, definition(), policy)
+        read_editable_target(tmp_path, patch_definition, policy)
     assert source.read_bytes() == b"secret\n"

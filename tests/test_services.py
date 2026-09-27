@@ -41,8 +41,9 @@ async def test_admin_apply_and_persistent_revert(hass, tmp_path, hass_admin_user
 async def test_non_admin_cannot_mutate(hass, tmp_path, hass_read_only_user):
     require_services()
     _, _, pid = await setup(hass, tmp_path)
+    request_context = Context(user_id=hass_read_only_user.id)
     with pytest.raises(Unauthorized):
-        await call(hass, pid, context=Context(user_id=hass_read_only_user.id))
+        await call(hass, pid, context=request_context)
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
 
 
@@ -50,10 +51,17 @@ async def test_admin_reads_current_diff_only_on_request(hass, tmp_path, hass_adm
     _, _, pid = await setup(hass, tmp_path)
     before = (tmp_path / "scripts/a.py").read_bytes()
     response = await hass.services.async_call(
-        "hapatchy", "get_patch", {"patch_id": pid}, blocking=True,
-        return_response=True, context=Context(user_id=hass_admin_user.id),
+        "hapatchy",
+        "get_patch",
+        {"patch_id": pid},
+        blocking=True,
+        return_response=True,
+        context=Context(user_id=hass_admin_user.id),
     )
-    assert response == {"patch_id": pid, "patch": "--- a/scripts/a.py\n+++ b/scripts/a.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n"}
+    assert response == {
+        "patch_id": pid,
+        "patch": "--- a/scripts/a.py\n+++ b/scripts/a.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n",
+    }
     assert (tmp_path / "scripts/a.py").read_bytes() == before
     assert all("--- a/scripts/a.py" not in str(state) for state in hass.states.async_all())
 
@@ -61,8 +69,12 @@ async def test_admin_reads_current_diff_only_on_request(hass, tmp_path, hass_adm
 async def test_trusted_internal_context_can_read_current_diff(hass, tmp_path):
     _, _, pid = await setup(hass, tmp_path)
     response = await hass.services.async_call(
-        "hapatchy", "get_patch", {"patch_id": pid}, blocking=True,
-        return_response=True, context=Context(),
+        "hapatchy",
+        "get_patch",
+        {"patch_id": pid},
+        blocking=True,
+        return_response=True,
+        context=Context(),
     )
     assert response["patch_id"] == pid
     assert response["patch"].startswith("--- a/scripts/a.py\n")
@@ -73,16 +85,26 @@ async def test_patch_read_refuses_non_admin_and_revoked_grants(
 ):
     _, _, pid = await setup(hass, tmp_path)
     request = {"patch_id": pid}
+    request_context = Context(user_id=hass_read_only_user.id)
     with pytest.raises(Unauthorized):
         await hass.services.async_call(
-            "hapatchy", "get_patch", request, blocking=True, return_response=True,
-            context=Context(user_id=hass_read_only_user.id),
+            "hapatchy",
+            "get_patch",
+            request,
+            blocking=True,
+            return_response=True,
+            context=request_context,
         )
     hass.config.allowlist_external_dirs = set()
+    request_context = Context(user_id=hass_admin_user.id)
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
-            "hapatchy", "get_patch", request, blocking=True, return_response=True,
-            context=Context(user_id=hass_admin_user.id),
+            "hapatchy",
+            "get_patch",
+            request,
+            blocking=True,
+            return_response=True,
+            context=request_context,
         )
 
 
@@ -91,10 +113,15 @@ async def test_patch_read_refuses_source_that_stopped_being_a_patch(
 ):
     _, _, pid = await setup(hass, tmp_path)
     (tmp_path / "patches/a.patch").write_text("private content, not a diff\n")
+    request_context = Context(user_id=hass_admin_user.id)
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
-            "hapatchy", "get_patch", {"patch_id": pid}, blocking=True,
-            return_response=True, context=Context(user_id=hass_admin_user.id),
+            "hapatchy",
+            "get_patch",
+            {"patch_id": pid},
+            blocking=True,
+            return_response=True,
+            context=request_context,
         )
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
 
@@ -150,8 +177,10 @@ async def test_diagnostics_exclude_raw_source_and_patch(hass, tmp_path):
     result = await async_get_config_entry_diagnostics(hass, entry)
     serialized = json.dumps(result)
     assert "example.test" in serialized
-    assert "private-secret" not in serialized and "private.patch" not in serialized
-    assert "https://" not in serialized and "context" not in serialized
+    assert "private-secret" not in serialized
+    assert "private.patch" not in serialized
+    assert "https://" not in serialized
+    assert "context" not in serialized
 
 
 async def test_batch_failure_does_not_prevent_other_patch(hass, tmp_path):

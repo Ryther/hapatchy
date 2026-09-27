@@ -63,9 +63,11 @@ def test_reconcile_is_idempotent_and_revert_always_backs_up(tree):
     reconciler = api()(tree, grant_directories(tree))
     reconciler.run(definition(backup_before_apply=False), DIFF, "apply", 10, False)
     again = reconciler.run(definition(), DIFF, "reconcile", 10, False)
-    assert again.inspection.status == "applied" and not again.mutated
+    assert again.inspection.status == "applied"
+    assert not again.mutated
     result = reconciler.run(definition(backup_before_apply=False), DIFF, "revert", 10, False)
-    assert result.inspection.status == "applicable" and result.mutated
+    assert result.inspection.status == "applicable"
+    assert result.mutated
     assert (tree / "scripts/a.py").read_bytes() == b"context\nold\n"
     assert [p.read_bytes() for p in (tree / ".hapatchy").glob("backups/*/*/target")] == [
         b"context\nnew\n"
@@ -101,7 +103,8 @@ def test_durability_failure_remains_error_until_sync_succeeds(tree, monkeypatch)
     assert again.inspection.status == "apply_error"
     monkeypatch.setattr(os, "fsync", real)
     resolved = reconciler.run(definition(), DIFF, "reconcile", 10, True)
-    assert resolved.inspection.status == "applied" and not resolved.mutated
+    assert resolved.inspection.status == "applied"
+    assert not resolved.mutated
 
 
 def test_conflict_never_creates_backup_or_changes_target(tree):
