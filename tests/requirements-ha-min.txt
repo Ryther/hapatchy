@@ -109,7 +109,7 @@ PyYAML==6.0.2
 requests==2.32.3
 requests-mock==1.12.1
 respx==0.22.0
-ruff==0.16.8
+ruff==0.16.9
 s3transfer==0.19.2
 securetar==2025.2.1
 six==1.17.0
