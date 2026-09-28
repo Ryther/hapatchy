@@ -122,3 +122,25 @@ jobs:
           python -c 'import os, platform, homeassistant.const as c; print(platform.python_version(), c.__version__); assert c.__version__ == os.environ["EXPECTED_HA"]'
       - name: Boot HAPatchY in disposable Home Assistant
         run: python script/smoke_ha.py
+
+  tests-required:
+    name: HA tests required
+    if: always()
+    needs: test
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require both test matrix lanes
+        env:
+          MATRIX_RESULT: ${{ needs.test.result }}
+        run: test "$MATRIX_RESULT" = success
+
+  boot-required:
+    name: HA boot required
+    if: always()
+    needs: boot
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require both boot-smoke matrix lanes
+        env:
+          MATRIX_RESULT: ${{ needs.boot.result }}
+        run: test "$MATRIX_RESULT" = success

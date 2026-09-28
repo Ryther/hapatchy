@@ -44,6 +44,8 @@ jobs:
     needs: coverage
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+    outputs:
+      report_present: ${{ steps.cloud-artifact.outputs.artifact-id != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -106,6 +108,7 @@ jobs:
             cat sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"
           else
             echo 'Sonar did not submit an analysis; inspect scanner.log.' | tee sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"
+            exit 1
           fi
           if [ "$SCAN_OUTCOME" != success ]; then exit 1; fi
       - id: cloud-artifact
@@ -114,7 +117,7 @@ jobs:
         with:
           name: sonar-cloud-report
           path: sonar-report/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 90
       - name: Link complete report
         if: always()
@@ -129,6 +132,8 @@ jobs:
     needs: coverage
     runs-on: ubuntu-24.04
     timeout-minutes: 30
+    outputs:
+      report_present: ${{ steps.community-artifact.outputs.artifact-id != '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -187,7 +192,11 @@ jobs:
         env:
           SCAN_OUTCOME: ${{ steps.scan.outcome }}
         run: |
-          if [ -f sonar-report/report.md ]; then cat sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ ! -s sonar-report/report.md ]; then
+            echo 'Sonar comparison did not produce a report.' >&2
+            exit 1
+          fi
+          cat sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"
           if [ "$SCAN_OUTCOME" != success ]; then
             docker logs sonar-local > sonar-report/server.log 2>&1 || true
             exit 1
@@ -198,8 +207,27 @@ jobs:
         with:
           name: sonar-community-report
           path: sonar-report/
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 90
       - name: Link complete report
         if: always()
         run: echo "[Download the complete Sonar report](${{ steps.community-artifact.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+
+  required:
+    name: Sonar required
+    if: always()
+    needs: [coverage, cloud, community]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Require the expected completed scan and report
+        env:
+          SONAR_EVENT_NAME: ${{ github.event_name }}
+          SONAR_TRUSTED_PR: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository && github.event.pull_request.user.login != 'dependabot[bot]' }}
+          SONAR_COVERAGE_RESULT: ${{ needs.coverage.result }}
+          SONAR_CLOUD_RESULT: ${{ needs.cloud.result }}
+          SONAR_COMMUNITY_RESULT: ${{ needs.community.result }}
+          SONAR_REPORT_PRESENT: ${{ (needs.cloud.result == 'success' && needs.cloud.outputs.report_present == 'true') || (needs.community.result == 'success' && needs.community.outputs.report_present == 'true') }}
+        run: python script/sonar_gate.py
