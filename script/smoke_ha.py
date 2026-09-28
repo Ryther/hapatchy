@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import secrets
 import shutil
 import socket
@@ -23,6 +24,12 @@ PATCH_FLOW_PREFIX = PATCH_FLOW_PATH + "/"
 STATES_PATH = "/api/states"
 BEFORE_TEXT = "before\n"
 BEFORE_BYTES = BEFORE_TEXT.encode("utf-8")
+API_PATH = re.compile(r"/api(?:/[A-Za-z0-9_-]+)+\Z")
+
+
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, request, file_pointer, code, message, headers, url):
+        return None
 
 
 def unused_port() -> int:
@@ -101,6 +108,20 @@ def wait_for_hapatchy(process: subprocess.Popen[bytes], log_path: Path) -> None:
 def api_request(
     base: str, path: str, data: dict | None = None, *, token: str = "", form: bool = False
 ) -> dict | list:
+    parsed = urllib.parse.urlsplit(base)
+    if (
+        parsed.scheme != "http"
+        or parsed.hostname != "127.0.0.1"
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.path
+        or parsed.query
+        or parsed.fragment
+        or parsed.port is None
+        or base != f"http://127.0.0.1:{parsed.port}"
+        or (path != "/auth/token" and not API_PATH.fullmatch(path))
+    ):
+        raise ValueError("Expected a local Home Assistant API path")
     body = None
     headers = {}
     if data is not None:
@@ -112,7 +133,7 @@ def api_request(
         headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(base + path, body, headers)
     try:
-        with urllib.request.urlopen(request, timeout=30) as response:
+        with urllib.request.build_opener(_NoRedirect).open(request, timeout=30) as response:
             return json.load(response)
     except urllib.error.HTTPError as error:
         try:
