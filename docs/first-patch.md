@@ -1,6 +1,6 @@
 # Your first patch
 
-[← Installation](installation.md) · [Settings reference →](reference.md)
+[Documentation home](index.md) · [← Installation](installation.md) · [Settings reference →](reference.md)
 
 This walkthrough changes an **unused** text file from `interval = 30` to
 `interval = 5`. Home Assistant does not read the demo file, so no device or
@@ -117,7 +117,7 @@ old backup. You can then remove the rule from the HAPatchY integration page.
 Removing a rule without Revert does **not** undo its target change or delete
 retained backups and patch revisions.
 
-## Prefer to supply a `.patch` file?
+## Create a `.patch` file yourself
 
 Choose **Write or paste patch contents** or **Upload a patch file** at step 2.
 These existing methods open a diff editor, then **Behavior and verification**.

@@ -5,6 +5,7 @@
 !/.cz.yaml
 !/.github/workflows/commits.yaml
 !/AGENTS.md
+!/mkdocs.yml
 !/.agents/
 !/.agents/skills/
 !/.agents/skills/hapatchy-guide/
@@ -26,6 +27,7 @@
 !/.github/workflows/
 !/.github/workflows/tests.yaml
 !/.github/workflows/sonar.yaml
+!/.github/workflows/docs.yaml
 !/script/sonar_ci_local.py
 !/.github/workflows/codeql.yaml
 !/.github/dependabot.yml
@@ -68,6 +70,7 @@
 # Authored public architecture and release instructions.
 !/docs/
 !/docs/architecture.md
+!/docs/index.md
 !/docs/releasing.md
 !/docs/images/
 !/docs/images/yaml-directory-authorization.png

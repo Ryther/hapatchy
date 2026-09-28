@@ -1,6 +1,6 @@
 # Settings, status and actions
 
-[← Documentation home](../README.md) · [First-patch tutorial](first-patch.md)
+[← Documentation home](index.md) · [First-patch tutorial](first-patch.md)
 
 The current Add patch form, file editor, automatic Apply, status and retained
 backup were exercised on disposable HA 2026.9.0; the smoke test also checks

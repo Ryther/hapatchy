@@ -30,6 +30,8 @@ instead of guessing. Patches for other integrations are **not bundled**.
 
 ## Start here
 
+Browse the [documentation by task](docs/index.md), or follow this path:
+
 1. Read the [installation guide](docs/installation.md).
 2. Follow [Your first patch](docs/first-patch.md): edit an unused text file in
    HA's native form, with the expected result at each step and instructions

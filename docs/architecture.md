@@ -1,5 +1,7 @@
 # Architecture
 
+[Documentation home](index.md) · [Contribution rules](https://github.com/Ryther/hapatchy/blob/main/CONTRIBUTING.md)
+
 HAPatchY separates pure patch decisions from filesystem mutation and Home
 Assistant lifecycle. No patch is executed as a shell command or Python program.
 
@@ -67,10 +69,10 @@ published release is a separate verification boundary.
 
 ## Working on the project
 
-Follow [the contribution rules](../CONTRIBUTING.md), including mandatory Dev
+Follow [the contribution rules](https://github.com/Ryther/hapatchy/blob/main/CONTRIBUTING.md), including mandatory Dev
 Container reproduction when investigating problems with an external PR.
 
-Start with the [Dev Container guide](../.devcontainer/README.md). Opening the
+Start with the [Dev Container guide](https://github.com/Ryther/hapatchy/blob/main/.devcontainer/README.md). Opening the
 container starts its own HA on forwarded port 8123; it does not need your existing
 installation. The browser runtime and test environment use separate virtual
 environments. Product tests create temporary HA objects/configuration directories.
