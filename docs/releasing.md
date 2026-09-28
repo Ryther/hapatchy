@@ -105,10 +105,12 @@ the minimum HA/Python lane and dated screenshot evidence remain unchanged.
 Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
 
 The PR checks the complete candidate locks against active high/critical GitHub
-advisories, including dependencies that were already pinned. A changed lock
-cannot pass if the API is unavailable. PRs whose recent locks are byte-for-byte
-unchanged skip this candidate scan, so an existing alert does not block an
-unrelated documentation PR. The status is required on `main` alongside Sonar
+advisories. Findings on new or changed pins block the PR; findings on unchanged
+pins inherited from the current HA lock are reported without blocking the HA
+update. This does not mean the inherited dependency is safe or that HAPatchY
+controls its version. A changed lock cannot pass if the API is unavailable.
+PRs whose recent locks are byte-for-byte unchanged skip this candidate scan.
+The status is required on `main` alongside Sonar
 and both HA matrix aggregates. A green test or Sonar result alone cannot
 override a red advisory gate.
 
@@ -193,7 +195,7 @@ lane, plus `mypy`, `ruff` and `supervisor` where present). The files in
 updates to their HA-owned packages are deliberately withheld. Regenerate a whole
 lane when changing its HA release or test plugin. Dependabot neither merges PRs
 nor changes the HA baseline pins automatically. The guarded updater can propose
-a whole recent-lane change; advisory findings or unrelated release work stop its
+a whole recent-lane change; newly introduced advisory findings or unrelated release work stop its
 automatic merge. Other Python lock changes require manual review and both CI
 lanes. Workflow container-image digests are reviewed and updated separately.
 
