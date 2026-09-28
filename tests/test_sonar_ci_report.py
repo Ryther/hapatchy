@@ -125,6 +125,20 @@ def test_scan_rejects_missing_receipt_and_stale_receipt(tmp_path: Path, monkeypa
     assert not (task / "report-task.txt").exists()
 
 
+def test_scan_uses_absolute_docker_mount_with_relative_report_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.chdir(tmp_path)
+    (tmp_path / "baseline").mkdir()
+
+    def run(command, **kwargs):
+        mount = command[command.index("-v", command.index("-v") + 1) + 1]
+        assert mount == f"{tmp_path / 'sonar-report/hapatchy-baseline-task'}:/sonar-task"
+        return SimpleNamespace(returncode=125)
+
+    monkeypatch.setattr(sonar_ci_local.subprocess, "run", run)
+    with pytest.raises(RuntimeError, match="did not submit an analysis"):
+        sonar_ci_local.scan(Path("baseline"), "hapatchy-baseline", Path("sonar-report"), "temporary-token")
+
+
 def test_report_cli_uses_fixed_output_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     calls = []
     monkeypatch.chdir(tmp_path)
