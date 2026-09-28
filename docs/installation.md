@@ -30,11 +30,10 @@ revision. Check that version's release notes if its Add patch form differs.
 
 ## Manual installation
 
-This path was exercised with integration source and the published v0.2.0
-archive in separate HA 2026.9.0 configurations. The source path was also
-checked in the browser UI. Both used the existing development Python
-environment; dependency downloads on a fresh HA OS installation remain
-unverified.
+Manual installation copies the integration folder from a published release.
+Use the archive for the version you intend to run; the repository's current
+guides may describe changes made after an older release. Dependency downloads
+on a fresh HA OS installation have not been independently verified here.
 
 1. Download [the latest release](https://github.com/Ryther/hapatchy/releases/latest)
    from GitHub Releases. The repository source is also available for development
