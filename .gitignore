@@ -20,8 +20,10 @@
 !/sonar-project.properties
 !/script/sonar_ci_report.py
 !/script/sonar_gate.py
+!/script/resolve_ha_locks.py
 !/tests/test_sonar_ci_report.py
 !/tests/test_sonar_gate.py
+!/tests/test_resolve_ha_locks.py
 !/pyproject.toml
 !/hacs.json
 !/.github/
@@ -60,6 +62,8 @@
 !/.devcontainer/supervisord.conf
 !/.devcontainer/requirements-ha.txt
 !/.devcontainer/requirements-tools.txt
+!/.devcontainer/requirements-ha.in
+!/.devcontainer/requirements-tools.in
 !/.devcontainer/README.md
 !/.devcontainer/scripts/
 !/.devcontainer/scripts/*.sh

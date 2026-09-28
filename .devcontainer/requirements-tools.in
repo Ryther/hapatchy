@@ -1,0 +1,11 @@
+# Direct tools and test roots. The resolver preserves compatible pins in the
+# existing complete lock and updates the HA/plugin graph together.
+commitizen==4.19.0
+homeassistant=={ha_version}
+mypy==2.3.1
+patch-ng==1.19.1
+pytest-homeassistant-custom-component=={plugin_version}
+ruff==0.16.8
+supervisor==4.3.0
+uv==0.12.5
+watchdog==6.0.0
