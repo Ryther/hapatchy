@@ -22,3 +22,11 @@ def test_smoke_client_rejects_nonlocal_or_ambiguous_url(base, path, monkeypatch)
     monkeypatch.setattr(smoke_ha.urllib.request, "urlopen", unexpected_request)
     with pytest.raises(ValueError, match="local Home Assistant API"):
         smoke_ha.api_request(base, path, token="smoke-token")
+
+
+def test_editor_smoke_waits_for_eventual_sensor_state(monkeypatch):
+    responses = [[], [{"entity_id": "sensor.ci_editor", "state": "applied", "attributes": {"patch_id": "one"}}]]
+    monkeypatch.setattr(smoke_ha, "api_request", lambda *args, **kwargs: responses.pop(0))
+    monkeypatch.setattr(smoke_ha.time, "sleep", lambda seconds: None)
+    state = smoke_ha.wait_for_editor_applied("http://127.0.0.1:8123", "token")
+    assert state["attributes"]["patch_id"] == "one"
