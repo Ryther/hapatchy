@@ -72,6 +72,25 @@ def test_unchanged_lock_bytes_skip_existing_alerts(tmp_path):
     assert not called
 
 
+def test_changed_ha_lock_reports_inherited_pin_without_blocking(tmp_path):
+    locks = _locks(tmp_path)
+    base = (b"homeassistant==2026.9.0\ncryptography==48.0.1\n", b"homeassistant==2026.9.0\n")
+    result = audit.audit_if_changed(locks, base, lambda pairs: [_advisory()])
+    assert result is not None
+    assert not result.blocked
+    assert result.inherited == (
+        audit.Finding("cryptography", "48.0.1", "GHSA-aaaa-bbbb-cccc", "high"),
+    )
+
+
+def test_changed_pin_still_blocks_active_advisory(tmp_path):
+    locks = _locks(tmp_path)
+    base = (b"homeassistant==2026.9.0\ncryptography==47.0.0\n", b"homeassistant==2026.9.0\n")
+    result = audit.audit_if_changed(locks, base, lambda pairs: [_advisory()])
+    assert result is not None
+    assert result.blocked
+
+
 def test_api_failure_cannot_be_treated_as_clean(tmp_path):
     def unavailable(pairs):
         raise ValueError("Advisory API network failure")
