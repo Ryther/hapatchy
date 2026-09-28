@@ -23,11 +23,13 @@
 !/script/resolve_ha_locks.py
 !/script/ha_release_catalog.py
 !/script/audit_ha_locks.py
+!/script/update_ha_baseline.py
 !/tests/test_sonar_ci_report.py
 !/tests/test_sonar_gate.py
 !/tests/test_resolve_ha_locks.py
 !/tests/test_ha_release_catalog.py
 !/tests/test_audit_ha_locks.py
+!/tests/test_update_ha_baseline.py
 !/pyproject.toml
 !/hacs.json
 !/.github/
@@ -35,6 +37,7 @@
 !/.github/workflows/
 !/.github/workflows/tests.yaml
 !/.github/workflows/sonar.yaml
+!/.github/workflows/update-ha-baseline.yaml
 !/.github/workflows/docs.yaml
 !/script/sonar_ci_local.py
 !/.github/workflows/codeql.yaml
