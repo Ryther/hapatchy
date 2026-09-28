@@ -19,7 +19,9 @@
 !/LICENSE
 !/sonar-project.properties
 !/script/sonar_ci_report.py
+!/script/sonar_gate.py
 !/tests/test_sonar_ci_report.py
+!/tests/test_sonar_gate.py
 !/pyproject.toml
 !/hacs.json
 !/.github/
