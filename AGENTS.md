@@ -104,7 +104,8 @@ to pass the quality gate.
 The HA test jobs' pip exceptions depend on exact resolved locks and read-only,
 credential-free execution. `tests/test_dependency_locks.py` checks lock syntax;
 review every transitive pin and the exception when a lock, job permission or
-package distribution changes. The Commitizen job uses its own binary-only lock.
+package distribution changes. The Commitizen job installs an explicit list of
+exactly pinned binary wheels with dependency resolution disabled.
 Release publication requires Sonar's latest `main` analysis to match the exact
 release SHA, pass its gate, and have no open security issues or unreviewed
 hotspots across the whole project. Treat a missing or stale scan as a release stop.

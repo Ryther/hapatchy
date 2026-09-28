@@ -9,7 +9,6 @@ LOCKS = (
     ".devcontainer/requirements-ha.txt",
     "tests/requirements-ha-min.txt",
     "tests/requirements-ha-min-runtime.txt",
-    "tests/requirements-commitizen.txt",
 )
 PIN = re.compile(r"[A-Za-z0-9_.-]+==[A-Za-z0-9_.!+-]+")
 

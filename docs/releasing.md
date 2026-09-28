@@ -104,9 +104,9 @@ CI checks both the PR title and its commits. Title edits rerun the check. On
 `main`, CI checks the committed history; merge commits are exempt, temporary
 `fixup!`/`squash!` messages are not. A red check prevents merging only when branch
 rules require it. The Release workflow also requires the commit check itself.
-The commit check installs Python Commitizen from its own exact
-[`tests/requirements-commitizen.txt`](../tests/requirements-commitizen.txt) lock,
-using binary wheels. The HA test and boot lanes use their separate exact locks;
+The commit check installs Python Commitizen and its transitive packages from an
+exact version list in the workflow, using binary wheels with dependency
+resolution disabled. The HA test and boot lanes use their separate exact locks;
 their pytest plugin requires a source-only `mock-open` package. Those jobs have
 read-only permissions and no release credentials, and their lock syntax is
 checked by `tests/test_dependency_locks.py`.
