@@ -181,6 +181,48 @@ Independent review supplements tests; neither is proof of complete security.
 
 ## Documentation, evidence and private work
 
+Documentation is part of a product change. Review it against the final code and
+observed behavior, not the intended design. Keep each page focused on its
+reader's task: `README.md` is the product overview; `docs/index.md` is the
+task-oriented documentation home; `docs/first-patch.md` is a tutorial;
+installation, directory permissions and troubleshooting are how-to guides;
+`docs/reference.md` defines exact settings and behavior; `docs/architecture.md`
+explains the design; and `docs/releasing.md` is the maintainer procedure.
+
+For every product change, identify the public contracts it affects, then review
+the corresponding guides against the final implementation. In particular:
+
+- Installation, setup or compatibility: review README, installation and
+  contribution instructions.
+- Configuration flows, user-visible wording or patch sources: review the first
+  patch tutorial, settings reference, screenshots and user guide skill.
+- Actions, entities, statuses, Repairs or errors: review the reference,
+  troubleshooting guide and user guide skill.
+- Patch format, matching or reconciliation: review the reference and
+  architecture, plus troubleshooting when failure behavior changes.
+- Filesystem grants, safety boundaries or backup/recovery: review directory
+  permissions, reference, architecture and troubleshooting.
+- Release/version behavior: review the release guide and release configuration.
+
+These are review triggers, not a demand to change every listed page. Record a
+reviewed page with no change required when that decision would help reviewers.
+If a new public contract or architectural responsibility does not fit these
+categories, extend this policy in the same change. Do not replace this semantic
+review with a brittle module-name-to-document matrix.
+
+Review documentation as a user journey as well as a set of facts. From
+`docs/index.md`, a reader should be able to reach installation, a first patch,
+settings and troubleshooting without knowing repository paths. Give procedures
+an expected outcome, prerequisites and observable checkpoints; place warnings
+beside the action they qualify. Link exact rules to the reference instead of
+copying whole tables into a tutorial. Add new pages to the documentation home
+and relevant journeys. If a page becomes hard to scan, organize it around tasks
+or concepts rather than an arbitrary length limit. Check navigation, headings,
+links, screenshots and UI names whenever the user journey changes. Keep
+`mkdocs.yml` navigation aligned with the documentation home, build with
+`mkdocs build --strict`, and inspect the rendered site at desktop and narrow
+widths for navigation changes.
+
 Before documenting a new product procedure, perform it in disposable HA and
 capture the actual rendered UI. Check disk bytes for write operations. Screenshots
 are not proof of authorization, durability or every race: test those separately.
