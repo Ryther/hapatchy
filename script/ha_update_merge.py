@@ -54,6 +54,7 @@ class PullRequestSnapshot:
     checks: dict[str, str]
     auto_merge_enabled: bool
     version_only_release: bool
+    exact_update: bool = False
 
 
 @dataclass(frozen=True)
@@ -89,6 +90,8 @@ def eligible_update(repo: RepoSnapshot, pr: PullRequestSnapshot) -> Decision:
         return Decision(False, "Not the expected HA update proposal")
     if set(pr.changed_files) != {str(path) for path in UPDATE_PATHS}:
         return Decision(False, "HA update changes unexpected files")
+    if not pr.exact_update:
+        return Decision(False, "HA update differs from trusted baseline calculation")
     if pr.commits != (pr.title,):
         return Decision(False, "HA update contains unexpected commits")
     if repo.unreleased or repo.open_release_prs:

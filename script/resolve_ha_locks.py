@@ -7,12 +7,14 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
 from packaging.utils import canonicalize_name
 
 INPUT_DIR = Path(__file__).resolve().parents[1] / ".devcontainer"
+ROOT = INPUT_DIR.parent
 LOCK_NAMES = ("requirements-tools", "requirements-ha")
 VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){2}")
 PIN = re.compile(r"([A-Za-z0-9_.-]+)==([A-Za-z0-9_.!+\-]+)")
@@ -50,8 +52,6 @@ def render(
     ha_version: str,
     plugin_version: str,
     output_dir: Path,
-    *,
-    uv_binary: Path,
 ) -> tuple[Path, Path]:
     """Resolve both locks in staging; publish only after both validate."""
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -68,7 +68,9 @@ def render(
             shutil.copyfile(previous, output_path)
             subprocess.run(
                 [
-                    str(uv_binary),
+                    sys.executable,
+                    "-m",
+                    "uv",
                     "pip",
                     "compile",
                     str(input_path),
@@ -81,7 +83,7 @@ def render(
                     "--quiet",
                 ],
                 check=True,
-                env={**os.environ, "UV_CACHE_DIR": os.environ.get("UV_CACHE_DIR", "/tmp/hapatchy-uv-cache")},
+                env={**os.environ, "UV_CACHE_DIR": str(staging / "uv-cache")},
             )
             pins = validate_lock(output_path)
             if pins["homeassistant"] != ha_version:
@@ -94,7 +96,7 @@ def render(
         return paths
 
 
-def check_current(uv_binary: Path) -> bool:
+def check_current() -> bool:
     """Compare fresh current-baseline resolution with tracked lock bytes."""
     tools = validate_lock(INPUT_DIR / "requirements-tools.txt")
     with tempfile.TemporaryDirectory(prefix="hapatchy-lock-check-") as temporary:
@@ -102,7 +104,6 @@ def check_current(uv_binary: Path) -> bool:
             tools["homeassistant"],
             tools["pytest-homeassistant-custom-component"],
             Path(temporary),
-            uv_binary=uv_binary,
         )
         return all(
             path.read_bytes() == (INPUT_DIR / path.name).read_bytes()
@@ -113,19 +114,17 @@ def check_current(uv_binary: Path) -> bool:
 def main() -> int:
     """Generate a candidate pair or verify the committed current pair."""
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--uv", type=Path, default=Path("uv"))
     parser.add_argument("--check", action="store_true")
     parser.add_argument("--ha")
     parser.add_argument("--plugin")
-    parser.add_argument("--output-dir", type=Path)
     args = parser.parse_args()
     if args.check:
-        if args.ha or args.plugin or args.output_dir:
+        if args.ha or args.plugin:
             parser.error("--check cannot be combined with generation options")
-        return 0 if check_current(args.uv) else 1
-    if not (args.ha and args.plugin and args.output_dir):
-        parser.error("generation needs --ha, --plugin and --output-dir")
-    render(args.ha, args.plugin, args.output_dir, uv_binary=args.uv)
+        return 0 if check_current() else 1
+    if not (args.ha and args.plugin):
+        parser.error("generation needs --ha and --plugin")
+    render(args.ha, args.plugin, ROOT / "_tmp" / "resolved-ha-locks")
     return 0
 
 

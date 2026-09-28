@@ -12,16 +12,20 @@ from collections.abc import Mapping
 from typing import Any
 from urllib.parse import quote, urlencode
 
+from script.ha_release_catalog import fetch_pypi_json, latest_pair
 from script.ha_update_merge import (
     RELEASE_BRANCH,
     RELEASE_PATHS,
     REPOSITORY,
     UPDATE_BRANCH,
+    UPDATE_PATHS,
     PullRequestSnapshot,
     RepoSnapshot,
     eligible_release,
     eligible_update,
 )
+from script.resolve_ha_locks import validate_lock
+from script.update_ha_baseline import ROOT, TOOLS, plan
 
 MAX_FILE_BYTES = 1024 * 1024
 
@@ -88,21 +92,19 @@ def _required_results(head_sha: str) -> dict[str, str]:
     runs = response.get("check_runs")
     if not isinstance(runs, list) or response.get("total_count", len(runs)) >= 100:
         raise ValueError("Incomplete required-check result list")
-    latest: dict[str, tuple[str, str]] = {}
+    outcomes: dict[str, list[str]] = {}
     for run in runs:
         name = run.get("name")
         if not isinstance(name, str) or run.get("head_sha") != head_sha:
             continue
-        timestamp = run.get("completed_at") or run.get("started_at") or ""
         outcome = run.get("conclusion") or "pending"
-        if name not in latest or timestamp > latest[name][0]:
-            latest[name] = timestamp, outcome
+        outcomes.setdefault(name, []).append(outcome)
     statuses = _api_list(f"repos/{REPOSITORY}/commits/{head_sha}/statuses?per_page=100")
     for status in statuses:
         name = status.get("context")
-        if isinstance(name, str) and name not in latest:
-            latest[name] = status.get("updated_at", ""), status.get("state", "pending")
-    return {name: outcome for name, (_, outcome) in latest.items()}
+        if isinstance(name, str):
+            outcomes.setdefault(name, []).append(status.get("state", "pending"))
+    return {name: "success" if all(value == "success" for value in values) else "failed" for name, values in outcomes.items()}
 
 
 def _content(path: str, sha: str) -> bytes:
@@ -114,6 +116,24 @@ def _content(path: str, sha: str) -> bytes:
     if len(data) > MAX_FILE_BYTES:
         raise ValueError("Release file exceeded review limit")
     return data
+
+
+def exact_update(head_sha: str, title: str, base_sha: str) -> bool:
+    """Compare the PR with a freshly resolved proposal from the trusted main checkout."""
+    match = re.fullmatch(r"fix\(compat\): validate Home Assistant ([0-9]+\.[0-9]+\.[0-9]+)", title)
+    local_sha = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=ROOT, capture_output=True, text=True, check=True, timeout=10
+    ).stdout.strip()
+    if match is None or local_sha != base_sha:
+        return False
+    current = validate_lock(ROOT / TOOLS)["homeassistant"]
+    pair = latest_pair(fetch_pypi_json, current, "3.14.7")
+    if pair is None or pair[0] != match.group(1):
+        return False
+    expected = plan(ROOT, *pair).edits
+    return set(expected) == UPDATE_PATHS and all(
+        _content(str(path), head_sha) == content for path, content in expected.items()
+    )
 
 
 def version_only_release(
@@ -156,12 +176,16 @@ def version_only_release(
     if not new_body.endswith(old_body):
         return False
     inserted = new_body[: -len(old_body)] if old_body else new_body
-    expected_heading = f"## [{new_version}](https://github.com/{REPOSITORY}/compare/v{old_version}...v{new_version})".encode()
-    return (
-        inserted.startswith(expected_heading)
-        and f"validate Home Assistant {ha_version}".encode() in inserted
-        and update_sha.encode() in inserted
-    )
+    try:
+        section = inserted.decode("utf-8")
+    except UnicodeDecodeError:
+        return False
+    heading = re.escape(f"## [{new_version}](https://github.com/{REPOSITORY}/compare/v{old_version}...v{new_version})")
+    line = re.escape(f"validate Home Assistant {ha_version}")
+    sha = re.escape(update_sha)
+    issue = rf"(?: \(\[#\d+\]\(https://github.com/{REPOSITORY}/issues/\d+\)\))?"
+    pattern = rf"{heading} \(\d{{4}}-\d{{2}}-\d{{2}}\)\n+### Bug Fixes\n+\* {line}{issue} \(\[{sha[:7]}\]\(https://github.com/{REPOSITORY}/commit/{sha}\)\)\n+"
+    return re.fullmatch(pattern, section) is not None
 
 
 def load_pr(number: int, repo: RepoSnapshot) -> PullRequestSnapshot:
@@ -173,6 +197,9 @@ def load_pr(number: int, repo: RepoSnapshot) -> PullRequestSnapshot:
     files = _api_list(f"repos/{REPOSITORY}/pulls/{number}/files?per_page=100")
     commits = _api_list(f"repos/{REPOSITORY}/pulls/{number}/commits?per_page=100")
     content_ok = False
+    update_ok = False
+    if response["head"]["ref"] == UPDATE_BRANCH:
+        update_ok = exact_update(head_sha, response["title"], base_sha)
     if response["head"]["ref"] == RELEASE_BRANCH:
         title = response["title"]
         match = re.fullmatch(r"chore\(main\): release ([0-9]+\.[0-9]+\.[0-9]+)", title)
@@ -201,6 +228,7 @@ def load_pr(number: int, repo: RepoSnapshot) -> PullRequestSnapshot:
         checks=_required_results(head_sha),
         auto_merge_enabled=response.get("auto_merge") is not None,
         version_only_release=content_ok,
+        exact_update=update_ok,
     )
 
 

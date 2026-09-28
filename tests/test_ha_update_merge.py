@@ -32,6 +32,7 @@ def _update(**changes):
         checks={name: "success" for name in merge.MANDATORY_CHECKS},
         auto_merge_enabled=False,
         version_only_release=False,
+        exact_update=True,
         **changes,
     )
 
@@ -80,6 +81,7 @@ def test_extra_file_or_failed_required_check_blocks_update():
     checks = {name: "success" for name in merge.MANDATORY_CHECKS}
     checks["Sonar required"] = "pending"
     assert not merge.eligible_update(_repo(), replace(_update(), checks=checks)).eligible
+    assert not merge.eligible_update(_repo(), replace(_update(), exact_update=False)).eligible
 
 
 def test_clean_isolated_release_is_eligible():

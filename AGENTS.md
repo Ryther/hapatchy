@@ -36,7 +36,7 @@ HACS uses the installed HA interpreter; it does not create a private interpreter
 or virtual environment for this integration. Do not raise the product minimum
 simply because development uses a newer Python.
 
-Keep the lane-specific Python allowlists and exclusions in `.github/dependabot.yml`
+Keep the lane-specific Python allowlists and minimum-lane exclusions in `.github/dependabot.yml`
 under review. These are fully resolved HA/test-plugin locks: Dependabot proposes
 individual updates only for standalone tools, while the HA dependency graph is
 updated as a unit. The exclusions document known exact pins from HA, its optional
@@ -70,7 +70,7 @@ Run from the repository root inside the container:
 .venv/bin/cz check --rev-range HEAD
 .venv/bin/python script/build_release.py
 .venv-ha/bin/python script/smoke_ha.py
-.venv/bin/python -m script.resolve_ha_locks --check --uv .venv/bin/uv
+.venv/bin/python -m script.resolve_ha_locks --check
 ```
 
 For several commits, validate the actual base-to-head range with Commitizen.

@@ -29,7 +29,7 @@ def test_candidate_changes_only_allowlisted_paths_and_preserves_minimum(tmp_path
     root = _workspace(tmp_path)
     minimum = (root / "tests/requirements-ha-min.txt").read_bytes()
 
-    def fake_render(ha, plugin, output_dir, *, uv_binary):
+    def fake_render(ha, plugin, output_dir):
         tools = output_dir / "requirements-tools.txt"
         runtime = output_dir / "requirements-ha.txt"
         tools.write_text(f"homeassistant=={ha}\npytest-homeassistant-custom-component=={plugin}\n")
@@ -49,7 +49,7 @@ def test_failed_second_lock_resolution_never_writes_repository(tmp_path, monkeyp
     root = _workspace(tmp_path)
     before = {name: (root / name).read_bytes() for name in updater.EDITABLE_PATHS}
 
-    def failed(ha, plugin, output_dir, *, uv_binary):
+    def failed(ha, plugin, output_dir):
         (output_dir / "requirements-tools.txt").write_text("partial")
         raise RuntimeError("second lock failed")
 
@@ -68,7 +68,7 @@ def test_cli_dry_run_reports_candidate_without_writing_and_then_applies(tmp_path
     root = _workspace(tmp_path)
     before = {name: (root / name).read_bytes() for name in updater.EDITABLE_PATHS}
 
-    def fake_render(ha, plugin, output_dir, *, uv_binary):
+    def fake_render(ha, plugin, output_dir):
         paths = (output_dir / "requirements-tools.txt", output_dir / "requirements-ha.txt")
         paths[0].write_text(f"homeassistant=={ha}\npytest-homeassistant-custom-component=={plugin}\n")
         paths[1].write_text(f"homeassistant=={ha}\n")
@@ -78,8 +78,8 @@ def test_cli_dry_run_reports_candidate_without_writing_and_then_applies(tmp_path
     monkeypatch.setattr(updater, "render", fake_render)
     monkeypatch.setattr(updater, "latest_pair", lambda fetch, current, python: ("2026.9.4", "0.13.367"))
     output = tmp_path / "output.txt"
-    body = tmp_path / "body.md"
-    argv = ["update_ha_baseline.py", "--output", str(output), "--body-file", str(body)]
+    body = root / "_tmp/ha-baseline-pr.md"
+    argv = ["update_ha_baseline.py", "--output", str(output)]
     monkeypatch.setattr(sys, "argv", [*argv, "--dry-run"])
     assert updater.main() == 0
     assert all((root / path).read_bytes() == data for path, data in before.items())

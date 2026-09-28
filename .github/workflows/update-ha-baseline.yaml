@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.14.7'
       - name: Install pinned metadata and resolver tools
-        run: python -m pip install 'packaging==26.3' 'uv==0.12.5'
+        run: python -m pip install --only-binary ':all:' 'packaging==26.3' 'uv==0.12.5'
       - name: Resolve newest stable HA candidate
         id: candidate
         env:
@@ -36,10 +36,9 @@ jobs:
           options=()
           if [ "$DRY_RUN" = true ]; then options+=(--dry-run); fi
           python -m script.update_ha_baseline \
-            --output "$GITHUB_OUTPUT" --body-file "$RUNNER_TEMP/ha-baseline-pr.md" \
-            --uv "$(command -v uv)" "${options[@]}"
-          if [ "$DRY_RUN" = true ] && [ -f "$RUNNER_TEMP/ha-baseline-pr.md" ]; then
-            cat "$RUNNER_TEMP/ha-baseline-pr.md" >> "$GITHUB_STEP_SUMMARY"
+            --output "$GITHUB_OUTPUT" "${options[@]}"
+          if [ "$DRY_RUN" = true ] && [ -f _tmp/ha-baseline-pr.md ]; then
+            cat _tmp/ha-baseline-pr.md >> "$GITHUB_STEP_SUMMARY"
           fi
       - name: Require credential for check-triggering PR
         if: steps.candidate.outputs.changed == 'true' && inputs.dry_run != true
@@ -66,15 +65,15 @@ jobs:
           gh auth setup-git
           git switch -c "$branch"
           git add .devcontainer/requirements-tools.txt .devcontainer/requirements-ha.txt \
-            .github/workflows/tests.yaml .github/dependabot.yml .devcontainer/README.md \
+            .github/workflows/tests.yaml .devcontainer/README.md \
             README.md AGENTS.md docs/releasing.md
           git diff --cached --check
           git commit -m "$title"
           if [ -n "$old_sha" ]; then
             git push "--force-with-lease=refs/heads/$branch:$old_sha" origin "HEAD:refs/heads/$branch"
-            gh pr edit "$existing" --title "$title" --body-file "$RUNNER_TEMP/ha-baseline-pr.md"
+            gh pr edit "$existing" --title "$title" --body-file _tmp/ha-baseline-pr.md
           else
             git push origin "HEAD:refs/heads/$branch"
             gh pr create --base main --head "$branch" --title "$title" \
-              --body-file "$RUNNER_TEMP/ha-baseline-pr.md"
+              --body-file _tmp/ha-baseline-pr.md
           fi

@@ -18,7 +18,6 @@ TOOLS = Path(".devcontainer/requirements-tools.txt")
 RUNTIME = Path(".devcontainer/requirements-ha.txt")
 TEXT_PATHS = (
     Path(".github/workflows/tests.yaml"),
-    Path(".github/dependabot.yml"),
     Path(".devcontainer/README.md"),
     Path("README.md"),
     Path("AGENTS.md"),
@@ -27,14 +26,12 @@ TEXT_PATHS = (
 EDITABLE_PATHS = (TOOLS, RUNTIME, *TEXT_PATHS)
 HA_REFERENCES = {
     Path(".github/workflows/tests.yaml"): 2,
-    Path(".github/dependabot.yml"): 3,
     Path(".devcontainer/README.md"): 1,
     Path("README.md"): 1,
     Path("AGENTS.md"): 1,
     Path("docs/releasing.md"): 1,
 }
 PLUGIN_REFERENCES = {
-    Path(".github/dependabot.yml"): 2,
     Path(".devcontainer/README.md"): 1,
 }
 
@@ -56,9 +53,7 @@ def _replace_counted(data: bytes, old: str, new: str, expected: int, path: Path)
     return data.replace(original, new.encode())
 
 
-def plan(
-    repo_root: Path, ha: str, plugin: str, *, uv_binary: Path = Path("uv")
-) -> BaselineChange:
+def plan(repo_root: Path, ha: str, plugin: str) -> BaselineChange:
     """Resolve both locks before calculating any allowlisted repository edit."""
     render_input("{ha_version}:{plugin_version}", ha, plugin)
     tools = validate_lock(repo_root / TOOLS)
@@ -76,7 +71,7 @@ def plan(
         return BaselineChange(old_ha, ha, old_plugin, plugin, originals, {})
 
     with tempfile.TemporaryDirectory(prefix="hapatchy-baseline-") as temporary:
-        generated = render(ha, plugin, Path(temporary), uv_binary=uv_binary)
+        generated = render(ha, plugin, Path(temporary))
         edits = {TOOLS: generated[0].read_bytes(), RUNTIME: generated[1].read_bytes()}
     for path in TEXT_PATHS:
         content = originals[path]
@@ -127,8 +122,6 @@ def _body(change: BaselineChange) -> str:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--body-file", type=Path, required=True)
-    parser.add_argument("--uv", type=Path, default=Path("uv"))
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     current = validate_lock(ROOT / TOOLS)["homeassistant"]
@@ -138,11 +131,13 @@ def main() -> int:
             output.write("changed=false\n")
         print("Recent HA baseline is current")
         return 0
-    change = plan(ROOT, *pair, uv_binary=args.uv)
+    change = plan(ROOT, *pair)
     body = _body(change)
     if not args.dry_run:
         apply(ROOT, change)
-    args.body_file.write_text(body, encoding="utf-8")
+    body_file = ROOT / "_tmp" / "ha-baseline-pr.md"
+    body_file.parent.mkdir(mode=0o700, exist_ok=True)
+    body_file.write_text(body, encoding="utf-8")
     with args.output.open("a") as output:
         output.write(f"changed=true\nha={change.new_ha}\nplugin={change.new_plugin}\n")
     action = "Evaluated" if args.dry_run else "Prepared"

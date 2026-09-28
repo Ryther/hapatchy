@@ -195,13 +195,14 @@ a whole recent-lane change; advisory findings or unrelated release work stop its
 automatic merge. Other Python lock changes require manual review and both CI
 lanes. Workflow container-image digests are reviewed and updated separately.
 
-The lane-specific `ignore` entries in [dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml)
-reflect versions pinned by the current HA releases, their optional integrations,
-or the HA pytest plugin. Recheck and remove relevant entries when changing a
-baseline or test plugin. The allowlist and ignores can also suppress Dependabot
-security-update PRs for withheld packages: inspect GitHub security alerts at
-least monthly and after baseline changes, and change the whole compatible lock
-deliberately when a fix is needed.
+The minimum-lane `ignore` entries in [dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml)
+reflect versions pinned by HA, its optional integrations, or the HA pytest
+plugin. The recent lane has an allowlist but no version-specific ignores, so
+its baseline updater does not leave stale exclusions behind. Recheck the
+minimum-lane exclusions when its baseline or plugin changes. The allowlists
+can still suppress Dependabot security-update PRs for withheld packages:
+inspect GitHub security alerts at least monthly and after baseline changes,
+and change the whole compatible lock deliberately when a fix is needed.
 
 In particular, the 2025.3.0 test plugin pins `pytest-socket==0.7.0` and
 `pipdeptree==2.25.0`; the 2026.9.0 plugin pins `pytest-socket==0.8.0` and

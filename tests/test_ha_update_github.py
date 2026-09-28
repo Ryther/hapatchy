@@ -23,7 +23,7 @@ def _release_files():
     }
     section = (
         f"## [1.0.4](https://github.com/Ryther/hapatchy/compare/v1.0.3...v1.0.4) (2026-09-28)\n"
-        f"* validate Home Assistant 2026.9.4 (https://github.com/Ryther/hapatchy/commit/{sha})\n\n"
+        f"\n\n### Bug Fixes\n\n* validate Home Assistant 2026.9.4 ([{sha[:7]}](https://github.com/Ryther/hapatchy/commit/{sha}))\n\n"
     ).encode()
     head = {
         ".release-please-manifest.json": json.dumps({".": new}).encode(),
@@ -50,6 +50,14 @@ def test_version_only_release_rejects_hidden_manifest_change():
 def test_version_only_release_rejects_unrelated_changelog_entry():
     base, head, sha = _release_files()
     head["CHANGELOG.md"] += b"\n* unrelated change\n"
+    assert not version_only_release(base, head, "1.0.3", "1.0.4", "2026.9.4", sha)
+
+
+def test_version_only_release_rejects_extra_prepended_entry():
+    base, head, sha = _release_files()
+    head["CHANGELOG.md"] = head["CHANGELOG.md"].replace(
+        b"### Bug Fixes", b"### Documentation\n\n* unrelated\n\n### Bug Fixes", 1
+    )
     assert not version_only_release(base, head, "1.0.3", "1.0.4", "2026.9.4", sha)
 
 
@@ -104,6 +112,7 @@ def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
         raise AssertionError(endpoint)
 
     monkeypatch.setattr(github, "_gh_json", get)
+    monkeypatch.setattr(github, "exact_update", lambda *args: True)
     monkeypatch.setattr(sys, "argv", ["ha_update_github.py", "--dry-run"])
     assert github.main() == 0
     assert "Isolated HA update" in capsys.readouterr().out
@@ -119,6 +128,43 @@ def test_file_reader_decodes_exact_commit_contents(monkeypatch):
     monkeypatch.setattr(github, "_gh_json", get)
     assert github._content("pyproject.toml", "a" * 40) == b"version=1"
     assert "ref=" + "a" * 40 in observed[0]
+
+
+def test_exact_update_compares_every_proposed_byte(monkeypatch):
+    from script.update_ha_baseline import BaselineChange
+
+    base_sha, head_sha = "a" * 40, "b" * 40
+    monkeypatch.setattr(
+        github.subprocess, "run",
+        lambda *args, **kwargs: CompletedProcess(args, 0, stdout=base_sha + "\n"),
+    )
+    monkeypatch.setattr(github, "validate_lock", lambda path: {"homeassistant": "2026.9.0"})
+    monkeypatch.setattr(github, "latest_pair", lambda *args: ("2026.9.4", "0.13.367"))
+    paths = {path: b"expected" for path in UPDATE_PATHS}
+    monkeypatch.setattr(
+        github, "plan",
+        lambda *args: BaselineChange("2026.9.0", "2026.9.4", "0.13.363", "0.13.367", {}, paths),
+    )
+    monkeypatch.setattr(github, "_content", lambda path, sha: b"expected")
+    title = "fix(compat): validate Home Assistant 2026.9.4"
+    assert github.exact_update(head_sha, title, base_sha)
+    monkeypatch.setattr(
+        github, "_content", lambda path, sha: b"malicious" if path == str(next(iter(UPDATE_PATHS))) else b"expected"
+    )
+    assert not github.exact_update(head_sha, title, base_sha)
+
+
+def test_same_name_failed_status_blocks_success(monkeypatch):
+    sha = "a" * 40
+    monkeypatch.setattr(
+        github, "_gh_json",
+        lambda endpoint: (
+            {"total_count": 1, "check_runs": [{"name": "Sonar required", "head_sha": sha, "conclusion": "success"}]}
+            if "check-runs" in endpoint
+            else [{"context": "Sonar required", "state": "failure"}]
+        ),
+    )
+    assert github._required_results(sha)["Sonar required"] == "failed"
 
 
 def test_merge_command_rechecks_state_and_matches_exact_head(monkeypatch):
@@ -137,6 +183,7 @@ def test_merge_command_rechecks_state_and_matches_exact_head(monkeypatch):
         {name: "success" for name in MANDATORY_CHECKS},
         False,
         False,
+        True,
     )
     calls = []
     monkeypatch.setattr(github, "open_targets", lambda: ([61], []))

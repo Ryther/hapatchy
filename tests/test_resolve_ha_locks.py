@@ -55,7 +55,7 @@ def test_render_keeps_existing_pair_when_second_resolution_fails(tmp_path, monke
 
     monkeypatch.setattr(resolve_ha_locks.subprocess, "run", compile_once)
     with pytest.raises(RuntimeError, match="resolver failed"):
-        resolve_ha_locks.render("2026.9.4", "0.13.367", target, uv_binary=Path("uv"))
+        resolve_ha_locks.render("2026.9.4", "0.13.367", target)
     for name in ("requirements-tools", "requirements-ha"):
         assert (target / f"{name}.txt").read_text() == "previous result\n"
 
@@ -78,7 +78,7 @@ def test_successful_resolution_publishes_both_complete_locks(tmp_path, monkeypat
         return CompletedProcess(command, 0)
 
     monkeypatch.setattr(resolve_ha_locks.subprocess, "run", compile_once)
-    tools, runtime = resolve_ha_locks.render("2026.9.4", "0.13.367", output, uv_binary=Path("uv"))
+    tools, runtime = resolve_ha_locks.render("2026.9.4", "0.13.367", output)
     assert tools.read_text().startswith("homeassistant==2026.9.4\n")
     assert runtime.read_text() == "homeassistant==2026.9.4\n"
     assert not list(output.glob(".hapatchy-locks-*"))
@@ -93,7 +93,7 @@ def test_check_current_detects_drift_and_cli_returns_failure(tmp_path, monkeypat
     (source / "requirements-ha.txt").write_text("homeassistant==2026.9.0\n")
     monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
 
-    def changed(ha, plugin, output, *, uv_binary):
+    def changed(ha, plugin, output):
         paths = (output / "requirements-tools.txt", output / "requirements-ha.txt")
         paths[0].write_text("homeassistant==2026.9.1\n")
         paths[1].write_text("homeassistant==2026.9.1\n")

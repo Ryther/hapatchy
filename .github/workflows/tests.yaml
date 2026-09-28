@@ -170,7 +170,7 @@ jobs:
         with:
           python-version: '3.14.7'
       - name: Install pinned scanner dependency
-        run: python -m pip install 'packaging==26.3'
+        run: python -m pip install --only-binary ':all:' 'packaging==26.3'
       - name: Scan changed recent locks
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}

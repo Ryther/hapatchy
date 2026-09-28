@@ -67,7 +67,7 @@ From the repository root **inside the container**:
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD
 .venv/bin/python script/build_release.py
-.venv/bin/python -m script.resolve_ha_locks --check --uv .venv/bin/uv
+.venv/bin/python -m script.resolve_ha_locks --check
 ```
 
 Use `.venv/bin/cz commit` to write a commit interactively. Release Please owns
@@ -86,7 +86,7 @@ The recent tool and runtime locks are generated together from
 [`requirements-tools.in`](requirements-tools.in) and
 [`requirements-ha.in`](requirements-ha.in). The `--check` command above verifies
 that the tracked locks reproduce exactly. For an approved HA/plugin pair, run
-the resolver with `--ha`, `--plugin`, `--output-dir` and `--uv`; use a disposable
+the resolver with `--ha` and `--plugin`; it writes to the ignored `_tmp/resolved-ha-locks` directory. Use a disposable
 output directory first. The scheduled updater uses the same resolver and changes
 only the recent lane. Rebuild the container after merging a lock update; do not
 upgrade packages inside a running managed environment.
