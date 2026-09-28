@@ -111,8 +111,9 @@ does not run project code or install PR dependencies with that token. A PR from
 a fork or Dependabot uses a disposable Sonar Community Build and compares the
 base and proposed revisions without a persistent credential. This fallback
 checks introduced findings but is not a SonarQube Cloud PR quality gate. Both
-scanners use settings from the PR base revision, so a PR cannot relax its own
-source scope or rule exclusions; scanner-setting changes take effect after merge.
+scanners use settings from the PR base revision once this workflow is on `main`,
+so a PR cannot relax its own source scope or rule exclusions; scanner-setting
+changes take effect after merge. This initial setup PR uses its new settings.
 
 Each scan publishes complete JSON findings and a readable report as a GitHub
 Actions artifact linked from the PR's checks. Artifacts expire after 90 days.

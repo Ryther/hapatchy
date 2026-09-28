@@ -53,8 +53,10 @@ jobs:
         if: github.event_name == 'pull_request'
         run: |
           git fetch origin '${{ github.event.pull_request.base.sha }}'
-          rm -f sonar-project.properties
-          git show FETCH_HEAD:sonar-project.properties > sonar-project.properties
+          if git cat-file -e FETCH_HEAD:sonar-project.properties 2>/dev/null; then
+            rm -f sonar-project.properties
+            git show FETCH_HEAD:sonar-project.properties > sonar-project.properties
+          fi
           if git cat-file -e FETCH_HEAD:script/sonar_ci_report.py 2>/dev/null; then
             git show FETCH_HEAD:script/sonar_ci_report.py > "$RUNNER_TEMP/sonar_ci_report.py"
           else
