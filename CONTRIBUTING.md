@@ -86,7 +86,7 @@ so the HA and test environments keep their locked dependencies:
 
 ```bash
 python3 -m venv /tmp/hapatchy-docs-venv
-/tmp/hapatchy-docs-venv/bin/python -m pip install 'mkdocs-material==9.7.7'
+/tmp/hapatchy-docs-venv/bin/python -m pip install --only-binary :all: 'mkdocs-material==9.7.7'
 /tmp/hapatchy-docs-venv/bin/python -m mkdocs build --strict
 /tmp/hapatchy-docs-venv/bin/python -m mkdocs serve
 ```
