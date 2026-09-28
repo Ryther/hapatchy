@@ -89,11 +89,8 @@ Dependabot PRs use a disposable local scanner without a persistent credential;
 review its baseline and candidate reports before merging. Never replace that
 separation with an untrusted `pull_request_target` checkout. Its rule/file
 exclusions cover HA-mandated coroutine/context signatures and the deliberate
-Docker tag-plus-digest pin. The Sonar coverage job also has two narrow pip-rule
-exclusions: it runs without secrets or write grants using an exact resolved lock,
-and that lock contains a source-only package. Reassess those exclusions whenever
-its permissions, lock or install command changes. Review each exclusion when its
-file changes, when HA contracts change, or when the analyzer is upgraded.
+Docker tag-plus-digest pin. Review each exclusion when its file changes, when
+HA contracts change, or when the analyzer is upgraded.
 The report export exception is for API data written as content to a fixed path;
 remove it if output paths become user-selectable or the data flow changes.
 Rule/file exclusions also cover future functions in those files: check new
@@ -101,11 +98,13 @@ helpers manually and remove or narrow exclusions that no longer apply. Never
 suppress a whole file or mark a runtime defect as a framework convention merely
 to pass the quality gate.
 
-The HA test jobs' pip exceptions depend on exact resolved locks and read-only,
-credential-free execution. `tests/test_dependency_locks.py` checks lock syntax;
-review every transitive pin and the exception when a lock, job permission or
-package distribution changes. The Commitizen job installs an explicit list of
-exactly pinned binary wheels with dependency resolution disabled.
+The HA test and Sonar coverage jobs install exact resolved locks through
+`script/install_ci_requirements.py`, which retries the same lock at most three
+times and preserves the final pip failure. Those jobs have no release secrets.
+`tests/test_dependency_locks.py` checks lock syntax; review every transitive pin
+when a lock, HA baseline or package distribution changes. The Commitizen job
+installs an explicit list of exactly pinned binary wheels with dependency
+resolution disabled.
 Release publication requires Sonar's latest `main` analysis to match the exact
 release SHA, pass its gate, and have no open security issues or unreviewed
 hotspots across the whole project. Treat a missing or stale scan as a release stop.

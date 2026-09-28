@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.14.7'
       - name: Install locked test environment
-        run: python -m pip install -r .devcontainer/requirements-tools.txt
+        run: python script/install_ci_requirements.py .devcontainer/requirements-tools.txt
       - name: Run coverage on the proposed revision
         run: |
           python -m coverage run --source=custom_components/hapatchy,script,.devcontainer/scripts -m pytest -q

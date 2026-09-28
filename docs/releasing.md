@@ -110,6 +110,8 @@ resolution disabled. The HA test and boot lanes use their separate exact locks;
 their pytest plugin requires a source-only `mock-open` package. Those jobs have
 read-only permissions and no release credentials, and their lock syntax is
 checked by `tests/test_dependency_locks.py`.
+CI retries each locked HA/test installation at most three times to tolerate
+intermittent package-index failures; a persistent error still fails the check.
 
 | Commit | Release Please effect |
 | --- | --- |
