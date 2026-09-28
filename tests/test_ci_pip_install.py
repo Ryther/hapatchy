@@ -44,3 +44,13 @@ def test_exhausted_retries_preserve_pip_failure(monkeypatch):
     assert failure.value.code == 42
     assert len(calls) == 3
     assert delays == [10, 20]
+
+
+def test_unknown_lock_is_rejected_without_running_pip(monkeypatch):
+    calls = []
+    monkeypatch.setattr(install_ci_requirements.subprocess, "run", calls.append)
+
+    with pytest.raises(ValueError, match="Unsupported CI lock"):
+        install_ci_requirements.install("../../requirements.txt")
+
+    assert calls == []

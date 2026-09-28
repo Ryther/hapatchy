@@ -7,9 +7,20 @@ import subprocess
 import sys
 import time
 
+LOCK_FILES = {
+    "tests/requirements-ha-min.txt": "tests/requirements-ha-min.txt",
+    ".devcontainer/requirements-tools.txt": ".devcontainer/requirements-tools.txt",
+    "tests/requirements-ha-min-runtime.txt": "tests/requirements-ha-min-runtime.txt",
+    ".devcontainer/requirements-ha.txt": ".devcontainer/requirements-ha.txt",
+}
+
 
 def install(lock: str) -> None:
     """Retry the same pinned lock; keep the final pip failure visible to CI."""
+    try:
+        selected_lock = LOCK_FILES[lock]
+    except KeyError:
+        raise ValueError("Unsupported CI lock") from None
     command = [
         sys.executable,
         "-m",
@@ -20,10 +31,10 @@ def install(lock: str) -> None:
         "--timeout",
         "25",
         "-r",
-        lock,
+        selected_lock,
     ]
     for attempt in range(1, 4):
-        print(f"Installing {lock} (attempt {attempt}/3)", flush=True)
+        print(f"Installing {selected_lock} (attempt {attempt}/3)", flush=True)
         result = subprocess.run(command, check=False)
         if result.returncode == 0:
             return
@@ -36,7 +47,7 @@ def install(lock: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("lock", help="Fully pinned requirements file for this CI lane")
+    parser.add_argument("lock", choices=LOCK_FILES, help="Pinned CI requirements lock")
     install(parser.parse_args().lock)
 
 
