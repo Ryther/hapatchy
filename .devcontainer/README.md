@@ -41,6 +41,7 @@ packages into the running container's managed virtual environments.
 | pytest **9.0.3** and HA pytest plugin **0.13.363** | Isolated integration/unit tests |
 | Ruff **0.16.8** | Python linting and formatting |
 | mypy **2.3.1** | Type checking |
+| uv **0.12.5** | Resolve the two complete recent HA locks from tracked inputs |
 | Supervisor **4.3.0** | Manage the separate browser HA process |
 | Python standard library | Version validation and release ZIP/checksum generation |
 
@@ -66,6 +67,7 @@ From the repository root **inside the container**:
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD
 .venv/bin/python script/build_release.py
+.venv/bin/python -m script.resolve_ha_locks --check
 ```
 
 Use `.venv/bin/cz commit` to write a commit interactively. Release Please owns
@@ -79,6 +81,15 @@ requests to the browser HA or to a household installation. The container runs
 the recent baseline, **HA 2026.9.0 / Python 3.14.7**. CI also tests
 **HA 2025.3.0 / Python 3.13.12** with its separate lock. Passing this container's
 checks is not proof that a minimum-lane-specific failure is fixed.
+
+The recent tool and runtime locks are generated together from
+[`requirements-tools.in`](requirements-tools.in) and
+[`requirements-ha.in`](requirements-ha.in). The `--check` command above verifies
+that the tracked locks reproduce exactly. For an approved HA/plugin pair, run
+the resolver with `--ha` and `--plugin`; it writes to the ignored `_tmp/resolved-ha-locks` directory. Use a disposable
+output directory first. The scheduled updater uses the same resolver and changes
+only the recent lane. Rebuild the container after merging a lock update; do not
+upgrade packages inside a running managed environment.
 
 ## Investigate a PR failure
 

@@ -1,0 +1,17 @@
+# Runtime roots include HA integrations loaded by the disposable boot smoke.
+aiohasupervisor==0.6.0
+av==17.0.1
+gazetteer-matcher==1.1.0
+ha-ffmpeg==3.2.2
+hassil==3.12.0
+home-assistant-frontend==20260826.4
+homeassistant=={ha_version}
+infrared-protocols==9.0.0
+mutagen==1.48.1
+patch-ng==1.19.1
+pip==26.2.1
+pymicro-vad==1.0.1
+pyspeex-noise==1.0.2
+PyTurboJPEG==1.8.3
+rf-protocols==4.3.0
+watchdog==6.0.0

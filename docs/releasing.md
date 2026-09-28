@@ -3,7 +3,9 @@
 [Documentation home](index.md) · [Contribution rules](https://github.com/Ryther/hapatchy/blob/main/CONTRIBUTING.md)
 
 Releases use a pull request. **Merging a feature does not publish a release;
-merging the release PR authorizes publication after its checks pass.**
+merging the release PR authorizes publication after its checks pass.** A narrow
+exception can opt an isolated Home Assistant baseline update and its resulting
+patch release into GitHub auto-merge, after all required checks succeed.
 
 Release Please proposes the version and changelog. Commitizen checks commit
 messages. The publishing helper builds the integration archive, uploads it to a
@@ -65,15 +67,19 @@ to initialize the workflow.
    labels and drafts. Keep Issues enabled. Do not commit the token.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
-   Require the **Conventional Commits**, **Workflow lint**, **Secrets**, **Tests**
-   matrix, both **HA boot smoke** matrix jobs, **Integration validation**, and
-   both **CodeQL** jobs in the branch rules for `main`. Select the
+   Require **Conventional Commits**, **Workflow lint**, **Secrets**,
+   **HA tests required**, **HA boot required**, **Sonar required**,
+   **Recent HA advisory gate**, **Integration validation**, and both **CodeQL**
+   jobs in the branch rules for `main`. Select the
    actual check names shown after their first run. Avoid bypassing these rules.
    A personal GitHub Free repository cannot enforce branch protection while
    private; review every check manually in that phase, then enable the rules
    after making the repository public or upgrading the plan. On this public
    repository, `main` requires the listed checks, a PR, current base, and linear
    history, and disallows force pushes and deletion even for administrators.
+   Enable the repository **Allow auto-merge** setting only after the named gates
+   have appeared and passed on a PR. This does not auto-merge arbitrary PRs;
+   the guarded coordinator opts in only an eligible PR at an exact head SHA.
 5. Fill in the repository metadata required by HACS, including its description
    and topics. The HACS job reports missing metadata.
 
@@ -81,6 +87,44 @@ The separate token lets bot-created PRs trigger PR checks; most events created
 with the built-in `GITHUB_TOKEN` do not trigger another workflow. Publication
 uses the built-in token in the same run, so no tag-triggered workflow is needed.
 See [GitHub's trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
+The guarded coordinator also reads the live branch-protection rule. A fine-grained
+`RELEASE_PLEASE_TOKEN` therefore needs **Administration: read** in addition to
+the permissions above. If the token cannot read that rule, the coordinator fails
+closed and leaves merging to a maintainer.
+
+## Automatic Home Assistant baseline proposals
+
+The scheduled [Update HA baseline](https://github.com/Ryther/hapatchy/actions/workflows/update-ha-baseline.yaml)
+workflow checks PyPI for the latest stable HA release and a published pytest
+plugin that pins it exactly. It resolves both recent Python locks from the
+tracked `.in` inputs with pinned `uv`, then proposes a `fix(compat):` PR. It
+updates the recent test/boot matrix and its current-version references;
+the minimum HA/Python lane and dated screenshot evidence remain unchanged.
+Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
+
+The PR checks the complete candidate locks against active high/critical GitHub
+advisories, including dependencies that were already pinned. A changed lock
+cannot pass if the API is unavailable. PRs whose recent locks are byte-for-byte
+unchanged skip this candidate scan, so an existing alert does not block an
+unrelated documentation PR. The status is required on `main` alongside Sonar
+and both HA matrix aggregates. A green test or Sonar result alone cannot
+override a red advisory gate.
+
+The [guarded coordinator](https://github.com/Ryther/hapatchy/actions/workflows/merge-ha-baseline.yaml)
+runs from trusted `main` code. It can enable auto-merge only when the updater PR
+is the sole unreleased change, no release PR is open, its diff is restricted to
+the baseline files, its exact head has all required checks green, and the live
+branch rule includes the four mandatory HA/Sonar/advisory gates. After that
+merge, Release Please proposes a patch version. The coordinator opts in that
+release PR only if it contains the expected version/changelog changes from that
+single HA commit. It checks the PR and `main` SHAs again immediately before
+opting in. Other release PRs, unrelated commits, unsupported Python, missing
+plugin metadata or advisory findings require human review. **Run workflow →
+dry_run** reports the current decision without changing a PR.
+
+GitHub schedules may be delayed. Auto-merge only starts the existing exact-SHA
+release pipeline; its tests, Sonar security check, draft upload and immutable
+publication rules still apply. A failing pipeline leaves the draft unpublished.
 
 ## Commit messages and version ownership
 
@@ -137,24 +181,28 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | [codeql.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of Python and GitHub Actions with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
 | [docs.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/docs.yaml) | PR and `main` build of the documentation site with strict link validation; a `main` push or manual run publishes to GitHub Pages when Pages uses GitHub Actions and `DOCS_PAGES_ENABLED=true`. |
 | [release.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate its merged candidate, require a clean exact-commit Sonar security result, and publish. |
+| [update-ha-baseline.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/update-ha-baseline.yaml) | Schedule/manual run on trusted `main`; propose the newest compatible recent HA lock pair in one PR. |
+| [merge-ha-baseline.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/merge-ha-baseline.yaml) | Schedule/manual run on trusted `main`; recheck exact PR provenance, diff, checks and branch rule before opting eligible HA update/release PRs into auto-merge. |
 
 [dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml) proposes weekly updates for Actions
 and a small allowlist of standalone Python tools (`commitizen` in the recent
 lane, plus `mypy`, `ruff` and `supervisor` where present). The files in
 `.devcontainer/` and `tests/` are fully resolved HA/test-plugin locks; individual
 updates to their HA-owned packages are deliberately withheld. Regenerate a whole
-lane when changing its HA release or test plugin. Python lock changes require
-manual review and both CI lanes; Dependabot neither merges PRs nor changes the
-HA baseline pins automatically. Workflow container-image digests are reviewed
-and updated separately.
+lane when changing its HA release or test plugin. Dependabot neither merges PRs
+nor changes the HA baseline pins automatically. The guarded updater can propose
+a whole recent-lane change; advisory findings or unrelated release work stop its
+automatic merge. Other Python lock changes require manual review and both CI
+lanes. Workflow container-image digests are reviewed and updated separately.
 
-The lane-specific `ignore` entries in [dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml)
-reflect versions pinned by the current HA releases, their optional integrations,
-or the HA pytest plugin. Recheck and remove relevant entries when changing a
-baseline or test plugin. The allowlist and ignores can also suppress Dependabot
-security-update PRs for withheld packages: inspect GitHub security alerts at
-least monthly and after baseline changes, and change the whole compatible lock
-deliberately when a fix is needed.
+The minimum-lane `ignore` entries in [dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml)
+reflect versions pinned by HA, its optional integrations, or the HA pytest
+plugin. The recent lane has an allowlist but no version-specific ignores, so
+its baseline updater does not leave stale exclusions behind. Recheck the
+minimum-lane exclusions when its baseline or plugin changes. The allowlists
+can still suppress Dependabot security-update PRs for withheld packages:
+inspect GitHub security alerts at least monthly and after baseline changes,
+and change the whole compatible lock deliberately when a fix is needed.
 
 In particular, the 2025.3.0 test plugin pins `pytest-socket==0.7.0` and
 `pipdeptree==2.25.0`; the 2026.9.0 plugin pins `pytest-socket==0.8.0` and

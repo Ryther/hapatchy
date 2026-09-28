@@ -98,6 +98,9 @@ This screenshot shows a local development installation, not a HACS certification
 The same integration code is tested at both endpoints. Intermediate HA releases
 have not been individually tested. Your installed HA supplies Python: **HACS does
 not download a separate Python interpreter or create a HAPatchY virtual environment**.
+The development baseline is updated through a guarded PR when a newer stable HA
+and its exact test plugin are available; a blocked candidate does not change the
+tested version shown here.
 The Dev Container's Python 3.14 requirement does not raise the product minimum.
 The minimum is a compatibility baseline, not a recommendation to run an old,
 unpatched HA installation. Keep HA updated within a version compatible with your

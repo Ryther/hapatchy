@@ -1,0 +1,79 @@
+name: Update HA baseline
+on:
+  schedule:
+    - cron: '19 5 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Evaluate the newest candidate without changing files or opening a PR
+        type: boolean
+        default: false
+permissions:
+  contents: read
+concurrency:
+  group: update-ha-baseline
+  cancel-in-progress: false
+jobs:
+  propose:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14.7'
+      - name: Install pinned metadata and resolver tools
+        run: python -m pip install --only-binary ':all:' 'packaging==26.3' 'uv==0.12.5'
+      - name: Resolve newest stable HA candidate
+        id: candidate
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          options=()
+          if [ "$DRY_RUN" = true ]; then options+=(--dry-run); fi
+          python -m script.update_ha_baseline \
+            --output "$GITHUB_OUTPUT" "${options[@]}"
+          if [ "$DRY_RUN" = true ] && [ -f _tmp/ha-baseline-pr.md ]; then
+            cat _tmp/ha-baseline-pr.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Require credential for check-triggering PR
+        if: steps.candidate.outputs.changed == 'true' && inputs.dry_run != true
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+        run: test -n "$RELEASE_TOKEN"
+      - name: Create or update the one HA baseline PR
+        if: steps.candidate.outputs.changed == 'true' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          HA_VERSION: ${{ steps.candidate.outputs.ha }}
+        run: |
+          set -euo pipefail
+          branch=automation/ha-baseline
+          title="fix(compat): validate Home Assistant $HA_VERSION"
+          existing=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
+          old_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)
+          if [ -n "$old_sha" ] && [ -z "$existing" ]; then
+            echo 'Automation branch exists without its PR; manual review required.' >&2
+            exit 1
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          gh auth setup-git
+          git switch -c "$branch"
+          git add .devcontainer/requirements-tools.txt .devcontainer/requirements-ha.txt \
+            .github/workflows/tests.yaml .devcontainer/README.md \
+            README.md AGENTS.md docs/releasing.md
+          git diff --cached --check
+          git commit -m "$title"
+          if [ -n "$old_sha" ]; then
+            git push "--force-with-lease=refs/heads/$branch:$old_sha" origin "HEAD:refs/heads/$branch"
+            gh pr edit "$existing" --title "$title" --body-file _tmp/ha-baseline-pr.md
+          else
+            git push origin "HEAD:refs/heads/$branch"
+            gh pr create --base main --head "$branch" --title "$title" \
+              --body-file _tmp/ha-baseline-pr.md
+          fi

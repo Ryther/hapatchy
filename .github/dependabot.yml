@@ -21,25 +21,6 @@ updates:
       - dependency-name: mypy
       - dependency-name: ruff
       - dependency-name: supervisor
-    ignore:
-      - dependency-name: homeassistant
-      - dependency-name: home-assistant-frontend
-      # These are fixed by the HA 2026.9.0 / pytest plugin dependency graph.
-      # Revisit them when that baseline or its test plugin changes.
-      - dependency-name: pipdeptree
-      - dependency-name: pyOpenSSL
-      # pytest-homeassistant-custom-component 0.13.363 pins both exactly.
-      - dependency-name: tqdm
-      - dependency-name: unidiff
-      # The 0.13.363 plugin requires HA 2026.9.0, pipdeptree 2.26.1,
-      # and pytest-socket 0.8.0. Re-resolve this lane together on upgrade.
-      - dependency-name: pytest-homeassistant-custom-component
-      - dependency-name: pytest-socket
-      # HA's camera and stream integrations pin PyTurboJPEG 1.8.3.
-      - dependency-name: PyTurboJPEG
-      # HA 2026.9.0 pins SQLAlchemy; its stream integration pins av.
-      - dependency-name: SQLAlchemy
-      - dependency-name: av
   - package-ecosystem: pip
     directory: /tests
     schedule:

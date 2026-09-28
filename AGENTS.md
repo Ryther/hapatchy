@@ -36,7 +36,7 @@ HACS uses the installed HA interpreter; it does not create a private interpreter
 or virtual environment for this integration. Do not raise the product minimum
 simply because development uses a newer Python.
 
-Keep the lane-specific Python allowlists and exclusions in `.github/dependabot.yml`
+Keep the lane-specific Python allowlists and minimum-lane exclusions in `.github/dependabot.yml`
 under review. These are fully resolved HA/test-plugin locks: Dependabot proposes
 individual updates only for standalone tools, while the HA dependency graph is
 updated as a unit. The exclusions document known exact pins from HA, its optional
@@ -50,6 +50,16 @@ baselines before changing a pinned transitive dependency. If a security fix need
 a newer pinned dependency, evaluate an HA baseline update instead of overriding
 HA's requirement in one lock.
 
+The recent-lane lock inputs are `.devcontainer/requirements-{tools,ha}.in`.
+`script/resolve_ha_locks.py` resolves both complete locks together using pinned
+`uv`; never edit only the HA line in a lock. The scheduled updater proposes a
+whole recent-lane PR and leaves the minimum lane untouched. Review generated
+Dependabot comment/exclusion changes against HA and plugin metadata. Its PR
+advisory gate scans the full candidate lock union; unchanged-lock PRs skip that
+candidate scan. Keep **Sonar required**, **HA tests required**, **HA boot
+required** and **Recent HA advisory gate** in live `main` branch protection.
+Version-named matrix checks are not stable branch-rule names.
+
 Run from the repository root inside the container:
 
 ```bash
@@ -60,6 +70,7 @@ Run from the repository root inside the container:
 .venv/bin/cz check --rev-range HEAD
 .venv/bin/python script/build_release.py
 .venv-ha/bin/python script/smoke_ha.py
+.venv/bin/python -m script.resolve_ha_locks --check
 ```
 
 For several commits, validate the actual base-to-head range with Commitizen.
@@ -283,6 +294,15 @@ then publishes. Preserve action digest/SHA pins, least-privilege job tokens,
 read-only untrusted PR checks and separation of PR execution from publishing.
 Never execute untrusted PR code with release secrets. Do not rewrite published
 immutable releases or certify remote repository settings from local files alone.
+
+`update-ha-baseline.yaml` uses trusted default-branch code to propose one HA
+baseline PR. `merge-ha-baseline.yaml` may opt it and its isolated Release Please
+patch PR into auto-merge only after reading live required checks, exact SHAs,
+allowed diffs and the published-release comparison. A pre-existing release PR,
+other unreleased commits, advisory findings or changed head/base requires manual
+review. Do not broaden the coordinator's allowed files or provenance checks
+merely to make an automation PR green. Run its dry-run mode first, and never
+use its release token while checking out or executing PR code.
 
 A completion report states the outcome, tests actually run, material limitations
 and commits/artifacts. Fix in-scope security findings before calling them resolved;
