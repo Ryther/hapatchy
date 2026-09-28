@@ -86,9 +86,9 @@ jobs:
           if [ -n "$PR_NUMBER" ]; then
             args+=("-Dsonar.pullrequest.key=$PR_NUMBER" "-Dsonar.pullrequest.branch=$PR_HEAD" "-Dsonar.pullrequest.base=$PR_BASE")
           fi
-          docker run --rm -e SONAR_USER_HOME=/tmp/sonar-user \
+          docker run --rm -w "$GITHUB_WORKSPACE" -e SONAR_USER_HOME=/tmp/sonar-user \
             -e SONAR_TOKEN -e SONAR_HOST_URL=https://sonarcloud.io \
-            -v "$GITHUB_WORKSPACE:/usr/src:ro" -v "$RUNNER_TEMP/sonar-task:/sonar-task" \
+            -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE:ro" -v "$RUNNER_TEMP/sonar-task:/sonar-task" \
             sonarsource/sonar-scanner-cli@sha256:a3f4215076706c95a17a68c19322ee916e40a3acd081a8c1a1e839e0194afa57 \
             "${args[@]}" '-Dsonar.qualitygate.wait=true' 2>&1 | tee "$RUNNER_TEMP/sonar-scanner.log"
       - name: Export complete findings
@@ -148,6 +148,19 @@ jobs:
         run: |
           rm -f candidate/sonar-project.properties
           cp baseline/sonar-project.properties candidate/sonar-project.properties
+          python - <<'PY'
+          from pathlib import Path
+          from xml.etree import ElementTree
+
+          candidate = Path("candidate").resolve()
+          report = candidate / "coverage.xml"
+          document = ElementTree.parse(report)
+          sources = document.findall("./sources/source")
+          if len(sources) != 1:
+              raise ValueError("Expected one coverage source directory")
+          sources[0].text = str(candidate)
+          document.write(report, encoding="utf-8", xml_declaration=True)
+          PY
       - name: Start disposable Sonar Community Build
         run: |
           sudo sysctl -w vm.max_map_count=1048576

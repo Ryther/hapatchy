@@ -62,8 +62,8 @@ def scan(source: Path, project: str, output: Path, token: str) -> int:
     receipt = task / "report-task.txt"
     receipt.unlink(missing_ok=True)
     command = [
-        "docker", "run", "--rm", "--network", "host", "-e", "SONAR_TOKEN",
-        "-e", f"SONAR_HOST_URL={SERVER}", "-v", f"{source}:/usr/src:ro",
+        "docker", "run", "--rm", "--network", "host", "-w", str(source), "-e", "SONAR_TOKEN",
+        "-e", f"SONAR_HOST_URL={SERVER}", "-v", f"{source}:{source}:ro",
         "-v", f"{task}:/sonar-task", SCANNER,
         f"-Dsonar.projectKey={project}", "-Dsonar.working.directory=/sonar-task",
         "-Dsonar.scm.disabled=false", "-Dsonar.qualitygate.wait=true",

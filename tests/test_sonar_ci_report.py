@@ -100,7 +100,8 @@ def test_scan_waits_for_compute_result_and_preserves_scanner_failure(tmp_path: P
     output.mkdir()
 
     def run(command, *, env, stdout, stderr, check):
-        assert f"{tmp_path}:/usr/src:ro" in command
+        assert f"{tmp_path}:{tmp_path}:ro" in command
+        assert command[command.index("-w") + 1] == str(tmp_path)
         assert "-Dsonar.python.coverage.reportPaths=coverage.xml" in command
         assert env["SONAR_TOKEN"] == "temporary-token"
         (output / (project + "-task") / "report-task.txt").write_text("ceTaskId=task-123\n")
