@@ -80,8 +80,9 @@ Run SonarScanner from the repository root against your own SonarQube server.
 The tracked `sonar-project.properties` defines sources, tests and targeted
 rule/file exclusions; those exclusions are sent with each analysis, so they do
 not depend on retained server settings. They preserve HA-required hook signatures,
-the immutable Docker image pin and the credential-free coverage job's exact
-HA lock/source-only package exception. Other rules continue checking those files.
+the immutable Docker image pin, the credential-free coverage job's exact HA
+lock/source-only package exception and a report-content false positive in the
+fixed-path exporter. Other rules continue checking those files.
 Review exclusions as described in [AGENTS.md](AGENTS.md).
 
 Set `SONAR_HOST_URL` to your server and `SONAR_TOKEN` to a project analysis token
