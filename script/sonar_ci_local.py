@@ -128,14 +128,11 @@ def main() -> None:
     group = parser.add_mutually_exclusive_group(required=True)
     group.add_argument("--wait-and-create-projects", action="store_true")
     group.add_argument("--scan", nargs=2, type=Path, metavar=("BASE", "CANDIDATE"))
-    parser.add_argument("--output", type=Path)
     args = parser.parse_args()
     if args.wait_and_create_projects:
         projects()
     else:
-        if args.output is None:
-            parser.error("--output is required with --scan")
-        compare(*args.scan, args.output)
+        compare(*args.scan, Path("sonar-report"))
 
 
 if __name__ == "__main__":

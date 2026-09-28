@@ -168,7 +168,7 @@ jobs:
       - name: Scan baseline and proposed revision
         id: scan
         continue-on-error: true
-        run: python baseline/script/sonar_ci_local.py --scan "$PWD/baseline" "$PWD/candidate" --output "$PWD/sonar-report"
+        run: python baseline/script/sonar_ci_local.py --scan "$PWD/baseline" "$PWD/candidate"
       - name: Publish full comparison report
         if: always()
         env:
