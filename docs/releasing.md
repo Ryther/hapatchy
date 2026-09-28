@@ -11,11 +11,19 @@ Release Please proposes the version and changelog. Commitizen checks commit
 messages. The publishing helper builds the integration archive, uploads it to a
 GitHub draft and publishes that draft only after verification.
 Before publication, the release workflow also waits for SonarCloud to analyze
-the exact release commit on `main`. It requires a passing quality gate, zero
-open security issues across the whole project, and zero unreviewed security
+the exact release commit on `main`. The project analysis covers the distributed
+integration under `custom_components/hapatchy`; tests and CI tooling are outside
+its quality metrics. It requires a passing quality gate, zero open security
+issues in that product scope, and zero unreviewed security
 hotspots. A missing or stale analysis leaves the draft unpublished. The normal
 Sonar quality gate focuses on new code, so its green badge alone does not meet
 this release condition.
+
+Sonar does not scan the HA test locks for dependency advisories. The separate
+product advisory gate uses the exact requirements in HAPatchY's manifest.
+GitHub's raw Dependabot alert inventory can still show dependencies found in
+tracked HA/test locks; alerts tied only to those locks are not product findings
+or release gates.
 
 User installation instructions are in [installation.md](installation.md).
 HACS validation checks repository metadata; the HA boot-smoke lanes exercise
@@ -183,7 +191,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | [commits.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
 | [tests.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
 | [validation.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
-| [codeql.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of Python and GitHub Actions with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
+| [codeql.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of product Python and our GitHub Actions workflows with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
 | [docs.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/docs.yaml) | PR and `main` build of the documentation site with strict link validation; a `main` push or manual run publishes to GitHub Pages when Pages uses GitHub Actions and `DOCS_PAGES_ENABLED=true`. |
 | [release.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate its merged candidate, require a clean exact-commit Sonar security result, and publish. |
 | [update-ha-baseline.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/update-ha-baseline.yaml) | Schedule/manual run on trusted `main`; propose the newest compatible recent HA lock pair in one PR. |

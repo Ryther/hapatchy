@@ -38,6 +38,7 @@
 !/hacs.json
 !/.github/
 !/.github/pull_request_template.md
+!/.github/codeql-config.yml
 !/.github/workflows/
 !/.github/workflows/tests.yaml
 !/.github/workflows/sonar.yaml

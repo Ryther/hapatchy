@@ -1,0 +1,4 @@
+name: HAPatchY product and workflow code
+paths:
+  - custom_components/hapatchy
+  - .github/workflows

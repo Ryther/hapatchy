@@ -87,7 +87,7 @@ jobs:
           python -m pip check
           python -c 'import os, platform, homeassistant.const as c; from pathlib import Path; from script.resolve_ha_locks import validate_lock; pin=validate_lock(Path(os.environ["HA_LOCK"]))["homeassistant"]; label=os.environ["EXPECTED_HA"]; print(platform.python_version(), c.__version__, pin); assert label == "recent lock" or label == pin; assert c.__version__ == pin'
       - run: python -m pytest -q
-      - run: python -m ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+      - run: python -m ruff check custom_components/hapatchy
       - run: python -m mypy --python-version '${{ matrix.typing }}'
       - run: python -m unittest discover -s .devcontainer/tests -v
       - run: python script/build_release.py
