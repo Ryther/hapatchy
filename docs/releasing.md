@@ -87,10 +87,11 @@ The separate token lets bot-created PRs trigger PR checks; most events created
 with the built-in `GITHUB_TOKEN` do not trigger another workflow. Publication
 uses the built-in token in the same run, so no tag-triggered workflow is needed.
 See [GitHub's trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
-The guarded coordinator also reads the live branch-protection rule. A fine-grained
-`RELEASE_PLEASE_TOKEN` therefore needs **Administration: read** in addition to
-the permissions above. If the token cannot read that rule, the coordinator fails
-closed and leaves merging to a maintainer.
+The guarded coordinator reads the protected-branch summary through GitHub's
+branch endpoint using the token's existing **Contents: read** permission. It
+also requires the PR base to equal the current `main` commit. If the branch
+summary omits the required checks or their enforcement, it fails closed and
+leaves merging to a maintainer.
 
 ## Automatic Home Assistant baseline proposals
 
