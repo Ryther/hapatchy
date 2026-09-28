@@ -34,6 +34,7 @@
 !/tests/requirements-ha-min.txt
 !/tests/requirements-ha-min-runtime.txt
 !/script/check_sonar_release.py
+!/script/install_ci_requirements.py
 !/custom_components/
 !/custom_components/__init__.py
 !/custom_components/hapatchy/

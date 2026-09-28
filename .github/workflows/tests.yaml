@@ -77,7 +77,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install locked test environment
-        run: python -m pip install -r '${{ matrix.lock }}'
+        run: python script/install_ci_requirements.py '${{ matrix.lock }}'
       - name: Verify environment
         env:
           EXPECTED_HA: ${{ matrix.ha }}
@@ -113,7 +113,7 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
       - name: Install locked Home Assistant runtime
-        run: python -m pip install -r '${{ matrix.lock }}'
+        run: python script/install_ci_requirements.py '${{ matrix.lock }}'
       - name: Verify Home Assistant runtime
         env:
           EXPECTED_HA: ${{ matrix.ha }}
