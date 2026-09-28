@@ -55,8 +55,9 @@ The recent-lane lock inputs are `.devcontainer/requirements-{tools,ha}.in`.
 `uv`; never edit only the HA line in a lock. The scheduled updater proposes a
 whole recent-lane PR and leaves the minimum lane untouched. Review generated
 Dependabot comment/exclusion changes against HA and plugin metadata. Its PR
-advisory gate scans the full candidate lock union; unchanged-lock PRs skip that
-candidate scan. Keep **Sonar required**, **HA tests required**, **HA boot
+advisory gate scans the full candidate lock union. It blocks high/critical
+findings on new or changed pins and reports unchanged inherited findings;
+unchanged-lock PRs skip the candidate scan. Keep **Sonar required**, **HA tests required**, **HA boot
 required** and **Recent HA advisory gate** in live `main` branch protection.
 Version-named matrix checks are not stable branch-rule names.
 
