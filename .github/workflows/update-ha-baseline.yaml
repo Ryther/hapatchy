@@ -55,7 +55,11 @@ jobs:
           branch=automation/ha-baseline
           title="fix(compat): validate Home Assistant $HA_VERSION"
           existing=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
-          old_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)
+          old_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null) || old_sha=''
+          if [ -n "$old_sha" ] && [[ ! "$old_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'Automation branch lookup returned an invalid commit ID.' >&2
+            exit 1
+          fi
           if [ -n "$old_sha" ] && [ -z "$existing" ]; then
             echo 'Automation branch exists without its PR; manual review required.' >&2
             exit 1
