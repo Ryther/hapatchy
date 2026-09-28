@@ -1,11 +1,14 @@
 """Contract checks for a portable, complete Sonar issue export."""
 
+import io
 import json
+import sys
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
-from script import sonar_ci_local
+from script import sonar_ci_local, sonar_ci_report
 from script.sonar_ci_local import candidate_scan_ok
 from script.sonar_ci_report import export_analysis, introduced_issues
 
@@ -89,3 +92,85 @@ def test_comparison_rejects_failed_gate_even_without_new_issues(tmp_path: Path, 
     with pytest.raises(RuntimeError, match="gate ERROR"):
         sonar_ci_local.compare(tmp_path, tmp_path, tmp_path / "report")
     assert "ERROR" in (tmp_path / "report/report.md").read_text()
+
+
+def test_scan_waits_for_compute_result_and_preserves_scanner_failure(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    project = "hapatchy-candidate"
+    output = tmp_path / "report"
+    output.mkdir()
+
+    def run(command, *, env, stdout, stderr, check):
+        assert f"{tmp_path}:/usr/src:ro" in command
+        assert "-Dsonar.python.coverage.reportPaths=coverage.xml" in command
+        assert env["SONAR_TOKEN"] == "temporary-token"
+        (output / (project + "-task") / "report-task.txt").write_text("ceTaskId=task-123\n")
+        return SimpleNamespace(returncode=1)
+
+    monkeypatch.setattr(sonar_ci_local.subprocess, "run", run)
+    monkeypatch.setattr(sonar_ci_local, "request", lambda path, params, *, token: {"task": {"status": "SUCCESS"}})
+
+    assert sonar_ci_local.scan(tmp_path, project, output, "temporary-token") == 1
+
+
+def test_scan_rejects_missing_receipt_and_stale_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    output = tmp_path / "report"
+    task = output / "hapatchy-baseline-task"
+    task.mkdir(parents=True)
+    (task / "report-task.txt").write_text("ceTaskId=stale\n")
+    monkeypatch.setattr(sonar_ci_local.subprocess, "run", lambda *args, **kwargs: SimpleNamespace(returncode=0))
+
+    with pytest.raises(RuntimeError, match="did not submit an analysis"):
+        sonar_ci_local.scan(tmp_path, "hapatchy-baseline", output, "temporary-token")
+    assert not (task / "report-task.txt").exists()
+
+
+def test_report_cli_uses_fixed_output_directory(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls = []
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["sonar_ci_report.py", "--project", "repo", "--pull-request", "47"])
+    monkeypatch.setattr(sonar_ci_report, "_http_fetch", lambda host, token: lambda path, params: {})
+    monkeypatch.setattr(
+        sonar_ci_report,
+        "export_analysis",
+        lambda fetch, project, directory, *, pull_request: calls.append((project, directory, pull_request)),
+    )
+
+    sonar_ci_report.main()
+    assert calls == [("repo", Path("sonar-report"), "47")]
+
+
+def test_local_api_request_sends_ephemeral_token_only_to_local_server(monkeypatch: pytest.MonkeyPatch) -> None:
+    requests = []
+
+    class Response(io.BytesIO):
+        status = 200
+
+    def urlopen(request, *, timeout):
+        requests.append(request)
+        assert timeout == 30
+        return Response(b'{"task":{"status":"SUCCESS"}}')
+
+    monkeypatch.setattr(sonar_ci_local.urllib.request, "urlopen", urlopen)
+    result = sonar_ci_local.request("/api/ce/task", {"id": "task-123"}, token="temporary-token")
+
+    assert result == {"task": {"status": "SUCCESS"}}
+    assert requests[0].full_url == sonar_ci_local.SERVER + "/api/ce/task?id=task-123"
+    assert requests[0].get_header("Authorization") == "Bearer temporary-token"
+
+
+def test_disposable_server_readiness_retries_transient_failures(monkeypatch: pytest.MonkeyPatch) -> None:
+    states = iter([OSError("not listening"), {"status": "STARTING"}, {"status": "UP"}])
+    waits = []
+
+    def request(path):
+        assert path == "/api/system/status"
+        state = next(states)
+        if isinstance(state, OSError):
+            raise state
+        return state
+
+    monkeypatch.setattr(sonar_ci_local, "request", request)
+    monkeypatch.setattr(sonar_ci_local.time, "sleep", waits.append)
+
+    sonar_ci_local.ready()
+    assert waits == [2, 2]
