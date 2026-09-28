@@ -81,7 +81,7 @@ Inside the container, from the repository root:
 
 ```bash
 .venv/bin/python -m pytest -q
-.venv/bin/ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+.venv/bin/ruff check custom_components/hapatchy
 .venv/bin/mypy --python-version 3.14
 python3 -m unittest discover -s .devcontainer/tests -v
 ```

@@ -63,11 +63,7 @@
       "command": ".venv/bin/ruff",
       "args": [
         "check",
-        "custom_components",
-        "tests",
-        ".devcontainer/scripts",
-        ".devcontainer/tests",
-        "script"
+        "custom_components/hapatchy"
       ],
       "options": {
         "cwd": "${workspaceFolder}"

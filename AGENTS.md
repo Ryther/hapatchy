@@ -69,7 +69,7 @@ Run from the repository root inside the container:
 
 ```bash
 .venv/bin/python -m pytest -q
-.venv/bin/ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+.venv/bin/ruff check custom_components/hapatchy
 .venv/bin/mypy --python-version 3.14
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD
@@ -99,16 +99,24 @@ workflows before executing them; use a disposable checkout without credentials
 or household mounts. A Dev Container is a reproducibility tool, not a guarantee
 that malicious contributed code is safe to execute.
 
+Product quality and security analysis covers only `custom_components/hapatchy`:
+Sonar sources and coverage, CodeQL Python, Ruff and mypy. Keep tests and CI
+tooling executable as verification, but outside product quality metrics.
+CodeQL separately checks our GitHub Actions workflows, and secret scanning
+still covers all tracked files and history because secrets can leak anywhere.
+The manifest requirements, not the HA test locks, define product dependency
+advisory ownership. Sonar SCA is disabled so it cannot reclassify HA test locks
+as product dependencies. Recheck these boundaries when adding product paths or
+analysis tools.
+
 Sonar CI uses the tracked `sonar-project.properties`. The token-bearing Cloud
 scanner must never run project code or install PR dependencies. Fork and
 Dependabot PRs use a disposable local scanner without a persistent credential;
 review its baseline and candidate reports before merging. Never replace that
 separation with an untrusted `pull_request_target` checkout. Its rule/file
-exclusions cover HA-mandated coroutine/context signatures and the deliberate
-Docker tag-plus-digest pin. Review each exclusion when its file changes, when
-HA contracts change, or when the analyzer is upgraded.
-The report export exception is for API data written as content to a fixed path;
-remove it if output paths become user-selectable or the data flow changes.
+exclusions cover HA-mandated coroutine/context signatures. Review each
+exclusion when its file changes, when HA contracts change, or when the analyzer
+is upgraded.
 Rule/file exclusions also cover future functions in those files: check new
 helpers manually and remove or narrow exclusions that no longer apply. Never
 suppress a whole file or mark a runtime defect as a framework convention merely
@@ -123,7 +131,7 @@ installs an explicit list of exactly pinned binary wheels with dependency
 resolution disabled.
 Release publication requires Sonar's latest `main` analysis to match the exact
 release SHA, pass its gate, and have no open security issues or unreviewed
-hotspots across the whole project. Treat a missing or stale scan as a release stop.
+hotspots in the product analysis. Treat a missing or stale scan as a release stop.
 
 ## Implementation boundaries
 

@@ -62,7 +62,7 @@ From the repository root **inside the container**:
 
 ```bash
 .venv/bin/python -m pytest -q
-.venv/bin/ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+.venv/bin/ruff check custom_components/hapatchy
 .venv/bin/mypy --python-version 3.14
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD

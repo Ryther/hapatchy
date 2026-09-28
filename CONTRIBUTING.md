@@ -45,7 +45,7 @@ From the repository root inside the container:
 
 ```bash
 .venv/bin/python -m pytest -q
-.venv/bin/ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
+.venv/bin/ruff check custom_components/hapatchy
 .venv/bin/mypy --python-version 3.14
 .venv/bin/python -m unittest discover -s .devcontainer/tests -v
 .venv/bin/cz check --rev-range HEAD
@@ -101,12 +101,11 @@ variable is set, the workflow builds but skips publication.
 ## Optional Sonar analysis
 
 Run SonarScanner from the repository root against your own SonarQube server.
-The tracked `sonar-project.properties` defines sources, tests and targeted
-rule/file exclusions; those exclusions are sent with each analysis, so they do
-not depend on retained server settings. They preserve HA-required hook signatures,
-the immutable Docker image pin, the credential-free coverage job's exact HA
-lock/source-only package exception and a report-content false positive in the
-fixed-path exporter. Other rules continue checking those files.
+The tracked `sonar-project.properties` limits analysis to the distributed
+integration and defines targeted rule/file exclusions. Those exclusions are
+sent with each analysis, so they do
+not depend on retained server settings. They preserve HA-required hook
+signatures; other rules continue checking those files.
 Review exclusions as described in [AGENTS.md](AGENTS.md).
 
 Set `SONAR_HOST_URL` to your server and `SONAR_TOKEN` to a project analysis token
@@ -130,7 +129,14 @@ lanes, the native smoke tests or security review.
 
 ## Sonar checks on pull requests
 
-`Sonar quality` runs coverage without secrets on every PR. On `main` and PRs
+`Sonar quality` measures only `custom_components/hapatchy` on every PR. The
+coverage job runs without secrets. Tests and development scripts run as
+verification but do not enter
+the Sonar quality metrics. CodeQL Python scans the same product path; its
+separate Actions lane scans our workflow definitions. Repository-wide secret
+scanning still detects leaks in tests and tooling. Sonar's dependency analysis
+is disabled because it would also ingest the HA test locks; the product manifest
+has its own advisory gate. On `main` and PRs
 originating in this repository, a separate scanner job submits to SonarQube
 Cloud with the repository `SONAR_TOKEN`. It only reads the proposed source; it
 does not run project code or install PR dependencies with that token. A PR from
