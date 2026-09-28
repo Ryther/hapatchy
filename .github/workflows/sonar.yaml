@@ -28,7 +28,7 @@ jobs:
           python -m coverage run --source=custom_components/hapatchy,script,.devcontainer/scripts -m pytest -q
           python -m coverage run --append --source=custom_components/hapatchy,script,.devcontainer/scripts -m unittest discover -s .devcontainer/tests -v
           python -m coverage xml -o coverage.xml
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: sonar-coverage
           path: coverage.xml
@@ -112,7 +112,7 @@ jobs:
           fi
           if [ "$SCAN_OUTCOME" != success ]; then exit 1; fi
       - id: cloud-artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: sonar-cloud-report
@@ -202,7 +202,7 @@ jobs:
             exit 1
           fi
       - id: community-artifact
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: always()
         with:
           name: sonar-community-report
