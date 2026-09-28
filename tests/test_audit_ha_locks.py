@@ -1,102 +1,126 @@
-"""Full recent-lock advisory checks fail closed on unsafe candidates."""
+"""The advisory gate covers HAPatchY-owned dependencies, not HA's lock graph."""
 
 import sys
+from importlib.metadata import requires, version
 from urllib.error import HTTPError
 
 import pytest
+from packaging.requirements import Requirement
+from packaging.utils import canonicalize_name
 
 from script import audit_ha_locks as audit
 
 
-def _locks(tmp_path, *, tools="homeassistant==2026.9.4\ncryptography==48.0.1\n", runtime="homeassistant==2026.9.4\n"):
+def _candidate(
+    tmp_path,
+    *,
+    tools="homeassistant==2026.9.4\ncryptography==48.0.1\npatch-ng==1.19.1\nwatchdog==6.0.0\n",
+    runtime="homeassistant==2026.9.4\npatch-ng==1.19.1\nwatchdog==6.0.0\n",
+    requirements='["patch-ng==1.19.1", "watchdog==6.0.0"]',
+):
     paths = (tmp_path / "requirements-tools.txt", tmp_path / "requirements-ha.txt")
     paths[0].write_text(tools)
     paths[1].write_text(runtime)
-    return paths
+    manifest = tmp_path / "manifest.json"
+    manifest.write_text('{"requirements": ' + requirements + "}")
+    return paths, manifest
 
 
-def _advisory(**changes):
+def _advisory(package="patch-ng", **changes):
     return {
         "ghsa_id": "GHSA-aaaa-bbbb-cccc",
         "severity": "high",
         "type": "reviewed",
         "withdrawn_at": None,
-        "vulnerabilities": [
-            {"package": {"ecosystem": "pip", "name": "cryptography"}}
-        ],
+        "vulnerabilities": [{"package": {"ecosystem": "pip", "name": package}}],
         **changes,
     }
 
 
-def test_unchanged_vulnerable_pin_blocks_candidate(tmp_path):
-    locks = _locks(tmp_path)
-    result = audit.audit(locks, lambda pairs: [_advisory()])
-    assert result.blocked
-    assert result.findings[0].package == "cryptography"
-    assert result.findings[0].version == "48.0.1"
+def test_ha_only_dependency_never_reaches_advisory_client(tmp_path):
+    paths, manifest = _candidate(tmp_path)
+    seen = []
 
+    def client(pairs):
+        seen.extend(pairs)
+        return []
 
-def test_clean_candidate_passes(tmp_path):
-    result = audit.audit(_locks(tmp_path), lambda pairs: [])
-    assert not result.blocked
+    result = audit.audit(paths, manifest, client)
+    assert seen == [("patch-ng", "1.19.1"), ("watchdog", "6.0.0")]
     assert result.package_count == 2
+    assert not result.blocked
 
 
-def test_conflicting_pair_fails_closed(tmp_path):
-    locks = _locks(tmp_path, runtime="homeassistant==2026.9.4\ncryptography==49.0.0\n")
-    with pytest.raises(ValueError, match="Conflicting"):
-        audit.audit(locks, lambda pairs: [])
+def test_ha_only_advisory_cannot_block_even_if_api_returns_it(tmp_path):
+    paths, manifest = _candidate(tmp_path)
+    result = audit.audit(paths, manifest, lambda pairs: [_advisory("cryptography")])
+    assert not result.blocked
+    assert result.findings == ()
+
+
+def test_hapatchy_dependency_advisory_blocks_even_when_pin_unchanged(tmp_path):
+    paths, manifest = _candidate(tmp_path)
+    result = audit.audit(paths, manifest, lambda pairs: [_advisory()])
+    assert result.blocked
+    assert result.findings == (audit.Finding("patch-ng", "1.19.1", "GHSA-aaaa-bbbb-cccc", "high"),)
+
+
+def test_shared_dependency_is_still_hapatchy_owned(tmp_path):
+    paths, manifest = _candidate(tmp_path, tools="homeassistant==2026.9.4\nwatchdog==6.0.0\npatch-ng==1.19.1\n")
+    result = audit.audit(paths, manifest, lambda pairs: [_advisory("watchdog")])
+    assert result.blocked
+    assert result.findings[0].package == "watchdog"
+
+
+def test_product_requirements_have_no_unscanned_mandatory_transitives():
+    paths = audit.LOCK_PATHS
+    owned = audit._owned_pins(paths, audit.MANIFEST_PATH)
+    for name, pin in owned.items():
+        assert version(name) == pin
+        for dependency in requires(name) or []:
+            requirement = Requirement(dependency)
+            if requirement.marker is None or requirement.marker.evaluate({"extra": ""}):
+                assert canonicalize_name(requirement.name) in owned, (
+                    f"{name} gained mandatory dependency {requirement.name}; extend the advisory gate"
+                )
+
+
+def test_missing_or_mismatched_owned_lock_pin_fails_closed(tmp_path):
+    paths, manifest = _candidate(tmp_path, runtime="homeassistant==2026.9.4\nwatchdog==6.0.0\n")
+    with pytest.raises(ValueError, match="patch-ng"):
+        audit.audit(paths, manifest, lambda pairs: [])
+    paths, manifest = _candidate(tmp_path, runtime="homeassistant==2026.9.4\npatch-ng==1.18.0\nwatchdog==6.0.0\n")
+    with pytest.raises(ValueError, match="patch-ng"):
+        audit.audit(paths, manifest, lambda pairs: [])
+
+
+@pytest.mark.parametrize("requirements", ['["patch-ng>=1.19.1"]', '["patch-ng[extra]==1.19.1"]', '"patch-ng==1.19.1"'])
+def test_ambiguous_manifest_requirements_fail_closed(tmp_path, requirements):
+    paths, manifest = _candidate(tmp_path, requirements=requirements)
+    with pytest.raises(ValueError, match="requirements"):
+        audit.audit(paths, manifest, lambda pairs: [])
 
 
 def test_withdrawn_advisory_is_ignored(tmp_path):
-    result = audit.audit(_locks(tmp_path), lambda pairs: [_advisory(withdrawn_at="2026-09-01")])
+    paths, manifest = _candidate(tmp_path)
+    result = audit.audit(paths, manifest, lambda pairs: [_advisory(withdrawn_at="2026-09-01")])
     assert not result.blocked
 
 
 def test_malformed_api_result_fails_closed(tmp_path):
+    paths, manifest = _candidate(tmp_path)
     with pytest.raises(ValueError, match="Malformed"):
-        audit.audit(_locks(tmp_path), lambda pairs: [{"severity": "high"}])
-
-
-def test_unchanged_lock_bytes_skip_existing_alerts(tmp_path):
-    locks = _locks(tmp_path)
-    base = tuple(path.read_bytes() for path in locks)
-    called = False
-
-    def client(pairs):
-        nonlocal called
-        called = True
-        return [_advisory()]
-
-    assert audit.audit_if_changed(locks, base, client) is None
-    assert not called
-
-
-def test_changed_ha_lock_reports_inherited_pin_without_blocking(tmp_path):
-    locks = _locks(tmp_path)
-    base = (b"homeassistant==2026.9.0\ncryptography==48.0.1\n", b"homeassistant==2026.9.0\n")
-    result = audit.audit_if_changed(locks, base, lambda pairs: [_advisory()])
-    assert result is not None
-    assert not result.blocked
-    assert result.inherited == (
-        audit.Finding("cryptography", "48.0.1", "GHSA-aaaa-bbbb-cccc", "high"),
-    )
-
-
-def test_changed_pin_still_blocks_active_advisory(tmp_path):
-    locks = _locks(tmp_path)
-    base = (b"homeassistant==2026.9.0\ncryptography==47.0.0\n", b"homeassistant==2026.9.0\n")
-    result = audit.audit_if_changed(locks, base, lambda pairs: [_advisory()])
-    assert result is not None
-    assert result.blocked
+        audit.audit(paths, manifest, lambda pairs: [{"severity": "high"}])
 
 
 def test_api_failure_cannot_be_treated_as_clean(tmp_path):
+    paths, manifest = _candidate(tmp_path)
+
     def unavailable(pairs):
         raise ValueError("Advisory API network failure")
 
     with pytest.raises(ValueError, match="network failure"):
-        audit.audit(_locks(tmp_path), unavailable)
+        audit.audit(paths, manifest, unavailable)
 
 
 def test_client_paginates_and_deduplicates(monkeypatch):
@@ -111,7 +135,7 @@ def test_client_paginates_and_deduplicates(monkeypatch):
         return [], None
 
     monkeypatch.setattr(audit, "_request_page", page)
-    result = audit.github_advisories([("cryptography", "48.0.1")], "token")
+    result = audit.github_advisories([("patch-ng", "1.19.1")], "token")
     assert len(result) == 1
     assert len(calls) == 3
 
@@ -145,18 +169,11 @@ def test_page_reader_retries_transient_http_error(monkeypatch):
     assert calls == 2
 
 
-def test_command_fails_for_advisory_and_succeeds_for_unchanged_locks(monkeypatch, capsys):
-    monkeypatch.setattr(sys, "argv", ["audit_ha_locks.py", "--base-sha", "a" * 40])
-    monkeypatch.setattr(audit, "_base_lock_bytes", lambda sha: (b"", b""))
-    monkeypatch.setattr(
-        audit,
-        "audit_if_changed",
-        lambda paths, baseline, client: audit.AuditResult(
-            171, (audit.Finding("cryptography", "48.0.1", "GHSA-aaaa-bbbb-cccc", "high"),)
-        ),
-    )
+def test_command_reports_owned_advisory(monkeypatch, capsys, tmp_path):
+    paths, manifest = _candidate(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["audit_ha_locks.py", "--candidate-root", str(tmp_path)])
+    monkeypatch.setattr(audit, "LOCK_PATHS", tuple(path.relative_to(tmp_path) for path in paths))
+    monkeypatch.setattr(audit, "MANIFEST_PATH", manifest.relative_to(tmp_path))
+    monkeypatch.setattr(audit, "github_advisories", lambda pairs, token: [_advisory()])
     assert audit.main() == 1
-    assert "cryptography==48.0.1" in capsys.readouterr().out
-    monkeypatch.setattr(audit, "audit_if_changed", lambda paths, baseline, client: None)
-    assert audit.main() == 0
-    assert "unchanged" in capsys.readouterr().out
+    assert "patch-ng==1.19.1" in capsys.readouterr().out

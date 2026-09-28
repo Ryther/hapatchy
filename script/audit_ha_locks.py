@@ -1,12 +1,10 @@
-"""Block recent HA lock updates with active high or critical advisories."""
+"""Block PRs with high or critical advisories in HAPatchY requirements."""
 
 from __future__ import annotations
 
 import argparse
 import json
 import os
-import re
-import subprocess
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -25,7 +23,7 @@ LOCK_PATHS = (
     Path(".devcontainer/requirements-tools.txt"),
     Path(".devcontainer/requirements-ha.txt"),
 )
-SHA = re.compile(r"[0-9a-f]{40}")
+MANIFEST_PATH = Path("custom_components/hapatchy/manifest.json")
 BATCH_SIZE = 20
 MAX_PAGES = 10
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
@@ -44,26 +42,37 @@ class Finding:
 class AuditResult:
     package_count: int
     findings: tuple[Finding, ...]
-    inherited: tuple[Finding, ...] = ()
 
     @property
     def blocked(self) -> bool:
         return bool(self.findings)
 
 
-def _pins(lock_paths: tuple[Path, Path]) -> dict[str, str]:
-    combined: dict[str, str] = {}
+def _owned_pins(lock_paths: tuple[Path, Path], manifest_path: Path) -> dict[str, str]:
+    """Use the product manifest as the ownership boundary, checking both locks."""
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    if not isinstance(manifest, dict) or not isinstance(manifest.get("requirements"), list):
+        raise ValueError("Invalid HAPatchY manifest requirements")
+    owned: dict[str, str] = {}
+    for requirement in manifest["requirements"]:
+        match = PIN.fullmatch(requirement) if isinstance(requirement, str) else None
+        if match is None:
+            raise ValueError("HAPatchY manifest requirements must be exact pins")
+        name = canonicalize_name(match.group(1))
+        if name in owned:
+            raise ValueError(f"Duplicate HAPatchY manifest requirements: {name}")
+        owned[name] = match.group(2)
     for path in lock_paths:
-        for name, version in validate_lock(path).items():
-            if name in combined and combined[name] != version:
-                raise ValueError(f"Conflicting recent HA lock pins: {name}")
-            combined[name] = version
-    return combined
+        locked = validate_lock(path)
+        for name, version in owned.items():
+            if locked.get(name) != version:
+                raise ValueError(f"HAPatchY requirement {name} does not match {path.name}")
+    return owned
 
 
-def audit(lock_paths: tuple[Path, Path], advisory_client: AdvisoryClient) -> AuditResult:
-    """Scan every package in the union of both candidate locks."""
-    pins = _pins(lock_paths)
+def audit(lock_paths: tuple[Path, Path], manifest_path: Path, advisory_client: AdvisoryClient) -> AuditResult:
+    """Scan product requirements regardless of the HA-only lock contents."""
+    pins = _owned_pins(lock_paths, manifest_path)
     ordered = sorted(pins.items())
     findings: set[Finding] = set()
     for offset in range(0, len(ordered), BATCH_SIZE):
@@ -98,39 +107,9 @@ def audit(lock_paths: tuple[Path, Path], advisory_client: AdvisoryClient) -> Aud
                 name = canonicalize_name(package["name"])
                 if name in batch_pins:
                     matched.add(name)
-            if not matched:
-                raise ValueError("Malformed advisory API result: no affected package in batch")
             for name in matched:
                 findings.add(Finding(name, batch_pins[name], advisory_id, severity))
     return AuditResult(len(pins), tuple(sorted(findings, key=lambda finding: (finding.package, finding.advisory))))
-
-
-def audit_if_changed(
-    lock_paths: tuple[Path, Path],
-    base_bytes: tuple[bytes, bytes],
-    advisory_client: AdvisoryClient,
-) -> AuditResult | None:
-    """Existing alerts do not block PRs that leave both recent locks untouched."""
-    if all(path.read_bytes() == baseline for path, baseline in zip(lock_paths, base_bytes, strict=True)):
-        return None
-    base_pins: dict[str, str] = {}
-    for content in base_bytes:
-        for line in content.decode("utf-8").splitlines():
-            stripped = line.strip()
-            if not stripped or stripped.startswith("#"):
-                continue
-            match = PIN.fullmatch(stripped)
-            if match is None:
-                raise ValueError("Malformed base Home Assistant lock")
-            name = canonicalize_name(match.group(1))
-            version = match.group(2)
-            if name in base_pins and base_pins[name] != version:
-                raise ValueError("Conflicting base Home Assistant lock pins")
-            base_pins[name] = version
-    result = audit(lock_paths, advisory_client)
-    introduced = tuple(finding for finding in result.findings if base_pins.get(finding.package) != finding.version)
-    inherited = tuple(finding for finding in result.findings if base_pins.get(finding.package) == finding.version)
-    return AuditResult(result.package_count, introduced, inherited)
 
 
 def _request_page(url: str, token: str) -> tuple[list[dict[str, Any]], str | None]:
@@ -192,34 +171,21 @@ def github_advisories(pairs: list[tuple[str, str]], token: str) -> list[dict[str
     return list(advisories.values())
 
 
-def _base_lock_bytes(base_sha: str) -> tuple[bytes, bytes]:
-    if not SHA.fullmatch(base_sha):
-        raise ValueError("Invalid base commit SHA")
-    return tuple(
-        subprocess.check_output(["git", "show", f"{base_sha}:{path.as_posix()}"], cwd=ROOT)
-        for path in LOCK_PATHS
-    )  # type: ignore[return-value]
-
-
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--base-sha", required=True)
+    # The trusted-base scanner on the transition PR still expects this argument.
+    parser.add_argument("--base-sha", help=argparse.SUPPRESS)
     parser.add_argument("--candidate-root", type=Path, default=ROOT)
     args = parser.parse_args()
     paths = (args.candidate_root / LOCK_PATHS[0], args.candidate_root / LOCK_PATHS[1])
-    result = audit_if_changed(
+    result = audit(
         paths,
-        _base_lock_bytes(args.base_sha),
+        args.candidate_root / MANIFEST_PATH,
         lambda pairs: github_advisories(pairs, os.environ.get("GITHUB_TOKEN", "")),
     )
-    if result is None:
-        print("Recent HA locks unchanged; candidate advisory scan not applicable")
-        return 0
-    print(f"Scanned {result.package_count} recent-lock packages")
+    print(f"Scanned {result.package_count} HAPatchY requirements")
     for finding in result.findings:
         print(f"{finding.package}=={finding.version}: {finding.severity} {finding.advisory}")
-    for finding in result.inherited:
-        print(f"Inherited: {finding.package}=={finding.version}: {finding.severity} {finding.advisory}")
     return 1 if result.blocked else 0
 
 
