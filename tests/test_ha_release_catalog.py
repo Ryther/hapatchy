@@ -51,3 +51,29 @@ def test_missing_exact_plugin_needs_review():
 def test_python_requirement_change_needs_review():
     with pytest.raises(catalog.ReviewNeeded, match="Python"):
         catalog.latest_pair(_catalog(ha_python=">=3.15"), "2026.9.0", "3.14.7")
+
+
+def test_missing_release_list_fails_closed():
+    with pytest.raises(catalog.ReviewNeeded, match="release list"):
+        catalog.latest_pair(lambda url: {}, "2026.9.0", "3.14.7")
+
+
+def test_metadata_request_is_bounded_and_host_restricted(monkeypatch):
+    with pytest.raises(ValueError, match="Unexpected"):
+        catalog.fetch_pypi_json("https://example.com/pypi/homeassistant/json")
+
+    class Response:
+        status = 200
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            return None
+
+        def read(self, size):
+            assert size == catalog.MAX_RESPONSE_BYTES + 1
+            return b'{"releases": {}}'
+
+    monkeypatch.setattr(catalog, "urlopen", lambda request, timeout: Response())
+    assert catalog.fetch_pypi_json(catalog.HA_URL) == {"releases": {}}

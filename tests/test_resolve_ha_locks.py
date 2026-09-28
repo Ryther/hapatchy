@@ -1,5 +1,6 @@
 """The recent HA lock pair is generated and published as one unit."""
 
+import sys
 from pathlib import Path
 from subprocess import CompletedProcess
 
@@ -57,3 +58,47 @@ def test_render_keeps_existing_pair_when_second_resolution_fails(tmp_path, monke
         resolve_ha_locks.render("2026.9.4", "0.13.367", target, uv_binary=Path("uv"))
     for name in ("requirements-tools", "requirements-ha"):
         assert (target / f"{name}.txt").read_text() == "previous result\n"
+
+
+def test_successful_resolution_publishes_both_complete_locks(tmp_path, monkeypatch):
+    source = tmp_path / "inputs"
+    output = tmp_path / "output"
+    source.mkdir()
+    for name in ("requirements-tools", "requirements-ha"):
+        (source / f"{name}.in").write_text("homeassistant=={ha_version}\n")
+        (source / f"{name}.txt").write_text("homeassistant==2026.9.0\n")
+    monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
+
+    def compile_once(command, **kwargs):
+        path = Path(command[command.index("--output-file") + 1])
+        pins = "homeassistant==2026.9.4\n"
+        if path.name == "requirements-tools.txt":
+            pins += "pytest-homeassistant-custom-component==0.13.367\n"
+        path.write_text(pins)
+        return CompletedProcess(command, 0)
+
+    monkeypatch.setattr(resolve_ha_locks.subprocess, "run", compile_once)
+    tools, runtime = resolve_ha_locks.render("2026.9.4", "0.13.367", output, uv_binary=Path("uv"))
+    assert tools.read_text().startswith("homeassistant==2026.9.4\n")
+    assert runtime.read_text() == "homeassistant==2026.9.4\n"
+    assert not list(output.glob(".hapatchy-locks-*"))
+
+
+def test_check_current_detects_drift_and_cli_returns_failure(tmp_path, monkeypatch):
+    source = tmp_path / "inputs"
+    source.mkdir()
+    (source / "requirements-tools.txt").write_text(
+        "homeassistant==2026.9.0\npytest-homeassistant-custom-component==0.13.363\n"
+    )
+    (source / "requirements-ha.txt").write_text("homeassistant==2026.9.0\n")
+    monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
+
+    def changed(ha, plugin, output, *, uv_binary):
+        paths = (output / "requirements-tools.txt", output / "requirements-ha.txt")
+        paths[0].write_text("homeassistant==2026.9.1\n")
+        paths[1].write_text("homeassistant==2026.9.1\n")
+        return paths
+
+    monkeypatch.setattr(resolve_ha_locks, "render", changed)
+    monkeypatch.setattr(sys, "argv", ["resolve_ha_locks.py", "--check"])
+    assert resolve_ha_locks.main() == 1
