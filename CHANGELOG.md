@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.2](https://github.com/Ryther/hapatchy/compare/v1.0.1...v1.0.2) (2026-09-28)
+
+
+### Bug Fixes
+
+* stabilize Sonar PR analysis and integration boundaries ([#47](https://github.com/Ryther/hapatchy/issues/47)) ([c01606a](https://github.com/Ryther/hapatchy/commit/c01606a40faf0a445a10612cc427bb354577aca6))
+
 ## [1.0.1](https://github.com/Ryther/hapatchy/compare/v1.0.0...v1.0.1) (2026-09-27)
 
 
