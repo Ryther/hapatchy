@@ -5,6 +5,13 @@ from __future__ import annotations
 import os
 
 
+def _flag(name: str) -> bool:
+    value = os.environ[name]
+    if value not in {"true", "false"}:
+        raise SystemExit(f"Invalid {name} value")
+    return value == "true"
+
+
 def evaluate(
     event_name: str,
     trusted_pr: bool,
@@ -29,11 +36,11 @@ def main() -> None:
     """Evaluate explicit GitHub job outcomes without using a privileged token."""
     if not evaluate(
         os.environ["SONAR_EVENT_NAME"],
-        os.environ["SONAR_TRUSTED_PR"] == "true",
+        _flag("SONAR_TRUSTED_PR"),
         os.environ["SONAR_COVERAGE_RESULT"],
         os.environ["SONAR_CLOUD_RESULT"],
         os.environ["SONAR_COMMUNITY_RESULT"],
-        os.environ["SONAR_REPORT_PRESENT"] == "true",
+        _flag("SONAR_REPORT_PRESENT"),
     ):
         raise SystemExit("Required Sonar scan or report is missing or unsuccessful")
 
