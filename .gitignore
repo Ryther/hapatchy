@@ -33,6 +33,8 @@
 !/tests/*.py
 !/tests/requirements-ha-min.txt
 !/tests/requirements-ha-min-runtime.txt
+!/tests/requirements-commitizen.txt
+!/script/check_sonar_release.py
 !/custom_components/
 !/custom_components/__init__.py
 !/custom_components/hapatchy/
