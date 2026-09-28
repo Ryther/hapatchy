@@ -103,9 +103,11 @@ jobs:
           - python: '3.13.12'
             ha: '2025.3.0'
             lock: tests/requirements-ha-min-runtime.txt
+            version_lock: tests/requirements-ha-min.txt
           - python: '3.14.7'
             ha: 'recent lock'
             lock: .devcontainer/requirements-ha.txt
+            version_lock: .devcontainer/requirements-ha.txt
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -119,7 +121,7 @@ jobs:
       - name: Verify Home Assistant runtime
         env:
           EXPECTED_HA: ${{ matrix.ha }}
-          HA_LOCK: ${{ matrix.lock }}
+          HA_LOCK: ${{ matrix.version_lock }}
         run: |
           python -m pip check
           python -c 'import os, platform, homeassistant.const as c; from pathlib import Path; from script.resolve_ha_locks import validate_lock; pin=validate_lock(Path(os.environ["HA_LOCK"]))["homeassistant"]; label=os.environ["EXPECTED_HA"]; print(platform.python_version(), c.__version__, pin); assert label == "recent lock" or label == pin; assert c.__version__ == pin'
