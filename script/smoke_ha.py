@@ -279,6 +279,21 @@ def _verify_denied_target(base: str, root: Path, token: str, entry: str) -> None
         raise RuntimeError("Unlisted target changed")
 
 
+def wait_for_editor_applied(base: str, token: str) -> dict:
+    deadline = time.monotonic() + 30
+    editor_state = None
+    while time.monotonic() < deadline:
+        states = api_request(base, STATES_PATH, token=token)
+        editor_state = next(
+            (item for item in states if item["entity_id"].startswith("sensor.ci_editor")), None
+        )
+        if editor_state is not None and editor_state["state"] == "applied":
+            return editor_state
+        time.sleep(0.25)
+    observed = editor_state["state"] if editor_state else "missing"
+    raise RuntimeError(f"Editor patch did not report applied status: {observed}")
+
+
 def _verify_file_editor(base: str, root: Path, token: str, entry: str) -> None:
     editor_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
         "flow_id"
@@ -313,12 +328,7 @@ def _verify_file_editor(base: str, root: Path, token: str, entry: str) -> None:
         time.sleep(0.25)
     if target.read_bytes() != b"after\n":
         raise RuntimeError("Editor patch was not applied automatically")
-    states = api_request(base, STATES_PATH, token=token)
-    editor_state = next(
-        (item for item in states if item["entity_id"].startswith("sensor.ci_editor")), None
-    )
-    if editor_state is None or editor_state["state"] != "applied":
-        raise RuntimeError("Editor patch did not report applied status")
+    editor_state = wait_for_editor_applied(base, token)
     backup_root = root / ".hapatchy" / "backups"
     if not any(
         path.read_bytes() == BEFORE_BYTES
