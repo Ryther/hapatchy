@@ -1,5 +1,7 @@
 # Release HAPatchY
 
+[Documentation home](index.md) · [Contribution rules](https://github.com/Ryther/hapatchy/blob/main/CONTRIBUTING.md)
+
 Releases use a pull request. **Merging a feature does not publish a release;
 merging the release PR authorizes publication after its checks pass.**
 
@@ -13,15 +15,10 @@ hotspots. A missing or stale analysis leaves the draft unpublished. The normal
 Sonar quality gate focuses on new code, so its green badge alone does not meet
 this release condition.
 
-The [v0.2.0 release run](https://github.com/Ryther/hapatchy/actions/runs/36026824446)
-completed on 24 September 2026: it validated both HA/Python lanes, uploaded the
-ZIP and checksum, and published the release. GitHub reports that release as
-immutable. User installation instructions are in [installation.md](installation.md).
-
-The HACS Action is skipped when the repository is private because [HACS cannot
-use private GitHub repositories](https://hacs.dev/docs/faq/private_repositories/).
-After the repository became public, the [HACS validation job](https://github.com/Ryther/hapatchy/actions/runs/36022604170)
-passed. It checks repository metadata, not installation into a running HA.
+User installation instructions are in [installation.md](installation.md).
+HACS validation checks repository metadata; the HA boot-smoke lanes exercise
+the integration in a running disposable HA. Neither check alone proves that a
+published release works in every user's installation.
 
 ## What happens after a merge
 
@@ -87,8 +84,8 @@ See [GitHub's trigger rules](https://docs.github.com/en/actions/how-tos/write-wo
 
 ## Commit messages and version ownership
 
-[.cz.yaml](../.cz.yaml) configures standard Conventional Commits. The
-[Dev Container](../.devcontainer/README.md) includes **Python Commitizen 4.19.0**,
+[.cz.yaml](https://github.com/Ryther/hapatchy/blob/main/.cz.yaml) configures standard Conventional Commits. The
+[Dev Container](https://github.com/Ryther/hapatchy/blob/main/.devcontainer/README.md) includes **Python Commitizen 4.19.0**,
 the same version used by the commit-message workflow. Inside it:
 
 ```bash
@@ -134,13 +131,14 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 
 | File | Trigger and responsibility |
 | --- | --- |
-| [commits.yaml](../.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
-| [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
-| [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
-| [codeql.yaml](../.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of Python and GitHub Actions with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
-| [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate its merged candidate, require a clean exact-commit Sonar security result, and publish. |
+| [commits.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/commits.yaml) | PR creation/update/title edit and pushes to `main`; validate messages. Also called by Release before preparing a PR/draft. |
+| [tests.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
+| [validation.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
+| [codeql.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of Python and GitHub Actions with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
+| [docs.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/docs.yaml) | PR and `main` build of the documentation site with strict link validation; a `main` push also publishes to GitHub Pages when Pages is configured to use GitHub Actions. |
+| [release.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate its merged candidate, require a clean exact-commit Sonar security result, and publish. |
 
-[dependabot.yml](../.github/dependabot.yml) proposes weekly updates for Actions
+[dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml) proposes weekly updates for Actions
 and a small allowlist of standalone Python tools (`commitizen` in the recent
 lane, plus `mypy`, `ruff` and `supervisor` where present). The files in
 `.devcontainer/` and `tests/` are fully resolved HA/test-plugin locks; individual
@@ -150,7 +148,7 @@ manual review and both CI lanes; Dependabot neither merges PRs nor changes the
 HA baseline pins automatically. Workflow container-image digests are reviewed
 and updated separately.
 
-The lane-specific `ignore` entries in [dependabot.yml](../.github/dependabot.yml)
+The lane-specific `ignore` entries in [dependabot.yml](https://github.com/Ryther/hapatchy/blob/main/.github/dependabot.yml)
 reflect versions pinned by the current HA releases, their optional integrations,
 or the HA pytest plugin. Recheck and remove relevant entries when changing a
 baseline or test plugin. The allowlist and ignores can also suppress Dependabot
