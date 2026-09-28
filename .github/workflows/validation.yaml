@@ -8,6 +8,7 @@ on:
         required: false
   workflow_dispatch:
   push:
+    branches: [main]
   pull_request:
 permissions:
   contents: read
