@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.3](https://github.com/Ryther/hapatchy/compare/v1.0.2...v1.0.3) (2026-09-28)
+
+
+### Bug Fixes
+
+* block releases on unresolved Sonar security findings ([#49](https://github.com/Ryther/hapatchy/issues/49)) ([d4f1ef8](https://github.com/Ryther/hapatchy/commit/d4f1ef87eb1df9118e2d01d4d11b98ef34d990e9))
+* retry locked CI installs after package index failures ([#51](https://github.com/Ryther/hapatchy/issues/51)) ([bf4d8fc](https://github.com/Ryther/hapatchy/commit/bf4d8fce48396cf764a52261f5f3a4140449076b))
+
 ## [1.0.2](https://github.com/Ryther/hapatchy/compare/v1.0.1...v1.0.2) (2026-09-28)
 
 
