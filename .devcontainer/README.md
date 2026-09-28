@@ -38,7 +38,7 @@ packages into the running container's managed virtual environments.
 | --- | --- |
 | Git, Bash and native build dependencies | Source control, scripts and Python package installation |
 | Python Commitizen **4.19.0** (`cz`) | Guided Conventional Commits and message validation; same version as commit-message CI |
-| pytest **9.0.3** and HA pytest plugin **0.13.363** | Isolated integration/unit tests |
+| pytest **9.0.3** and HA pytest plugin **0.13.367** | Isolated integration/unit tests |
 | Ruff **0.16.8** | Python linting and formatting |
 | mypy **2.3.1** | Type checking |
 | uv **0.12.5** | Resolve the two complete recent HA locks from tracked inputs |
@@ -78,7 +78,7 @@ VS Code's **Tasks: Run Task** offers each check, **Checks: all** (sequential) an
 
 Tests create temporary HA objects/configuration directories. They do not make
 requests to the browser HA or to a household installation. The container runs
-the recent baseline, **HA 2026.9.0 / Python 3.14.7**. CI also tests
+the recent baseline, **HA 2026.9.4 / Python 3.14.7**. CI also tests
 **HA 2025.3.0 / Python 3.13.12** with its separate lock. Passing this container's
 checks is not proof that a minimum-lane-specific failure is fixed.
 
