@@ -54,10 +54,14 @@ The recent-lane lock inputs are `.devcontainer/requirements-{tools,ha}.in`.
 `script/resolve_ha_locks.py` resolves both complete locks together using pinned
 `uv`; never edit only the HA line in a lock. The scheduled updater proposes a
 whole recent-lane PR and leaves the minimum lane untouched. Review generated
-Dependabot comment/exclusion changes against HA and plugin metadata. Its PR
-advisory gate scans the full candidate lock union. It blocks high/critical
-findings on new or changed pins and reports unchanged inherited findings;
-unchanged-lock PRs skip the candidate scan. Keep **Sonar required**, **HA tests required**, **HA boot
+Dependabot comment/exclusion changes against HA and plugin metadata. The PR
+advisory gate scans exact Python requirements declared by HAPatchY in its
+manifest on every PR and checks that both recent locks contain those pins.
+High/critical advisories on those requirements block the PR even when their
+pins are unchanged; HA-only and tooling-only packages do not enter this gate.
+The test matrix checks that product requirements have no unscanned mandatory
+transitive dependencies. If that changes, extend the gate before accepting the
+new dependency. Keep **Sonar required**, **HA tests required**, **HA boot
 required** and **Recent HA advisory gate** in live `main` branch protection.
 Version-named matrix checks are not stable branch-rule names.
 

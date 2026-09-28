@@ -104,15 +104,16 @@ lets the test/boot matrix read the new HA pin directly from each lock and update
 the minimum HA/Python lane and dated screenshot evidence remain unchanged.
 Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
 
-The PR checks the complete candidate locks against active high/critical GitHub
-advisories. Findings on new or changed pins block the PR; findings on unchanged
-pins inherited from the current HA lock are reported without blocking the HA
-update. This does not mean the inherited dependency is safe or that HAPatchY
-controls its version. A changed lock cannot pass if the API is unavailable.
-PRs whose recent locks are byte-for-byte unchanged skip this candidate scan.
-The status is required on `main` alongside Sonar
-and both HA matrix aggregates. A green test or Sonar result alone cannot
-override a red advisory gate.
+On every PR, the advisory gate checks the exact Python requirements in
+HAPatchY's `manifest.json` against active high/critical GitHub advisories and
+verifies that both recent locks contain those pins. An affected HAPatchY
+requirement blocks the PR even if its pin did not change. Packages that appear
+only because of HA or test tooling do not enter this gate and do not block an
+HA baseline update. The test matrix checks
+that product requirements have no mandatory transitives outside the manifest;
+if that changes, the gate must be extended to cover them. An unavailable
+advisory API fails the gate. Its status is required on `main` alongside Sonar
+and both HA matrix aggregates.
 
 The [guarded coordinator](https://github.com/Ryther/hapatchy/actions/workflows/merge-ha-baseline.yaml)
 runs from trusted `main` code. It can enable auto-merge only when the updater PR

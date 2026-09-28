@@ -155,7 +155,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - name: Check out candidate locks
+      - name: Check out candidate requirements and locks
         if: github.event_name == 'pull_request'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -178,7 +178,7 @@ jobs:
       - name: Install pinned scanner dependency
         if: github.event_name == 'pull_request'
         run: python -m pip install --only-binary ':all:' 'packaging==26.3'
-      - name: Scan changed recent locks
+      - name: Scan HAPatchY requirements
         if: github.event_name == 'pull_request'
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
@@ -189,6 +189,6 @@ jobs:
           if [ ! -f "$scanner" ]; then scanner=candidate/script/audit_ha_locks.py; fi
           PYTHONPATH="$(dirname "$scanner")/.." python "$scanner" \
             --base-sha "$BASE_SHA" --candidate-root candidate
-      - name: Confirm no candidate locks on main
+      - name: Confirm no candidate on main
         if: github.event_name != 'pull_request'
         run: echo 'No pull request candidate to scan.'
