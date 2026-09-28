@@ -104,9 +104,13 @@ def main() -> None:
     parser.add_argument("--host", default="https://sonarcloud.io")
     parser.add_argument("--project", required=True)
     parser.add_argument("--pull-request", default="")
-    parser.add_argument("--output", type=Path, required=True)
     args = parser.parse_args()
-    export_analysis(_http_fetch(args.host, os.environ.get("SONAR_TOKEN", "")), args.project, args.output, pull_request=args.pull_request)
+    export_analysis(
+        _http_fetch(args.host, os.environ.get("SONAR_TOKEN", "")),
+        args.project,
+        Path("sonar-report"),
+        pull_request=args.pull_request,
+    )
 
 
 if __name__ == "__main__":

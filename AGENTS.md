@@ -89,11 +89,15 @@ Dependabot PRs use a disposable local scanner without a persistent credential;
 review its baseline and candidate reports before merging. Never replace that
 separation with an untrusted `pull_request_target` checkout. Its rule/file
 exclusions cover HA-mandated coroutine/context signatures and the deliberate
-Docker tag-plus-digest pin. Review each exclusion when its file changes, when HA
-contracts change, or when the analyzer is upgraded. Rule/file exclusions also
-cover future functions in those files: check new helpers manually and remove or
-narrow exclusions that no longer apply. Never suppress a whole file or mark a
-runtime defect as a framework convention merely to pass the quality gate.
+Docker tag-plus-digest pin. The Sonar coverage job also has two narrow pip-rule
+exclusions: it runs without secrets or write grants using an exact resolved lock,
+and that lock contains a source-only package. Reassess those exclusions whenever
+its permissions, lock or install command changes. Review each exclusion when its
+file changes, when HA contracts change, or when the analyzer is upgraded.
+Rule/file exclusions also cover future functions in those files: check new
+helpers manually and remove or narrow exclusions that no longer apply. Never
+suppress a whole file or mark a runtime defect as a framework convention merely
+to pass the quality gate.
 
 ## Implementation boundaries
 

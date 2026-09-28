@@ -100,7 +100,7 @@ jobs:
           mkdir -p sonar-report
           cp "$RUNNER_TEMP/sonar-scanner.log" sonar-report/scanner.log 2>/dev/null || true
           if [ -f "$RUNNER_TEMP/sonar-task/report-task.txt" ]; then
-            args=(--project Ryther_hapatchy --output sonar-report)
+            args=(--project Ryther_hapatchy)
             if [ -n "$PR_NUMBER" ]; then args+=(--pull-request "$PR_NUMBER"); fi
             python "$RUNNER_TEMP/sonar_ci_report.py" "${args[@]}"
             cat sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"
