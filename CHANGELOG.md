@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.0.4](https://github.com/Ryther/hapatchy/compare/v1.0.3...v1.0.4) (2026-09-28)
+
+
+### Bug Fixes
+
+* **ci:** avoid repushing unchanged HA proposals ([#69](https://github.com/Ryther/hapatchy/issues/69)) ([a37d186](https://github.com/Ryther/hapatchy/commit/a37d1860ec07deabfa3344bb411c468b94d41796))
+* **ci:** decode GitHub content and skip blocked candidates ([#67](https://github.com/Ryther/hapatchy/issues/67)) ([d657645](https://github.com/Ryther/hapatchy/commit/d657645ef3bf25a1fdbca0f910a5eb3a66d13124))
+* **ci:** derive recent HA test version from locked pins ([#65](https://github.com/Ryther/hapatchy/issues/65)) ([8791b8d](https://github.com/Ryther/hapatchy/commit/8791b8db0fb486c2973af9fd5cc526c922a1dccf))
+* **ci:** distinguish missing HA branch from API error body ([#64](https://github.com/Ryther/hapatchy/issues/64)) ([c830137](https://github.com/Ryther/hapatchy/commit/c830137ff561c9d228008a36ceaea4ccd633cf56))
+* **ci:** gate advisories on product requirements only ([#73](https://github.com/Ryther/hapatchy/issues/73)) ([78746f8](https://github.com/Ryther/hapatchy/commit/78746f860a7a2e82b4df7db7330f637ae6a91388))
+* **ci:** inspect public branch summary for auto-merge ([#63](https://github.com/Ryther/hapatchy/issues/63)) ([85538aa](https://github.com/Ryther/hapatchy/commit/85538aa5f92a6ebba486d324c8328bbc07dc8f06))
+* **ci:** mount absolute Sonar report path in Docker ([86ab19d](https://github.com/Ryther/hapatchy/commit/86ab19dfa0241dedfafa5b0122283c4e57916577))
+* **ci:** report advisory gate success on main ([#60](https://github.com/Ryther/hapatchy/issues/60)) ([7707220](https://github.com/Ryther/hapatchy/commit/770722084a03351d25a2374234a6c1a3bb7e3a4f))
+* **ci:** report inherited HA lock advisories without blocking ([07d049a](https://github.com/Ryther/hapatchy/commit/07d049a3c5413df8317d69a73ad32e5e182a4f51))
+* **ci:** scope product analysis to shipped integration ([#74](https://github.com/Ryther/hapatchy/issues/74)) ([d827183](https://github.com/Ryther/hapatchy/commit/d82718376c228faa30a0164fc511aa706113c48e))
+* **ci:** wait for eventual editor sensor in HA smoke ([ef45463](https://github.com/Ryther/hapatchy/commit/ef454634aabf16b1c491bbe79682621535ad6637))
+* **compat:** validate Home Assistant 2026.9.4 ([03469f0](https://github.com/Ryther/hapatchy/commit/03469f072607122099dfd46cfae20f47de0d9fc6))
+
+
+### Documentation
+
+* add task-oriented documentation navigation ([43cf753](https://github.com/Ryther/hapatchy/commit/43cf7531ab16e5a69026de159b351aee0cf38652))
+* build and publish navigable site ([e5fb812](https://github.com/Ryther/hapatchy/commit/e5fb8122329051487bbc048659d8b241099a33ec))
+* define documentation impact and reading contracts ([453d4e7](https://github.com/Ryther/hapatchy/commit/453d4e70581c25c45f3fdb08d4112b14ab47340e))
+* keep screenshot label independent of HA baseline ([125fbb5](https://github.com/Ryther/hapatchy/commit/125fbb5a80764b619e5ca91531f32dae72e7a42a))
+* make README useful in HACS ([f26cb23](https://github.com/Ryther/hapatchy/commit/f26cb233df1674738c383a26f072ea0e191aec47))
+* require HACS-ready README reviews ([34cd6f2](https://github.com/Ryther/hapatchy/commit/34cd6f215836a3b023207fbe54a18696092c0ae9))
+
 ## [1.0.3](https://github.com/Ryther/hapatchy/compare/v1.0.2...v1.0.3) (2026-09-28)
 
 
