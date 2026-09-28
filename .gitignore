@@ -21,9 +21,11 @@
 !/script/sonar_ci_report.py
 !/script/sonar_gate.py
 !/script/resolve_ha_locks.py
+!/script/ha_release_catalog.py
 !/tests/test_sonar_ci_report.py
 !/tests/test_sonar_gate.py
 !/tests/test_resolve_ha_locks.py
+!/tests/test_ha_release_catalog.py
 !/pyproject.toml
 !/hacs.json
 !/.github/
