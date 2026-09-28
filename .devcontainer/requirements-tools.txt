@@ -56,7 +56,7 @@ h11==0.16.0
 habluetooth==7.1.2
 hass-nabucasa==2.7.0
 home-assistant-bluetooth==2.0.0
-homeassistant==2026.9.0
+homeassistant==2026.9.4
 httpcore==1.0.9
 httpx==0.28.1
 icmplib==3.0.4
@@ -76,7 +76,7 @@ multidict==6.9.1
 mypy==2.3.1
 mypy-extensions==1.1.0
 numpy==2.3.2
-orjson==3.12.0
+orjson==3.11.9
 packaging==26.3
 paho-mqtt==2.1.0
 patch-ng==1.19.1
@@ -108,7 +108,7 @@ pytest-asyncio==1.4.0
 pytest-cov==7.1.0
 pytest-freezer==0.4.9
 pytest-github-actions-annotate-failures==0.4.2
-pytest-homeassistant-custom-component==0.13.363
+pytest-homeassistant-custom-component==0.13.367
 pytest-picked==0.5.1
 pytest-socket==0.8.0
 pytest-timeout==2.4.0

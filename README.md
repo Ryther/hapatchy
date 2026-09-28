@@ -93,7 +93,7 @@ This screenshot shows a local development installation, not a HACS certification
 | Tested HA baseline | Python in that test environment |
 | --- | --- |
 | **2025.3.0** — minimum supported HA | 3.13.12 |
-| **2026.9.0** — development baseline | 3.14.7 |
+| **2026.9.4** — development baseline | 3.14.7 |
 
 The same integration code is tested at both endpoints. Intermediate HA releases
 have not been individually tested. Your installed HA supplies Python: **HACS does
