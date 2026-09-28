@@ -101,6 +101,14 @@ helpers manually and remove or narrow exclusions that no longer apply. Never
 suppress a whole file or mark a runtime defect as a framework convention merely
 to pass the quality gate.
 
+The HA test jobs' pip exceptions depend on exact resolved locks and read-only,
+credential-free execution. `tests/test_dependency_locks.py` checks lock syntax;
+review every transitive pin and the exception when a lock, job permission or
+package distribution changes. The Commitizen job uses its own binary-only lock.
+Release publication requires Sonar's latest `main` analysis to match the exact
+release SHA, pass its gate, and have no open security issues or unreviewed
+hotspots across the whole project. Treat a missing or stale scan as a release stop.
+
 ## Implementation boundaries
 
 Choose the smallest complete solution within the approved scope. Preserve clear
