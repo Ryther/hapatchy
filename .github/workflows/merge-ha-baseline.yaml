@@ -1,0 +1,41 @@
+name: Guarded HA auto-merge
+on:
+  schedule:
+    - cron: '11 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Inspect eligibility without enabling auto-merge
+        type: boolean
+        default: true
+permissions:
+  contents: read
+concurrency:
+  group: guarded-ha-auto-merge
+  cancel-in-progress: false
+jobs:
+  coordinate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14.7'
+      - name: Install pinned decision dependency
+        run: python -m pip install 'packaging==26.3'
+      - name: Check exact PR, branch rule and checks before opt-in
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo 'RELEASE_PLEASE_TOKEN is required for guarded HA auto-merge.' >&2
+            exit 1
+          fi
+          options=()
+          if [ "$DRY_RUN" = true ]; then options+=(--dry-run); fi
+          python -m script.ha_update_github "${options[@]}"
