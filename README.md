@@ -60,7 +60,7 @@ Other input modes let you paste or upload a diff or use an existing local patch
 file or direct HTTPS URL. Each rule appears as a patch device with Status and
 Patch health entities. There is no custom dashboard to install.
 
-![A patch device with Status Applied and Patch health OK in disposable Home Assistant 2026.9.0](https://raw.githubusercontent.com/Ryther/hapatchy/main/docs/images/patch-device.png)
+![A patch device with Status Applied and Patch health OK in disposable Home Assistant](https://raw.githubusercontent.com/Ryther/hapatchy/main/docs/images/patch-device.png)
 
 This screenshot shows a checked example in disposable HA; read
 [Your first patch](https://ryther.github.io/hapatchy/first-patch/) for the full
