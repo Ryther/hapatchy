@@ -21,12 +21,12 @@ jobs:
       - name: Validate documentation and internal links
         run: python -m mkdocs build --strict
       - name: Prepare GitHub Pages artifact
-        if: github.event_name == 'push'
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.DOCS_PAGES_ENABLED == 'true'
         uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
         with:
           path: site
   deploy:
-    if: github.event_name == 'push'
+    if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && vars.DOCS_PAGES_ENABLED == 'true'
     needs: build
     runs-on: ubuntu-24.04
     permissions:

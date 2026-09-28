@@ -92,8 +92,11 @@ python3 -m venv /tmp/hapatchy-docs-venv
 ```
 
 Open the forwarded preview port, check desktop and narrow-screen navigation,
-and follow the links for the changed task. CI builds every PR; the site is
-published from `main` only when GitHub Pages is configured for GitHub Actions.
+and follow the links for the changed task. CI builds every PR. To publish the
+site, set **Settings → Pages → Build and deployment → Source** to **GitHub
+Actions**, then set repository Actions variable `DOCS_PAGES_ENABLED` to `true`.
+Push to `main` or manually run the Documentation workflow there. Until the
+variable is set, the workflow builds but skips publication.
 
 ## Optional Sonar analysis
 
