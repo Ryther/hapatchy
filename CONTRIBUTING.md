@@ -89,6 +89,8 @@ scanner reports. Then run an installed SonarScanner CLI:
 
 ```bash
 sonar-scanner -Dsonar.scm.revision="$(git rev-parse HEAD)"
+# For a local Community server with a different project key, also pass:
+# -Dsonar.projectKey=your-local-project-key
 ```
 
 For coverage, first generate a fresh coverage.py XML report from the current
@@ -99,3 +101,28 @@ gates and quality profiles are separate server configuration: scanner exclusions
 do not recreate them. Record their names, analyzer version, exact commit and
 actual results when reporting an analysis. Sonar does not replace both HA test
 lanes, the native smoke tests or security review.
+
+## Sonar checks on pull requests
+
+`Sonar quality` runs coverage without secrets on every PR. On `main` and PRs
+originating in this repository, a separate scanner job submits to SonarQube
+Cloud with the repository `SONAR_TOKEN`. It only reads the proposed source; it
+does not run project code or install PR dependencies with that token. A PR from
+a fork or Dependabot uses a disposable Sonar Community Build and compares the
+base and proposed revisions without a persistent credential. This fallback
+checks introduced findings but is not a SonarQube Cloud PR quality gate. Both
+scanners use settings from the PR base revision, so a PR cannot relax its own
+source scope or rule exclusions; scanner-setting changes take effect after merge.
+
+Each scan publishes complete JSON findings and a readable report as a GitHub
+Actions artifact linked from the PR's checks. Artifacts expire after 90 days.
+Sonar's own PR decoration remains the authoritative Cloud result where present.
+The baseline and candidate reports distinguish existing findings from new ones;
+reviewers should inspect the linked report rather than treating a green check as
+proof of safety.
+
+The Cloud project uses CI-based analysis. Keep automatic analysis disabled under
+SonarQube Cloud **Administration → Analysis Method**; the two methods cannot
+run against the same project at once. When setting up the workflow, scan `main`
+first so PRs have a baseline. Only require the new check in branch protection
+after the first complete run and a real fork PR check.

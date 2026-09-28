@@ -83,7 +83,11 @@ workflows before executing them; use a disposable checkout without credentials
 or household mounts. A Dev Container is a reproducibility tool, not a guarantee
 that malicious contributed code is safe to execute.
 
-Sonar analysis uses the tracked `sonar-project.properties`. Its rule/file
+Sonar CI uses the tracked `sonar-project.properties`. The token-bearing Cloud
+scanner must never run project code or install PR dependencies. Fork and
+Dependabot PRs use a disposable local scanner without a persistent credential;
+review its baseline and candidate reports before merging. Never replace that
+separation with an untrusted `pull_request_target` checkout. Its rule/file
 exclusions cover HA-mandated coroutine/context signatures and the deliberate
 Docker tag-plus-digest pin. Review each exclusion when its file changes, when HA
 contracts change, or when the analyzer is upgraded. Rule/file exclusions also

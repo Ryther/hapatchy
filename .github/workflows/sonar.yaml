@@ -1,0 +1,190 @@
+name: Sonar quality
+on:
+  push:
+    branches: [main]
+  pull_request:
+    types: [opened, synchronize, reopened]
+permissions:
+  contents: read
+concurrency:
+  group: sonar-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  coverage:
+    name: Sonar coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14.7'
+      - name: Install locked test environment
+        run: python -m pip install -r .devcontainer/requirements-tools.txt
+      - name: Run coverage on the proposed revision
+        run: |
+          python -m coverage run --source=custom_components/hapatchy,script,.devcontainer/scripts -m pytest -q
+          python -m coverage run --append --source=custom_components/hapatchy,script,.devcontainer/scripts -m unittest discover -s .devcontainer/tests -v
+          python -m coverage xml -o coverage.xml
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: sonar-coverage
+          path: coverage.xml
+          if-no-files-found: error
+          retention-days: 30
+
+  cloud:
+    name: Sonar Cloud
+    if: >-
+      github.event_name == 'push' ||
+      (github.event.pull_request.head.repo.full_name == github.repository &&
+       github.event.pull_request.user.login != 'dependabot[bot]')
+    needs: coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Use trusted scanner settings and report exporter
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch origin '${{ github.event.pull_request.base.sha }}'
+          rm -f sonar-project.properties
+          git show FETCH_HEAD:sonar-project.properties > sonar-project.properties
+          if git cat-file -e FETCH_HEAD:script/sonar_ci_report.py 2>/dev/null; then
+            git show FETCH_HEAD:script/sonar_ci_report.py > "$RUNNER_TEMP/sonar_ci_report.py"
+          else
+            # Bootstrap PR only: the exporter is absent from the base revision.
+            # This step has no token; subsequent PRs use the base exporter.
+            cp script/sonar_ci_report.py "$RUNNER_TEMP/sonar_ci_report.py"
+          fi
+      - name: Copy report exporter from main commit
+        if: github.event_name == 'push'
+        run: cp script/sonar_ci_report.py "$RUNNER_TEMP/sonar_ci_report.py"
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sonar-coverage
+      - name: Scan exact revision without executing project code
+        id: scan
+        continue-on-error: true
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_HEAD: ${{ github.event.pull_request.head.ref }}
+          PR_BASE: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -o pipefail
+          mkdir -p "$RUNNER_TEMP/sonar-task"
+          chmod 0777 "$RUNNER_TEMP/sonar-task"
+          args=('-Dsonar.projectKey=Ryther_hapatchy' '-Dsonar.organization=ryther' '-Dsonar.python.coverage.reportPaths=coverage.xml' '-Dsonar.working.directory=/sonar-task')
+          if [ -n "$PR_NUMBER" ]; then
+            args+=("-Dsonar.pullrequest.key=$PR_NUMBER" "-Dsonar.pullrequest.branch=$PR_HEAD" "-Dsonar.pullrequest.base=$PR_BASE")
+          fi
+          docker run --rm -e SONAR_USER_HOME=/tmp/sonar-user \
+            -e SONAR_TOKEN -e SONAR_HOST_URL=https://sonarcloud.io \
+            -v "$GITHUB_WORKSPACE:/usr/src:ro" -v "$RUNNER_TEMP/sonar-task:/sonar-task" \
+            sonarsource/sonar-scanner-cli@sha256:a3f4215076706c95a17a68c19322ee916e40a3acd081a8c1a1e839e0194afa57 \
+            "${args[@]}" '-Dsonar.qualitygate.wait=true' 2>&1 | tee "$RUNNER_TEMP/sonar-scanner.log"
+      - name: Export complete findings
+        if: always()
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: |
+          mkdir -p sonar-report
+          cp "$RUNNER_TEMP/sonar-scanner.log" sonar-report/scanner.log 2>/dev/null || true
+          if [ -f "$RUNNER_TEMP/sonar-task/report-task.txt" ]; then
+            args=(--project Ryther_hapatchy --output sonar-report)
+            if [ -n "$PR_NUMBER" ]; then args+=(--pull-request "$PR_NUMBER"); fi
+            python "$RUNNER_TEMP/sonar_ci_report.py" "${args[@]}"
+            cat sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo 'Sonar did not submit an analysis; inspect scanner.log.' | tee sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+          if [ "$SCAN_OUTCOME" != success ]; then exit 1; fi
+      - id: cloud-artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: sonar-cloud-report
+          path: sonar-report/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Link complete report
+        if: always()
+        run: echo "[Download the complete Sonar report](${{ steps.cloud-artifact.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
+
+  community:
+    name: Sonar Community (external PR)
+    if: >-
+      github.event_name == 'pull_request' &&
+      (github.event.pull_request.head.repo.full_name != github.repository ||
+       github.event.pull_request.user.login == 'dependabot[bot]')
+    needs: coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.base.sha }}
+          path: baseline
+          persist-credentials: false
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.ref }}
+          path: candidate
+          persist-credentials: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: sonar-coverage
+          path: candidate
+      - name: Use baseline scanner settings for both revisions
+        run: |
+          rm -f candidate/sonar-project.properties
+          cp baseline/sonar-project.properties candidate/sonar-project.properties
+      - name: Start disposable Sonar Community Build
+        run: |
+          sudo sysctl -w vm.max_map_count=1048576
+          docker run -d --name sonar-local --memory=4g --cpus=2 -p 127.0.0.1:9000:9000 \
+            sonarqube@sha256:4905574ab8584dcac1a06c01cdc43a4ce9e369723ac4a7ab1d029c1bf71e6fe9
+          # This disposable container's Elasticsearch may inherit a host filesystem
+          # with little free percentage despite many free bytes; keep absolute guards.
+          for attempt in $(seq 1 60); do
+            if docker exec sonar-local curl -fsS -X PUT http://127.0.0.1:9001/_cluster/settings \
+                -H 'Content-Type: application/json' \
+                -d '{"persistent":{"cluster.routing.allocation.disk.watermark.low":"10gb","cluster.routing.allocation.disk.watermark.high":"5gb","cluster.routing.allocation.disk.watermark.flood_stage":"2gb"}}'; then
+              break
+            fi
+            if [ "$attempt" -eq 60 ]; then exit 1; fi
+            sleep 2
+          done
+          python baseline/script/sonar_ci_local.py --wait-and-create-projects
+      - name: Scan baseline and proposed revision
+        id: scan
+        continue-on-error: true
+        run: python baseline/script/sonar_ci_local.py --scan "$PWD/baseline" "$PWD/candidate" --output "$PWD/sonar-report"
+      - name: Publish full comparison report
+        if: always()
+        env:
+          SCAN_OUTCOME: ${{ steps.scan.outcome }}
+        run: |
+          if [ -f sonar-report/report.md ]; then cat sonar-report/report.md >> "$GITHUB_STEP_SUMMARY"; fi
+          if [ "$SCAN_OUTCOME" != success ]; then
+            docker logs sonar-local > sonar-report/server.log 2>&1 || true
+            exit 1
+          fi
+      - id: community-artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        if: always()
+        with:
+          name: sonar-community-report
+          path: sonar-report/
+          if-no-files-found: warn
+          retention-days: 90
+      - name: Link complete report
+        if: always()
+        run: echo "[Download the complete Sonar report](${{ steps.community-artifact.outputs.artifact-url }})" >> "$GITHUB_STEP_SUMMARY"
