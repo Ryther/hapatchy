@@ -64,14 +64,17 @@ def load_repo(release_numbers: list[int]) -> RepoSnapshot:
     """Read branch rule, latest published release and exact unreleased commits."""
     repository = _gh_json(f"repos/{REPOSITORY}")
     branch = _gh_json(f"repos/{REPOSITORY}/branches/main")
-    protection = _gh_json(f"repos/{REPOSITORY}/branches/main/protection/required_status_checks")
     release = _gh_json(f"repos/{REPOSITORY}/releases/latest")
     main_sha = branch["commit"]["sha"]
     latest_tag = release["tag_name"]
     comparison = _gh_json(f"repos/{REPOSITORY}/compare/{latest_tag}...{main_sha}")
     commits = comparison.get("commits")
+    protection = branch.get("protection", {}).get("required_status_checks", {})
     if (
-        not protection.get("strict")
+        branch.get("protected") is not True
+        or branch.get("protection", {}).get("enabled") is not True
+        or protection.get("enforcement_level") != "everyone"
+        or not isinstance(protection.get("contexts"), list)
         or not isinstance(commits, list)
         or comparison.get("ahead_by") != len(commits)
         or len(commits) >= 100

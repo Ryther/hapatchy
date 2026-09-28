@@ -5,6 +5,8 @@ import json
 import sys
 from subprocess import CompletedProcess
 
+import pytest
+
 from script import ha_update_github as github
 from script.ha_update_merge import MANDATORY_CHECKS, UPDATE_PATHS, PullRequestSnapshot, RepoSnapshot
 
@@ -76,10 +78,18 @@ def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
     def get(endpoint):
         if endpoint.endswith("pulls?state=open&per_page=100"):
             return [{"number": 61, "head": {"ref": "automation/ha-baseline"}}]
-        if endpoint.endswith("branches/main/protection/required_status_checks"):
-            return {"strict": True, "contexts": list(MANDATORY_CHECKS)}
         if endpoint.endswith("branches/main"):
-            return {"commit": {"sha": main_sha}}
+            return {
+                "commit": {"sha": main_sha},
+                "protected": True,
+                "protection": {
+                    "enabled": True,
+                    "required_status_checks": {
+                        "enforcement_level": "everyone",
+                        "contexts": list(MANDATORY_CHECKS),
+                    },
+                },
+            }
         if endpoint.endswith("releases/latest"):
             return {"tag_name": "v1.0.3"}
         if "/compare/" in endpoint:
@@ -116,6 +126,27 @@ def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["ha_update_github.py", "--dry-run"])
     assert github.main() == 0
     assert "Isolated HA update" in capsys.readouterr().out
+
+
+def test_branch_without_admin_enforcement_is_rejected(monkeypatch):
+    def get(endpoint):
+        if endpoint.endswith("branches/main"):
+            return {
+                "commit": {"sha": "a" * 40},
+                "protected": True,
+                "protection": {"enabled": True, "required_status_checks": {
+                    "enforcement_level": "non_admins", "contexts": list(MANDATORY_CHECKS)
+                }},
+            }
+        if endpoint.endswith("releases/latest"):
+            return {"tag_name": "v1.0.3"}
+        if "/compare/" in endpoint:
+            return {"ahead_by": 0, "commits": []}
+        return {"allow_auto_merge": True}
+
+    monkeypatch.setattr(github, "_gh_json", get)
+    with pytest.raises(ValueError, match="Branch protection"):
+        github.load_repo([])
 
 
 def test_file_reader_decodes_exact_commit_contents(monkeypatch):
