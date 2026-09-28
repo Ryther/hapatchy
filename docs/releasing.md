@@ -6,6 +6,12 @@ merging the release PR authorizes publication after its checks pass.**
 Release Please proposes the version and changelog. Commitizen checks commit
 messages. The publishing helper builds the integration archive, uploads it to a
 GitHub draft and publishes that draft only after verification.
+Before publication, the release workflow also waits for SonarCloud to analyze
+the exact release commit on `main`. It requires a passing quality gate, zero
+open security issues across the whole project, and zero unreviewed security
+hotspots. A missing or stale analysis leaves the draft unpublished. The normal
+Sonar quality gate focuses on new code, so its green badge alone does not meet
+this release condition.
 
 The [v0.2.0 release run](https://github.com/Ryther/hapatchy/actions/runs/36026824446)
 completed on 24 September 2026: it validated both HA/Python lanes, uploaded the
@@ -24,7 +30,7 @@ There are two separate runs of the **Release** workflow:
 | Event on `main` | Result |
 | --- | --- |
 | Merge a feature/fix PR | Check commit messages, then open or update the release PR. No release assets are published. |
-| Merge the release PR | Check commit messages, create a draft, test the release commit, upload the ZIP/checksum, then publish. |
+| Merge the release PR | Check commit messages, create a draft, test the release commit, verify its exact Sonar security result, upload the ZIP/checksum, then publish. |
 
 The prepare job handles draft creation before considering another release PR.
 When a merged release PR creates a draft, PR creation is skipped; subsequent
@@ -98,6 +104,12 @@ CI checks both the PR title and its commits. Title edits rerun the check. On
 `main`, CI checks the committed history; merge commits are exempt, temporary
 `fixup!`/`squash!` messages are not. A red check prevents merging only when branch
 rules require it. The Release workflow also requires the commit check itself.
+The commit check installs Python Commitizen and its transitive packages from an
+exact version list in the workflow, using binary wheels with dependency
+resolution disabled. The HA test and boot lanes use their separate exact locks;
+their pytest plugin requires a source-only `mock-open` package. Those jobs have
+read-only permissions and no release credentials, and their lock syntax is
+checked by `tests/test_dependency_locks.py`.
 
 | Commit | Release Please effect |
 | --- | --- |
@@ -124,7 +136,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | [tests.yaml](../.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
 | [validation.yaml](../.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
 | [codeql.yaml](../.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of Python and GitHub Actions with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
-| [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate and publish its merged candidate. |
+| [release.yaml](../.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate its merged candidate, require a clean exact-commit Sonar security result, and publish. |
 
 [dependabot.yml](../.github/dependabot.yml) proposes weekly updates for Actions
 and a small allowlist of standalone Python tools (`commitizen` in the recent
