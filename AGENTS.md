@@ -195,7 +195,8 @@ Independent review supplements tests; neither is proof of complete security.
 
 Documentation is part of a product change. Review it against the final code and
 observed behavior, not the intended design. Keep each page focused on its
-reader's task: `README.md` is the product overview; `docs/index.md` is the
+reader's task: `README.md` is the product overview and, because `hacs.json`
+sets `render_readme: true`, the content shown in HACS; `docs/index.md` is the
 task-oriented documentation home; `docs/first-patch.md` is a tutorial;
 installation, directory permissions and troubleshooting are how-to guides;
 `docs/reference.md` defines exact settings and behavior; `docs/architecture.md`
@@ -234,6 +235,12 @@ links, screenshots and UI names whenever the user journey changes. Keep
 `mkdocs.yml` navigation aligned with the documentation home, build with
 `mkdocs build --strict`, and inspect the rendered site at desktop and narrow
 widths for navigation changes.
+
+Keep the README useful when rendered inside HACS: explain the purpose, first
+steps and important limits before contributor details. Use absolute links for
+destinations a HACS reader must open, and verify badge targets and rendered
+Markdown after changing them. A passing status badge summarizes a check; it is
+not evidence that every patch is safe.
 
 Before documenting a new product procedure, perform it in disposable HA and
 capture the actual rendered UI. Check disk bytes for write operations. Screenshots
