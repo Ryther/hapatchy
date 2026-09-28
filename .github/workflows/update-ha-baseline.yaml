@@ -69,7 +69,7 @@ jobs:
           gh auth setup-git
           git switch -c "$branch"
           git add .devcontainer/requirements-tools.txt .devcontainer/requirements-ha.txt \
-            .github/workflows/tests.yaml .devcontainer/README.md \
+            .devcontainer/README.md \
             README.md AGENTS.md docs/releasing.md
           git diff --cached --check
           git commit -m "$title"

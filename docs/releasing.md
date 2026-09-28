@@ -63,7 +63,8 @@ to initialize the workflow.
    the workflow itself does not check the repository setting.
 2. Add the repository Actions secret **`RELEASE_PLEASE_TOKEN`**: a fine-grained
    personal access token for this repository with **Contents**, **Pull requests**
-   and **Issues** read/write permissions. Release Please uses it to create PRs,
+   and **Issues** read/write permissions. The HA updater does not edit workflow
+   files, so the token does not need **Workflows: write**. Release Please uses it to create PRs,
    labels and drafts. Keep Issues enabled. Do not commit the token.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
@@ -99,7 +100,7 @@ The scheduled [Update HA baseline](https://github.com/Ryther/hapatchy/actions/wo
 workflow checks PyPI for the latest stable HA release and a published pytest
 plugin that pins it exactly. It resolves both recent Python locks from the
 tracked `.in` inputs with pinned `uv`, then proposes a `fix(compat):` PR. It
-updates the recent test/boot matrix and its current-version references;
+lets the test/boot matrix read the new HA pin directly from each lock and updates its current-version references;
 the minimum HA/Python lane and dated screenshot evidence remain unchanged.
 Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
 

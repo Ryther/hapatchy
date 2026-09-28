@@ -39,8 +39,7 @@ def test_candidate_changes_only_allowlisted_paths_and_preserves_minimum(tmp_path
     monkeypatch.setattr(updater, "render", fake_render)
     candidate = updater.plan(root, "2026.9.4", "0.13.367")
     assert set(candidate.edits) == set(updater.EDITABLE_PATHS)
-    assert b"ha: '2026.9.4'" in candidate.edits[Path(".github/workflows/tests.yaml")]
-    assert b"2025.3.0" in candidate.edits[Path(".github/workflows/tests.yaml")]
+    assert Path(".github/workflows/tests.yaml") not in candidate.edits
     updater.apply(root, candidate)
     assert (root / "tests/requirements-ha-min.txt").read_bytes() == minimum
 

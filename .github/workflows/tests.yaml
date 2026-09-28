@@ -66,7 +66,7 @@ jobs:
             typing: '3.13'
             lock: tests/requirements-ha-min.txt
           - python: '3.14.7'
-            ha: '2026.9.0'
+            ha: 'recent lock'
             typing: '3.14'
             lock: .devcontainer/requirements-tools.txt
     steps:
@@ -82,9 +82,10 @@ jobs:
       - name: Verify environment
         env:
           EXPECTED_HA: ${{ matrix.ha }}
+          HA_LOCK: ${{ matrix.lock }}
         run: |
           python -m pip check
-          python -c 'import os, platform, homeassistant.const as c; print(platform.python_version(), c.__version__); assert c.__version__ == os.environ["EXPECTED_HA"]'
+          python -c 'import os, platform, homeassistant.const as c; from pathlib import Path; from script.resolve_ha_locks import validate_lock; pin=validate_lock(Path(os.environ["HA_LOCK"]))["homeassistant"]; label=os.environ["EXPECTED_HA"]; print(platform.python_version(), c.__version__, pin); assert label == "recent lock" or label == pin; assert c.__version__ == pin'
       - run: python -m pytest -q
       - run: python -m ruff check custom_components tests .devcontainer/scripts .devcontainer/tests script
       - run: python -m mypy --python-version '${{ matrix.typing }}'
@@ -103,7 +104,7 @@ jobs:
             ha: '2025.3.0'
             lock: tests/requirements-ha-min-runtime.txt
           - python: '3.14.7'
-            ha: '2026.9.0'
+            ha: 'recent lock'
             lock: .devcontainer/requirements-ha.txt
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -118,9 +119,10 @@ jobs:
       - name: Verify Home Assistant runtime
         env:
           EXPECTED_HA: ${{ matrix.ha }}
+          HA_LOCK: ${{ matrix.lock }}
         run: |
           python -m pip check
-          python -c 'import os, platform, homeassistant.const as c; print(platform.python_version(), c.__version__); assert c.__version__ == os.environ["EXPECTED_HA"]'
+          python -c 'import os, platform, homeassistant.const as c; from pathlib import Path; from script.resolve_ha_locks import validate_lock; pin=validate_lock(Path(os.environ["HA_LOCK"]))["homeassistant"]; label=os.environ["EXPECTED_HA"]; print(platform.python_version(), c.__version__, pin); assert label == "recent lock" or label == pin; assert c.__version__ == pin'
       - name: Boot HAPatchY in disposable Home Assistant
         run: python script/smoke_ha.py
 
