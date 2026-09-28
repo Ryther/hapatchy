@@ -74,6 +74,27 @@ Use synthetic examples; keep credentials, diagnostics and HA state private.
 The repository uses a default-deny `.gitignore`: add narrow exceptions for new
 source/docs/screenshots and check them before staging. Do not use `git add -f`.
 
+## Documentation
+
+Start at the [documentation home](docs/index.md). Keep the guides in Markdown so
+they work both on GitHub and in the generated site. The site navigation is in
+`mkdocs.yml`; update it when adding a page. Review the documentation impact and
+reader journey rules in [AGENTS.md](AGENTS.md) before changing product behavior.
+
+To preview the site in the Dev Container, use a separate disposable environment
+so the HA and test environments keep their locked dependencies:
+
+```bash
+python3 -m venv /tmp/hapatchy-docs-venv
+/tmp/hapatchy-docs-venv/bin/python -m pip install 'mkdocs-material==9.7.7'
+/tmp/hapatchy-docs-venv/bin/python -m mkdocs build --strict
+/tmp/hapatchy-docs-venv/bin/python -m mkdocs serve
+```
+
+Open the forwarded preview port, check desktop and narrow-screen navigation,
+and follow the links for the changed task. CI builds every PR; the site is
+published from `main` only when GitHub Pages is configured for GitHub Actions.
+
 ## Optional Sonar analysis
 
 Run SonarScanner from the repository root against your own SonarQube server.
