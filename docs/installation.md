@@ -1,6 +1,6 @@
 # Install HAPatchY
 
-[← Documentation home](../README.md) · [Next: your first patch →](first-patch.md)
+[← Documentation home](index.md) · [Next: your first patch →](first-patch.md)
 
 ## What you need
 
@@ -21,7 +21,7 @@ HAPatchY paths are relative to this folder. If a file is
 
 ## HACS availability
 
-Use the [HACS custom-repository button](../README.md) if HACS is already
+Use the [HACS custom-repository button](https://github.com/Ryther/hapatchy#readme) if HACS is already
 installed, or add `Ryther/hapatchy` as a custom **Integration** repository in
 HACS. Install the available release and restart HA. The file-editor procedure
 in this documentation was checked against this repository revision in disposable

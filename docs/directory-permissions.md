@@ -1,6 +1,6 @@
 # Allow a directory for HAPatchY
 
-[← Installation](installation.md) · [First patch →](first-patch.md)
+[Documentation home](index.md) · [← Installation](installation.md) · [First patch →](first-patch.md)
 
 HAPatchY starts with **no permitted patch destinations**. The Home Assistant
 operator must name each permitted subdirectory in two settings in

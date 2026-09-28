@@ -1,6 +1,6 @@
 # Troubleshooting, recovery and removal
 
-[← Documentation home](../README.md) · [Status reference](reference.md#status-sensor)
+[← Documentation home](index.md) · [Status reference](reference.md#status-sensor)
 
 ## Start with these checks
 
