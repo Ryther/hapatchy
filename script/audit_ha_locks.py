@@ -18,7 +18,7 @@ from urllib.request import Request, urlopen
 
 from packaging.utils import canonicalize_name
 
-from script.resolve_ha_locks import validate_lock
+from script.resolve_ha_locks import PIN, validate_lock
 
 ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATHS = (
@@ -44,6 +44,7 @@ class Finding:
 class AuditResult:
     package_count: int
     findings: tuple[Finding, ...]
+    inherited: tuple[Finding, ...] = ()
 
     @property
     def blocked(self) -> bool:
@@ -112,7 +113,24 @@ def audit_if_changed(
     """Existing alerts do not block PRs that leave both recent locks untouched."""
     if all(path.read_bytes() == baseline for path, baseline in zip(lock_paths, base_bytes, strict=True)):
         return None
-    return audit(lock_paths, advisory_client)
+    base_pins: dict[str, str] = {}
+    for content in base_bytes:
+        for line in content.decode("utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped or stripped.startswith("#"):
+                continue
+            match = PIN.fullmatch(stripped)
+            if match is None:
+                raise ValueError("Malformed base Home Assistant lock")
+            name = canonicalize_name(match.group(1))
+            version = match.group(2)
+            if name in base_pins and base_pins[name] != version:
+                raise ValueError("Conflicting base Home Assistant lock pins")
+            base_pins[name] = version
+    result = audit(lock_paths, advisory_client)
+    introduced = tuple(finding for finding in result.findings if base_pins.get(finding.package) != finding.version)
+    inherited = tuple(finding for finding in result.findings if base_pins.get(finding.package) == finding.version)
+    return AuditResult(result.package_count, introduced, inherited)
 
 
 def _request_page(url: str, token: str) -> tuple[list[dict[str, Any]], str | None]:
@@ -200,6 +218,8 @@ def main() -> int:
     print(f"Scanned {result.package_count} recent-lock packages")
     for finding in result.findings:
         print(f"{finding.package}=={finding.version}: {finding.severity} {finding.advisory}")
+    for finding in result.inherited:
+        print(f"Inherited: {finding.package}=={finding.version}: {finding.severity} {finding.advisory}")
     return 1 if result.blocked else 0
 
 

@@ -56,6 +56,8 @@ def projects() -> None:
 
 
 def scan(source: Path, project: str, output: Path, token: str) -> int:
+    source = source.resolve()
+    output = output.resolve()
     task = output / (project + "-task")
     task.mkdir(parents=True, exist_ok=True)
     task.chmod(0o777)  # Scanner container UID 1000 writes its task receipt here.

@@ -63,7 +63,8 @@ to initialize the workflow.
    the workflow itself does not check the repository setting.
 2. Add the repository Actions secret **`RELEASE_PLEASE_TOKEN`**: a fine-grained
    personal access token for this repository with **Contents**, **Pull requests**
-   and **Issues** read/write permissions. Release Please uses it to create PRs,
+   and **Issues** read/write permissions. The HA updater does not edit workflow
+   files, so the token does not need **Workflows: write**. Release Please uses it to create PRs,
    labels and drafts. Keep Issues enabled. Do not commit the token.
 3. Allow Actions to create PRs if required by repository/organization policy.
 4. Enable **squash merging**, with the PR title as the default commit title.
@@ -87,10 +88,11 @@ The separate token lets bot-created PRs trigger PR checks; most events created
 with the built-in `GITHUB_TOKEN` do not trigger another workflow. Publication
 uses the built-in token in the same run, so no tag-triggered workflow is needed.
 See [GitHub's trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).
-The guarded coordinator also reads the live branch-protection rule. A fine-grained
-`RELEASE_PLEASE_TOKEN` therefore needs **Administration: read** in addition to
-the permissions above. If the token cannot read that rule, the coordinator fails
-closed and leaves merging to a maintainer.
+The guarded coordinator reads the protected-branch summary through GitHub's
+branch endpoint using the token's existing **Contents: read** permission. It
+also requires the PR base to equal the current `main` commit. If the branch
+summary omits the required checks or their enforcement, it fails closed and
+leaves merging to a maintainer.
 
 ## Automatic Home Assistant baseline proposals
 
@@ -98,15 +100,17 @@ The scheduled [Update HA baseline](https://github.com/Ryther/hapatchy/actions/wo
 workflow checks PyPI for the latest stable HA release and a published pytest
 plugin that pins it exactly. It resolves both recent Python locks from the
 tracked `.in` inputs with pinned `uv`, then proposes a `fix(compat):` PR. It
-updates the recent test/boot matrix and its current-version references;
+lets the test/boot matrix read the new HA pin directly from each lock and updates its current-version references;
 the minimum HA/Python lane and dated screenshot evidence remain unchanged.
 Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
 
 The PR checks the complete candidate locks against active high/critical GitHub
-advisories, including dependencies that were already pinned. A changed lock
-cannot pass if the API is unavailable. PRs whose recent locks are byte-for-byte
-unchanged skip this candidate scan, so an existing alert does not block an
-unrelated documentation PR. The status is required on `main` alongside Sonar
+advisories. Findings on new or changed pins block the PR; findings on unchanged
+pins inherited from the current HA lock are reported without blocking the HA
+update. This does not mean the inherited dependency is safe or that HAPatchY
+controls its version. A changed lock cannot pass if the API is unavailable.
+PRs whose recent locks are byte-for-byte unchanged skip this candidate scan.
+The status is required on `main` alongside Sonar
 and both HA matrix aggregates. A green test or Sonar result alone cannot
 override a red advisory gate.
 
@@ -191,7 +195,7 @@ lane, plus `mypy`, `ruff` and `supervisor` where present). The files in
 updates to their HA-owned packages are deliberately withheld. Regenerate a whole
 lane when changing its HA release or test plugin. Dependabot neither merges PRs
 nor changes the HA baseline pins automatically. The guarded updater can propose
-a whole recent-lane change; advisory findings or unrelated release work stop its
+a whole recent-lane change; newly introduced advisory findings or unrelated release work stop its
 automatic merge. Other Python lock changes require manual review and both CI
 lanes. Workflow container-image digests are reviewed and updated separately.
 

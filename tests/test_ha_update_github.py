@@ -5,6 +5,8 @@ import json
 import sys
 from subprocess import CompletedProcess
 
+import pytest
+
 from script import ha_update_github as github
 from script.ha_update_merge import MANDATORY_CHECKS, UPDATE_PATHS, PullRequestSnapshot, RepoSnapshot
 
@@ -76,10 +78,18 @@ def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
     def get(endpoint):
         if endpoint.endswith("pulls?state=open&per_page=100"):
             return [{"number": 61, "head": {"ref": "automation/ha-baseline"}}]
-        if endpoint.endswith("branches/main/protection/required_status_checks"):
-            return {"strict": True, "contexts": list(MANDATORY_CHECKS)}
         if endpoint.endswith("branches/main"):
-            return {"commit": {"sha": main_sha}}
+            return {
+                "commit": {"sha": main_sha},
+                "protected": True,
+                "protection": {
+                    "enabled": True,
+                    "required_status_checks": {
+                        "enforcement_level": "everyone",
+                        "contexts": list(MANDATORY_CHECKS),
+                    },
+                },
+            }
         if endpoint.endswith("releases/latest"):
             return {"tag_name": "v1.0.3"}
         if "/compare/" in endpoint:
@@ -118,16 +128,67 @@ def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
     assert "Isolated HA update" in capsys.readouterr().out
 
 
+def test_branch_without_admin_enforcement_is_rejected(monkeypatch):
+    def get(endpoint):
+        if endpoint.endswith("branches/main"):
+            return {
+                "commit": {"sha": "a" * 40},
+                "protected": True,
+                "protection": {"enabled": True, "required_status_checks": {
+                    "enforcement_level": "non_admins", "contexts": list(MANDATORY_CHECKS)
+                }},
+            }
+        if endpoint.endswith("releases/latest"):
+            return {"tag_name": "v1.0.3"}
+        if "/compare/" in endpoint:
+            return {"ahead_by": 0, "commits": []}
+        return {"allow_auto_merge": True}
+
+    monkeypatch.setattr(github, "_gh_json", get)
+    with pytest.raises(ValueError, match="Branch protection"):
+        github.load_repo([])
+
+
 def test_file_reader_decodes_exact_commit_contents(monkeypatch):
     observed = []
 
     def get(endpoint):
         observed.append(endpoint)
-        return {"encoding": "base64", "content": base64.b64encode(b"version=1").decode()}
+        encoded = base64.b64encode(b"version=1").decode()
+        return {"encoding": "base64", "content": encoded[:4] + "\n" + encoded[4:] + "\n"}
 
     monkeypatch.setattr(github, "_gh_json", get)
     assert github._content("pyproject.toml", "a" * 40) == b"version=1"
     assert "ref=" + "a" * 40 in observed[0]
+
+
+def test_red_check_skips_expensive_update_contents(monkeypatch):
+    main_sha, head_sha = "a" * 40, "b" * 40
+    repo = RepoSnapshot(main_sha, "1.0.3", (), (), MANDATORY_CHECKS, True)
+
+    def get(endpoint):
+        if endpoint.endswith("/pulls/66"):
+            return {
+                "state": "open", "title": "fix(compat): validate Home Assistant 2026.9.4",
+                "user": {"login": "Ryther"},
+                "head": {"ref": "automation/ha-baseline", "sha": head_sha, "repo": {"full_name": "Ryther/hapatchy"}},
+                "base": {"ref": "main", "sha": main_sha}, "auto_merge": None,
+            }
+        if endpoint.endswith("/pulls/66/files?per_page=100"):
+            return [{"filename": str(path)} for path in UPDATE_PATHS]
+        if endpoint.endswith("/pulls/66/commits?per_page=100"):
+            return [{"commit": {"message": "fix(compat): validate Home Assistant 2026.9.4"}}]
+        if endpoint.endswith("/check-runs?per_page=100"):
+            return {"total_count": 1, "check_runs": [{"name": "Recent HA advisory gate", "head_sha": head_sha, "conclusion": "failure"}]}
+        if endpoint.endswith("/statuses?per_page=100"):
+            return []
+        raise AssertionError(endpoint)
+
+    monkeypatch.setattr(github, "_gh_json", get)
+    monkeypatch.setattr(github, "exact_update", lambda *args: pytest.fail("unexpected lock resolution"))
+    pr = github.load_pr(66, repo)
+    assert not pr.exact_update
+    assert not github.eligible_update(repo, pr).eligible
 
 
 def test_exact_update_compares_every_proposed_byte(monkeypatch):

@@ -55,7 +55,11 @@ jobs:
           branch=automation/ha-baseline
           title="fix(compat): validate Home Assistant $HA_VERSION"
           existing=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
-          old_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null || true)
+          old_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null) || old_sha=''
+          if [ -n "$old_sha" ] && [[ ! "$old_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'Automation branch lookup returned an invalid commit ID.' >&2
+            exit 1
+          fi
           if [ -n "$old_sha" ] && [ -z "$existing" ]; then
             echo 'Automation branch exists without its PR; manual review required.' >&2
             exit 1
@@ -65,11 +69,21 @@ jobs:
           gh auth setup-git
           git switch -c "$branch"
           git add .devcontainer/requirements-tools.txt .devcontainer/requirements-ha.txt \
-            .github/workflows/tests.yaml .devcontainer/README.md \
+            .devcontainer/README.md \
             README.md AGENTS.md docs/releasing.md
           git diff --cached --check
           git commit -m "$title"
           if [ -n "$old_sha" ]; then
+            old_tree=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$old_sha" --jq '.tree.sha')
+            new_tree=$(git rev-parse 'HEAD^{tree}')
+            if [[ ! "$old_tree" =~ ^[0-9a-f]{40}$ ]]; then
+              echo 'Automation branch tree lookup returned an invalid ID.' >&2
+              exit 1
+            fi
+            if [ "$old_tree" = "$new_tree" ]; then
+              echo 'The open HA baseline PR already contains this exact candidate tree.'
+              exit 0
+            fi
             git push "--force-with-lease=refs/heads/$branch:$old_sha" origin "HEAD:refs/heads/$branch"
             gh pr edit "$existing" --title "$title" --body-file _tmp/ha-baseline-pr.md
           else

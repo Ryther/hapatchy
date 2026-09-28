@@ -64,14 +64,17 @@ def load_repo(release_numbers: list[int]) -> RepoSnapshot:
     """Read branch rule, latest published release and exact unreleased commits."""
     repository = _gh_json(f"repos/{REPOSITORY}")
     branch = _gh_json(f"repos/{REPOSITORY}/branches/main")
-    protection = _gh_json(f"repos/{REPOSITORY}/branches/main/protection/required_status_checks")
     release = _gh_json(f"repos/{REPOSITORY}/releases/latest")
     main_sha = branch["commit"]["sha"]
     latest_tag = release["tag_name"]
     comparison = _gh_json(f"repos/{REPOSITORY}/compare/{latest_tag}...{main_sha}")
     commits = comparison.get("commits")
+    protection = branch.get("protection", {}).get("required_status_checks", {})
     if (
-        not protection.get("strict")
+        branch.get("protected") is not True
+        or branch.get("protection", {}).get("enabled") is not True
+        or protection.get("enforcement_level") != "everyone"
+        or not isinstance(protection.get("contexts"), list)
         or not isinstance(commits, list)
         or comparison.get("ahead_by") != len(commits)
         or len(commits) >= 100
@@ -112,7 +115,10 @@ def _content(path: str, sha: str) -> bytes:
     response = _gh_json(endpoint)
     if response.get("encoding") != "base64" or not isinstance(response.get("content"), str):
         raise ValueError("Missing release file contents")
-    data = base64.b64decode(response["content"], validate=True)
+    encoded = response["content"]
+    if len(encoded) > MAX_FILE_BYTES * 2:
+        raise ValueError("Release file exceeded review limit")
+    data = base64.b64decode(encoded.replace("\n", "").replace("\r", ""), validate=True)
     if len(data) > MAX_FILE_BYTES:
         raise ValueError("Release file exceeded review limit")
     return data
@@ -196,11 +202,13 @@ def load_pr(number: int, repo: RepoSnapshot) -> PullRequestSnapshot:
     base_sha = response["base"]["sha"]
     files = _api_list(f"repos/{REPOSITORY}/pulls/{number}/files?per_page=100")
     commits = _api_list(f"repos/{REPOSITORY}/pulls/{number}/commits?per_page=100")
+    checks = _required_results(head_sha)
+    checks_green = all(checks.get(name) == "success" for name in repo.required_checks)
     content_ok = False
     update_ok = False
-    if response["head"]["ref"] == UPDATE_BRANCH:
+    if checks_green and response["head"]["ref"] == UPDATE_BRANCH:
         update_ok = exact_update(head_sha, response["title"], base_sha)
-    if response["head"]["ref"] == RELEASE_BRANCH:
+    if checks_green and response["head"]["ref"] == RELEASE_BRANCH:
         title = response["title"]
         match = re.fullmatch(r"chore\(main\): release ([0-9]+\.[0-9]+\.[0-9]+)", title)
         update = re.fullmatch(
@@ -225,7 +233,7 @@ def load_pr(number: int, repo: RepoSnapshot) -> PullRequestSnapshot:
         head_sha=head_sha,
         changed_files=tuple(item["filename"] for item in files),
         commits=tuple(item["commit"]["message"].splitlines()[0] for item in commits),
-        checks=_required_results(head_sha),
+        checks=checks,
         auto_merge_enabled=response.get("auto_merge") is not None,
         version_only_release=content_ok,
         exact_update=update_ok,

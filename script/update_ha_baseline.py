@@ -17,7 +17,6 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOLS = Path(".devcontainer/requirements-tools.txt")
 RUNTIME = Path(".devcontainer/requirements-ha.txt")
 TEXT_PATHS = (
-    Path(".github/workflows/tests.yaml"),
     Path(".devcontainer/README.md"),
     Path("README.md"),
     Path("AGENTS.md"),
@@ -25,7 +24,6 @@ TEXT_PATHS = (
 )
 EDITABLE_PATHS = (TOOLS, RUNTIME, *TEXT_PATHS)
 HA_REFERENCES = {
-    Path(".github/workflows/tests.yaml"): 2,
     Path(".devcontainer/README.md"): 1,
     Path("README.md"): 1,
     Path("AGENTS.md"): 1,
