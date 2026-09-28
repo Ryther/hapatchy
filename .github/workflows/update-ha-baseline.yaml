@@ -74,6 +74,16 @@ jobs:
           git diff --cached --check
           git commit -m "$title"
           if [ -n "$old_sha" ]; then
+            old_tree=$(gh api "repos/$GITHUB_REPOSITORY/git/commits/$old_sha" --jq '.tree.sha')
+            new_tree=$(git rev-parse 'HEAD^{tree}')
+            if [[ ! "$old_tree" =~ ^[0-9a-f]{40}$ ]]; then
+              echo 'Automation branch tree lookup returned an invalid ID.' >&2
+              exit 1
+            fi
+            if [ "$old_tree" = "$new_tree" ]; then
+              echo 'The open HA baseline PR already contains this exact candidate tree.'
+              exit 0
+            fi
             git push "--force-with-lease=refs/heads/$branch:$old_sha" origin "HEAD:refs/heads/$branch"
             gh pr edit "$existing" --title "$title" --body-file _tmp/ha-baseline-pr.md
           else
