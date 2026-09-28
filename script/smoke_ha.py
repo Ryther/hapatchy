@@ -18,6 +18,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 TIMEOUT_SECONDS = 120
+PATCH_FLOW_PATH = "/api/config/config_entries/subentries/flow"
+PATCH_FLOW_PREFIX = PATCH_FLOW_PATH + "/"
+STATES_PATH = "/api/states"
+BEFORE_TEXT = "before\n"
+BEFORE_BYTES = BEFORE_TEXT.encode("utf-8")
 
 
 def unused_port() -> int:
@@ -30,9 +35,9 @@ def prepare_config(root: Path, port: int) -> None:
     """Use only synthetic, isolated configuration and authored integration files."""
     (root / "scripts").mkdir()
     (root / "scripts" / "smoke.txt").write_text("original\n")
-    (root / "scripts" / "editor.txt").write_text("before\n")
+    (root / "scripts" / "editor.txt").write_text(BEFORE_TEXT)
     (root / "scripts" / "failure.txt").write_text("safe\n")
-    (root / "scripts" / "ambiguous.txt").write_text("before\n")
+    (root / "scripts" / "ambiguous.txt").write_text(BEFORE_TEXT)
     (root / "www").mkdir()
     (root / "www" / "denied.txt").write_text("untouched\n")
     shutil.copytree(
@@ -65,13 +70,15 @@ def wait_for_api(process: subprocess.Popen[bytes], port: int) -> None:
     url = f"http://127.0.0.1:{port}/api/"
     while time.monotonic() < deadline:
         if process.poll() is not None:
-            raise RuntimeError(f"Home Assistant exited before HTTP readiness ({process.returncode})")
+            raise RuntimeError(
+                f"Home Assistant exited before HTTP readiness ({process.returncode})"
+            )
         try:
             urllib.request.urlopen(url, timeout=2)
         except urllib.error.HTTPError as error:
             if error.code == 401:
                 return
-        except (OSError, TimeoutError):
+        except OSError:
             pass
         time.sleep(0.5)
     raise RuntimeError("Home Assistant HTTP readiness timed out")
@@ -84,7 +91,9 @@ def wait_for_hapatchy(process: subprocess.Popen[bytes], log_path: Path) -> None:
         if "Setup of domain hapatchy took" in output:
             return
         if process.poll() is not None:
-            raise RuntimeError(f"Home Assistant exited before HAPatchY setup ({process.returncode})")
+            raise RuntimeError(
+                f"Home Assistant exited before HAPatchY setup ({process.returncode})"
+            )
         time.sleep(0.5)
     raise RuntimeError("HAPatchY setup timed out")
 
@@ -95,12 +104,10 @@ def api_request(
     body = None
     headers = {}
     if data is not None:
-        body = (
-            urllib.parse.urlencode(data).encode()
-            if form
-            else json.dumps(data).encode()
+        body = urllib.parse.urlencode(data).encode() if form else json.dumps(data).encode()
+        headers["Content-Type"] = (
+            "application/x-www-form-urlencoded" if form else "application/json"
         )
-        headers["Content-Type"] = "application/x-www-form-urlencoded" if form else "application/json"
     if token:
         headers["Authorization"] = f"Bearer {token}"
     request = urllib.request.Request(base + path, body, headers)
@@ -146,9 +153,10 @@ def onboard(base: str) -> str:
     return token
 
 
-def verify_patch_flow(base: str, root: Path) -> None:
-    token = onboard(base)
-    result = api_request(base, "/api/config/config_entries/flow", {"handler": "hapatchy"}, token=token)
+def _setup_entry(base: str, token: str) -> str:
+    result = api_request(
+        base, "/api/config/config_entries/flow", {"handler": "hapatchy"}, token=token
+    )
     if result["type"] == "form":
         result = api_request(
             base, "/api/config/config_entries/flow/" + result["flow_id"], {}, token=token
@@ -157,10 +165,12 @@ def verify_patch_flow(base: str, root: Path) -> None:
         raise RuntimeError("HAPatchY integration flow did not create an entry")
     entries = api_request(base, "/api/config/config_entries/entry", token=token)
     entry = next(item["entry_id"] for item in entries if item["domain"] == "hapatchy")
-    flow = api_request(
-        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
-    )["flow_id"]
-    path = "/api/config/config_entries/subentries/flow/" + flow
+    return entry
+
+
+def _verify_manual_patch(base: str, root: Path, token: str, entry: str) -> None:
+    flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)["flow_id"]
+    path = PATCH_FLOW_PREFIX + flow
     result = api_request(
         base,
         path,
@@ -207,7 +217,7 @@ def verify_patch_flow(base: str, root: Path) -> None:
     deadline = time.monotonic() + 30
     state = None
     while time.monotonic() < deadline:
-        states = api_request(base, "/api/states", token=token)
+        states = api_request(base, STATES_PATH, token=token)
         state = next(
             (item for item in states if item["entity_id"].startswith("sensor.ci_smoke")), None
         )
@@ -224,12 +234,15 @@ def verify_patch_flow(base: str, root: Path) -> None:
     api_request(base, "/api/services/hapatchy/revert", {"patch_id": patch_id}, token=token)
     if target.read_bytes() != b"original\n":
         raise RuntimeError("Revert did not restore target bytes")
-    denied_flow = api_request(
-        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
-    )["flow_id"]
+
+
+def _verify_denied_target(base: str, root: Path, token: str, entry: str) -> None:
+    denied_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
+        "flow_id"
+    ]
     denied = api_request(
         base,
-        "/api/config/config_entries/subentries/flow/" + denied_flow,
+        PATCH_FLOW_PREFIX + denied_flow,
         {
             "name": "Denied CI smoke",
             "target_path": "www/denied.txt",
@@ -244,10 +257,12 @@ def verify_patch_flow(base: str, root: Path) -> None:
     if (root / "www" / "denied.txt").read_bytes() != b"untouched\n":
         raise RuntimeError("Unlisted target changed")
 
-    editor_flow = api_request(
-        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
-    )["flow_id"]
-    editor_path = "/api/config/config_entries/subentries/flow/" + editor_flow
+
+def _verify_file_editor(base: str, root: Path, token: str, entry: str) -> None:
+    editor_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
+        "flow_id"
+    ]
+    editor_path = PATCH_FLOW_PREFIX + editor_flow
     editor = api_request(
         base,
         editor_path,
@@ -263,7 +278,10 @@ def verify_patch_flow(base: str, root: Path) -> None:
     if editor.get("step_id") != "edit_file":
         raise RuntimeError("File editor did not open")
     fields = editor.get("data_schema", [])
-    if not any(field.get("name") == "edited_text" and field.get("default") == "before\n" for field in fields):
+    if not any(
+        field.get("name") == "edited_text" and field.get("default") == BEFORE_TEXT
+        for field in fields
+    ):
         raise RuntimeError("File editor did not show the authorized original bytes")
     result = api_request(base, editor_path, {"edited_text": "after\n"}, token=token)
     if result.get("type") != "create_entry":
@@ -274,7 +292,7 @@ def verify_patch_flow(base: str, root: Path) -> None:
         time.sleep(0.25)
     if target.read_bytes() != b"after\n":
         raise RuntimeError("Editor patch was not applied automatically")
-    states = api_request(base, "/api/states", token=token)
+    states = api_request(base, STATES_PATH, token=token)
     editor_state = next(
         (item for item in states if item["entity_id"].startswith("sensor.ci_editor")), None
     )
@@ -282,7 +300,7 @@ def verify_patch_flow(base: str, root: Path) -> None:
         raise RuntimeError("Editor patch did not report applied status")
     backup_root = root / ".hapatchy" / "backups"
     if not any(
-        path.read_bytes() == b"before\n"
+        path.read_bytes() == BEFORE_BYTES
         and json.loads(path.with_name("metadata.json").read_text()).get("target_path")
         == "scripts/editor.txt"
         for path in backup_root.glob("*/*/target")
@@ -294,13 +312,15 @@ def verify_patch_flow(base: str, root: Path) -> None:
         {"patch_id": editor_state["attributes"]["patch_id"]},
         token=token,
     )
-    if target.read_bytes() != b"before\n":
+    if target.read_bytes() != BEFORE_BYTES:
         raise RuntimeError("Editor-generated patch did not revert to original bytes")
 
-    retry_flow = api_request(
-        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
-    )["flow_id"]
-    retry_path = "/api/config/config_entries/subentries/flow/" + retry_flow
+
+def _verify_editor_retry(base: str, root: Path, token: str, entry: str) -> None:
+    retry_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
+        "flow_id"
+    ]
+    retry_path = PATCH_FLOW_PREFIX + retry_flow
     retry = api_request(
         base,
         retry_path,
@@ -316,20 +336,25 @@ def verify_patch_flow(base: str, root: Path) -> None:
     if retry.get("step_id") != "edit_file":
         raise RuntimeError("Retry-case editor did not open")
     retry = api_request(base, retry_path, {"edited_text": "before\nafter\n"}, token=token)
-    if retry.get("step_id") != "edit_file" or retry.get("errors", {}).get("base") != "editor_context_not_unique":
+    if (
+        retry.get("step_id") != "edit_file"
+        or retry.get("errors", {}).get("base") != "editor_context_not_unique"
+    ):
         raise RuntimeError("Ambiguous edit was not refused")
     if not any(
         field.get("name") == "edited_text" and field.get("default") == "before\nafter\n"
         for field in retry.get("data_schema", [])
     ):
         raise RuntimeError("Recoverable editor error discarded the user's edit")
-    if (root / "scripts" / "ambiguous.txt").read_bytes() != b"before\n":
+    if (root / "scripts" / "ambiguous.txt").read_bytes() != BEFORE_BYTES:
         raise RuntimeError("Rejected ambiguous edit changed target bytes")
 
-    failure_flow = api_request(
-        base, "/api/config/config_entries/subentries/flow", {"handler": [entry, "patch"]}, token=token
-    )["flow_id"]
-    failure_path = "/api/config/config_entries/subentries/flow/" + failure_flow
+
+def _verify_failed_apply(base: str, root: Path, token: str, entry: str) -> None:
+    failure_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
+        "flow_id"
+    ]
+    failure_path = PATCH_FLOW_PREFIX + failure_flow
     failure = api_request(
         base,
         failure_path,
@@ -353,7 +378,7 @@ def verify_patch_flow(base: str, root: Path) -> None:
         deadline = time.monotonic() + 30
         failure_state = None
         while time.monotonic() < deadline:
-            states = api_request(base, "/api/states", token=token)
+            states = api_request(base, STATES_PATH, token=token)
             failure_state = next(
                 (item for item in states if item["entity_id"].startswith("sensor.ci_failure")),
                 None,
@@ -367,6 +392,16 @@ def verify_patch_flow(base: str, root: Path) -> None:
             raise RuntimeError("Failed Apply changed target bytes")
     finally:
         scripts.chmod(0o700)
+
+
+def verify_patch_flow(base: str, root: Path) -> None:
+    token = onboard(base)
+    entry = _setup_entry(base, token)
+    _verify_manual_patch(base, root, token, entry)
+    _verify_denied_target(base, root, token, entry)
+    _verify_file_editor(base, root, token, entry)
+    _verify_editor_retry(base, root, token, entry)
+    _verify_failed_apply(base, root, token, entry)
 
 
 def run_smoke() -> None:

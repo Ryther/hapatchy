@@ -142,51 +142,14 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
-            self._data.update(user_input)
-            method = self._data["source_type"]
-            self._selected_source_type = method
-            if method in ("managed", "upload", "edit_file"):
-                self._data["source_type"] = "managed"
-            self._data["watch_root"] = (
-                self._data.get("watch_root") or self._data["target_path"].rpartition("/")[0]
-            )
             try:
-                # Source bytes/address are requested in the following step.
-                placeholder = (
-                    "0" * 64
-                    if method in ("managed", "upload", "edit_file")
-                    else (
-                        "https://example.invalid/patch"
-                        if method == "url"
-                        else self._data["target_path"] + ".patch-source"
-                    )
-                )
-                definition = PatchDefinition.from_mapping(
-                    "pending", self._data | {"source": placeholder}
-                )
-                await self.hass.async_add_executor_job(self._policy.check_definition, definition)
+                method, definition, placeholder = await self._prepare_source(user_input)
             except PatchError as error:
                 errors["base"] = error.reason
             else:
-                if method == "edit_file":
-                    if self._original is not None:
-                        return self.async_abort(reason="editor_new_patch_only")
-                    try:
-                        self._edit_snapshot = await self.hass.async_add_executor_job(
-                            read_editable_target, self._root, definition, self._policy
-                        )
-                    except PatchError as error:
-                        errors["base"] = _editor_error_reason(error)
-                    else:
-                        self._data["source"] = placeholder
-                        self._editing_file = True
-                        return await self.async_step_edit_file()
-                elif method == "upload":
-                    return await self.async_step_upload()
-                elif method == "managed":
-                    return await self.async_step_editor()
-                else:
-                    return await self.async_step_source()
+                result = await self._start_source_step(method, definition, placeholder, errors)
+                if result is not None:
+                    return result
         try:
             self._targets = await self.hass.async_add_executor_job(
                 list_targets, self._root, self._policy
@@ -226,6 +189,46 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             description_placeholders={"policy_path": "configuration.yaml"},
         )
 
+    async def _prepare_source(self, user_input):
+        self._data.update(user_input)
+        method = self._data["source_type"]
+        self._selected_source_type = method
+        if method in ("managed", "upload", "edit_file"):
+            self._data["source_type"] = "managed"
+        self._data["watch_root"] = (
+            self._data.get("watch_root") or self._data["target_path"].rpartition("/")[0]
+        )
+        # Source bytes/address are requested in the following step.
+        if method in ("managed", "upload", "edit_file"):
+            placeholder = "0" * 64
+        elif method == "url":
+            placeholder = "https://example.invalid/patch"
+        else:
+            placeholder = self._data["target_path"] + ".patch-source"
+        definition = PatchDefinition.from_mapping("pending", self._data | {"source": placeholder})
+        await self.hass.async_add_executor_job(self._policy.check_definition, definition)
+        return method, definition, placeholder
+
+    async def _start_source_step(self, method, definition, placeholder, errors):
+        if method == "edit_file":
+            if self._original is not None:
+                return self.async_abort(reason="editor_new_patch_only")
+            try:
+                self._edit_snapshot = await self.hass.async_add_executor_job(
+                    read_editable_target, self._root, definition, self._policy
+                )
+            except PatchError as error:
+                errors["base"] = _editor_error_reason(error)
+                return None
+            self._data["source"] = placeholder
+            self._editing_file = True
+            return await self.async_step_edit_file()
+        if method == "upload":
+            return await self.async_step_upload()
+        if method == "managed":
+            return await self.async_step_editor()
+        return await self.async_step_source()
+
     async def async_step_edit_file(self, user_input=None, *, save_error=None):
         """Edit a captured target; only the generated managed diff is persisted."""
         snapshot = self._edit_snapshot
@@ -238,40 +241,28 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                 errors["base"] = "editor_text_format"
             else:
                 try:
-                    edited = _encode_editor_input(edited_text)
+                    await self._prepare_file_edit(edited_text, snapshot)
                 except PatchError as error:
-                    errors["base"] = error.reason
+                    if error.reason == "editor_target_changed":
+                        return self.async_abort(reason="editor_target_changed")
+                    errors["base"] = _editor_error_reason(error)
                 else:
-                    self._edited_text = edited_text
-                    definition = PatchDefinition.from_mapping("pending", self._data)
-                    try:
-                        self._draft = await self.hass.async_add_executor_job(
-                            build_patch, snapshot.data, edited, definition.target_path
-                        )
-                        await self.hass.async_add_executor_job(
-                            verify_editable_snapshot,
-                            self._root,
-                            definition,
-                            self._policy,
-                            snapshot,
-                        )
-                    except PatchError as error:
-                        if error.reason == "editor_target_changed":
-                            return self.async_abort(reason="editor_target_changed")
-                        errors["base"] = _editor_error_reason(error)
-                    else:
-                        digest = hashlib.sha256(self._draft).hexdigest()
-                        self._data.update(
-                            source=digest,
-                            source_sha256=digest,
-                            enabled=True,
-                            auto_apply=True,
-                            reconcile_on_startup=True,
-                            backup_before_apply=True,
-                        )
-                        self._data = asdict(PatchDefinition.from_mapping("pending", self._data))
-                        self._data.pop("patch_id")
-                        return await self._save()
+                    assert self._draft is not None
+                    digest = hashlib.sha256(self._draft).hexdigest()
+                    self._data.update(
+                        source=digest,
+                        source_sha256=digest,
+                        enabled=True,
+                        auto_apply=True,
+                        reconcile_on_startup=True,
+                        backup_before_apply=True,
+                    )
+                    self._data = asdict(PatchDefinition.from_mapping("pending", self._data))
+                    self._data.pop("patch_id")
+                    return await self._save()
+        return self._show_file_editor(snapshot, errors)
+
+    def _show_file_editor(self, snapshot: Snapshot, errors: dict):
         return self.async_show_form(
             step_id="edit_file",
             errors=errors,
@@ -284,10 +275,20 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                             if self._edited_text is not None
                             else snapshot.data.decode("utf-8")
                         ),
-                    ):
-                    selector.TextSelector(selector.TextSelectorConfig(multiline=True))
+                    ): selector.TextSelector(selector.TextSelectorConfig(multiline=True))
                 }
             ),
+        )
+
+    async def _prepare_file_edit(self, edited_text: str, snapshot: Snapshot) -> None:
+        edited = _encode_editor_input(edited_text)
+        self._edited_text = edited_text
+        definition = PatchDefinition.from_mapping("pending", self._data)
+        self._draft = await self.hass.async_add_executor_job(
+            build_patch, snapshot.data, edited, definition.target_path
+        )
+        await self.hass.async_add_executor_job(
+            verify_editable_snapshot, self._root, definition, self._policy, snapshot
         )
 
     async def async_step_source(self, user_input=None):
@@ -387,28 +388,7 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
         if user_input is not None:
             self._data.update(user_input)
             try:
-                definition = PatchDefinition.from_mapping("pending", self._data)
-                own_id = self.context.get("subentry_id")
-                if any(
-                    subentry.subentry_id != own_id
-                    and subentry.data.get("target_path") == definition.target_path
-                    for subentry in self._entry().subentries.values()
-                ):
-                    raise PatchError("duplicate_target")
-                if definition.source_type == "managed":
-                    if self._draft is None:
-                        raise PatchError("empty_patch")
-                    if (
-                        definition.source_sha256
-                        and hashlib.sha256(self._draft).hexdigest() != definition.source_sha256
-                    ):
-                        raise PatchError("source_hash_mismatch")
-                    result = await self.hass.async_add_executor_job(
-                        inspect_target, self._root, definition, self._draft, self._policy
-                    )
-                else:
-                    result = await validate_definition(self.hass, definition)
-                await self._check_source_change(definition)
+                definition, result = await self._validate_options()
             except PatchError as error:
                 errors["base"] = error.reason
             else:
@@ -437,6 +417,25 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             step_id="options", data_schema=vol.Schema(fields), errors=errors
         )
 
+    async def _validate_options(self):
+        definition = PatchDefinition.from_mapping("pending", self._data)
+        self._check_duplicate_target(definition)
+        if definition.source_type == "managed":
+            if self._draft is None:
+                raise PatchError("empty_patch")
+            if (
+                definition.source_sha256
+                and hashlib.sha256(self._draft).hexdigest() != definition.source_sha256
+            ):
+                raise PatchError("source_hash_mismatch")
+            result = await self.hass.async_add_executor_job(
+                inspect_target, self._root, definition, self._draft, self._policy
+            )
+        else:
+            result = await validate_definition(self.hass, definition)
+        await self._check_source_change(definition)
+        return definition, result
+
     async def async_step_confirm(self, user_input=None):
         if user_input and user_input.get("confirm") is True:
             return await self._save()
@@ -461,53 +460,17 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
         guard = runtime.configuration_guard() if runtime else lock
         try:
             async with guard:
-                if self._original is not None:
-                    current = self._entry().subentries.get(self._original.patch_id)
-                    if (
-                        current is None
-                        or PatchDefinition.from_mapping(current.subentry_id, dict(current.data))
-                        != self._original
-                    ):
-                        raise PatchError("configuration_changed")
+                self._check_original_definition()
                 definition = PatchDefinition.from_mapping("pending", self._data)
-                if any(
-                    sub.subentry_id != self.context.get("subentry_id")
-                    and sub.data.get("target_path") == definition.target_path
-                    for sub in self._entry().subentries.values()
-                ):
-                    raise PatchError("duplicate_target")
+                self._check_duplicate_target(definition)
                 await self._check_source_change(definition)
-                if self._editing_file:
-                    assert self._edit_snapshot is not None
-                    await self.hass.async_add_executor_job(
-                        verify_editable_snapshot,
-                        self._root,
-                        definition,
-                        self._policy,
-                        self._edit_snapshot,
-                    )
-                else:
-                    await self.hass.async_add_executor_job(
-                        self._policy.check_definition, definition
-                    )
+                await self._verify_save_target(definition)
                 if definition.source_type == "managed":
                     assert self._draft is not None
                     self._data["source"] = await self.hass.async_add_executor_job(
                         ManagedPatchStore(self._root).save, self._draft
                     )
-                if self._editing_file:
-                    assert self._edit_snapshot is not None
-                    await self.hass.async_add_executor_job(
-                        verify_editable_snapshot,
-                        self._root,
-                        definition,
-                        self._policy,
-                        self._edit_snapshot,
-                    )
-                else:
-                    await self.hass.async_add_executor_job(
-                        self._policy.check_definition, definition
-                    )
+                await self._verify_save_target(definition)
                 if runtime and runtime.closing:
                     raise PatchError("runtime_reloading")
                 return self._commit()
@@ -517,6 +480,39 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
                     return self.async_abort(reason="editor_target_changed")
                 return await self.async_step_edit_file(save_error=error.reason)
             return await self.async_step_options(save_error=error.reason)
+
+    def _check_duplicate_target(self, definition: PatchDefinition) -> None:
+        own_id = self.context.get("subentry_id")
+        if any(
+            subentry.subentry_id != own_id
+            and subentry.data.get("target_path") == definition.target_path
+            for subentry in self._entry().subentries.values()
+        ):
+            raise PatchError("duplicate_target")
+
+    def _check_original_definition(self) -> None:
+        if self._original is not None:
+            current = self._entry().subentries.get(self._original.patch_id)
+            if (
+                current is None
+                or PatchDefinition.from_mapping(current.subentry_id, dict(current.data))
+                != self._original
+            ):
+                raise PatchError("configuration_changed")
+
+    async def _verify_save_target(self, definition: PatchDefinition) -> None:
+        """Called before and after source publication while holding the shared guard."""
+        if self._editing_file:
+            assert self._edit_snapshot is not None
+            await self.hass.async_add_executor_job(
+                verify_editable_snapshot,
+                self._root,
+                definition,
+                self._policy,
+                self._edit_snapshot,
+            )
+        else:
+            await self.hass.async_add_executor_job(self._policy.check_definition, definition)
 
     def _commit(self):
         if self.source == config_entries.SOURCE_RECONFIGURE:

@@ -80,8 +80,8 @@ def test_non_regular_or_aliased_target_is_rejected(root, kind):
             os.mkfifo(target)
         else:
             target.mkdir()
-    with pytest.raises(ValueError):
-        with io.GuardedFile(root, "python_scripts/test.py") as opened:
+    with io.GuardedFile(root, "python_scripts/test.py") as opened:
+        with pytest.raises(ValueError):
             opened.read()
 
 
@@ -90,8 +90,9 @@ def test_changed_preimage_aborts_and_cleans_temp(root):
     target = root / "python_scripts/test.py"
     with io.GuardedFile(root, "python_scripts/test.py") as opened:
         snap = opened.read()
+        atomic_writer = writer.AtomicFileWriter()
         with pytest.raises(ValueError, match="target_changed"):
-            writer.AtomicFileWriter().commit(
+            atomic_writer.commit(
                 opened, snap, b"changed\n", before_replace=lambda: target.write_bytes(b"upstream\n")
             )
     assert target.read_bytes() == b"upstream\n"
@@ -105,10 +106,10 @@ def test_failed_backup_prevents_replacement(root):
         raise OSError("disk full")
 
     with io.GuardedFile(root, "python_scripts/test.py") as opened:
+        atomic_writer = writer.AtomicFileWriter()
+        snapshot = opened.read()
         with pytest.raises(ValueError, match="backup_failed"):
-            writer.AtomicFileWriter().commit(
-                opened, opened.read(), b"changed\n", before_replace=fail
-            )
+            atomic_writer.commit(opened, snapshot, b"changed\n", before_replace=fail)
     assert (root / "python_scripts/test.py").read_bytes() == b"original\n"
     assert not list((root / "python_scripts").glob(".hapatchy-*.tmp"))
 
@@ -125,8 +126,9 @@ def test_post_replace_fsync_reports_actual_mutation(root, monkeypatch):
             real_fsync(fd)
 
         monkeypatch.setattr(os, "fsync", fail_directory)
+        atomic_writer = writer.AtomicFileWriter()
         with pytest.raises(writer.CommitError) as error:
-            writer.AtomicFileWriter().commit(opened, snap, b"changed\n")
+            atomic_writer.commit(opened, snap, b"changed\n")
         assert error.value.replaced
         assert error.value.reason == "durability_unconfirmed"
         assert (root / "python_scripts/test.py").read_bytes() == b"changed\n"
@@ -141,8 +143,9 @@ def test_parent_swap_detected_before_commit(root):
         (root / "python_scripts").rename(root / "moved")
         (root / "python_scripts").mkdir()
         (root / "python_scripts/test.py").write_bytes(b"other\n")
+        atomic_writer = writer.AtomicFileWriter()
         with pytest.raises(ValueError):
-            writer.AtomicFileWriter().commit(opened, snap, b"changed\n")
+            atomic_writer.commit(opened, snap, b"changed\n")
     assert (root / "moved/test.py").read_bytes() == b"original\n"
     assert (root / "python_scripts/test.py").read_bytes() == b"other\n"
 
@@ -151,10 +154,10 @@ def test_backup_storage_symlink_rejected(root):
     _, io, backup = modules()
     (root / ".hapatchy").symlink_to(root / "python_scripts", target_is_directory=True)
     with io.GuardedFile(root, "python_scripts/test.py") as opened:
+        backup_manager = backup.BackupManager(root, "patch1", 10)
+        snapshot = opened.read()
         with pytest.raises(ValueError):
-            backup.BackupManager(root, "patch1", 10).create(
-                opened.read(), "python_scripts/test.py", b"after", "a" * 64, "apply"
-            )
+            backup_manager.create(snapshot, "python_scripts/test.py", b"after", "a" * 64, "apply")
     assert not (root / "python_scripts/backups").exists()
 
 
@@ -184,8 +187,9 @@ def test_precommit_syscall_failure_preserves_target(root, monkeypatch, operation
     with io.GuardedFile(root, "python_scripts/test.py") as opened:
         snap = opened.read()
         monkeypatch.setattr(os, operation, fail)
+        atomic_writer = writer.AtomicFileWriter()
         with pytest.raises(writer.CommitError) as caught:
-            writer.AtomicFileWriter().commit(opened, snap, b"changed\n")
+            atomic_writer.commit(opened, snap, b"changed\n")
         assert not caught.value.replaced
     assert (root / "python_scripts/test.py").read_bytes() == b"original\n"
     assert not list((root / "python_scripts").glob(".hapatchy-*.tmp"))

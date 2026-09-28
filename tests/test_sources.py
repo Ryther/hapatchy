@@ -58,7 +58,9 @@ def test_reject_unsafe_definition(changes):
 def test_explicit_roots_and_default_pattern():
     item = definition(target_path="scripts/nested/a.py")
     assert item.watch_pattern == "nested/a.py"
-    assert item.enabled and item.auto_apply and item.backup_before_apply
+    assert item.enabled
+    assert item.auto_apply
+    assert item.backup_before_apply
     assert item.debounce_seconds == 1.5
 
 
@@ -92,7 +94,8 @@ class Session:
     def get(self, url, **kwargs):
         # Disallow accidental redirect/auth behavior at the external boundary.
         assert kwargs["allow_redirects"] is False
-        assert "auth" not in kwargs and "headers" not in kwargs
+        assert "auth" not in kwargs
+        assert "headers" not in kwargs
         return self.response
 
 
@@ -133,12 +136,15 @@ async def test_https_exact_bytes_and_generic_hosts(tmp_path, host, monkeypatch):
         ([b"a" * (2 * 1024 * 1024), b"b"], 200, "source_too_large"),
     ],
 )
-async def test_remote_failure_returns_controlled_error(tmp_path, chunks, status, reason, monkeypatch):
+async def test_remote_failure_returns_controlled_error(
+    tmp_path, chunks, status, reason, monkeypatch
+):
     _, client = api()
     fake_session(monkeypatch, Response(chunks, status))
     item = definition(source_type="url", source="https://example.test/private?secret=abc")
+    source_client = client(tmp_path, run)
     with pytest.raises(ValueError, match=reason) as caught:
-        await client(tmp_path, run).load(item)
+        await source_client.load(item)
     assert "secret" not in str(caught.value)
 
 
@@ -149,8 +155,10 @@ async def test_local_hash_is_exact(tmp_path):
     (tmp_path / "patches/a.patch").write_bytes(raw)
     item = definition(source_sha256=hashlib.sha256(raw).hexdigest())
     assert await client(tmp_path, run).load(item) == raw
+    source_client = client(tmp_path, run)
+    patch_definition = definition(source_sha256="a" * 64)
     with pytest.raises(ValueError, match="source_hash_mismatch"):
-        await client(tmp_path, run).load(definition(source_sha256="a" * 64))
+        await source_client.load(patch_definition)
 
 
 @pytest.mark.parametrize("kind", ["fifo", "directory", "symlink", "hardlink"])
@@ -169,8 +177,9 @@ async def test_invalid_local_source_fails_without_blocking(tmp_path, kind):
             path.symlink_to(original)
         else:
             os.link(original, path)
+    pending_load = client(tmp_path, run).load(definition())
     with pytest.raises(ValueError):
-        await asyncio.wait_for(client(tmp_path, run).load(definition()), 1)
+        await asyncio.wait_for(pending_load, 1)
 
 
 @pytest.mark.parametrize(
@@ -201,8 +210,10 @@ async def test_source_replacement_during_capture_is_rejected(tmp_path, monkeypat
         return data
 
     monkeypatch.setattr(os, "read", replace_during_read)
+    source_client = client(tmp_path, run)
+    patch_definition = definition()
     with pytest.raises(ValueError, match="invalid_local_source"):
-        await client(tmp_path, run).load(definition())
+        await source_client.load(patch_definition)
     assert source.read_bytes() == b"new patch"
 
 
@@ -210,8 +221,9 @@ async def test_numeric_https_host_never_reaches_request_adapter(tmp_path):
     _, client = api()
     item = definition(source_type="url", source="https://127.0.0.1/patch")
 
+    source_client = client(tmp_path, run)
     with pytest.raises(ValueError, match="source_network_denied"):
-        await client(tmp_path, run).load(item)
+        await source_client.load(item)
 
 
 async def test_private_dns_denial_never_changes_target(tmp_path, monkeypatch):
@@ -228,8 +240,9 @@ async def test_private_dns_denial_never_changes_target(tmp_path, monkeypatch):
         lambda: PublicDNSResolver(FakeResolver("169.254.169.254")),
     )
     item = definition(source_type="url", source="https://patch.example/private?secret=hidden")
+    PatchSourceClient_operation = patch_source.PatchSourceClient(tmp_path, run)
     with pytest.raises(ValueError, match="source_network_denied") as caught:
-        await patch_source.PatchSourceClient(tmp_path, run).load(item)
+        await PatchSourceClient_operation.load(item)
     assert caught.value.status.value == "security_error"
     assert "hidden" not in str(caught.value)
     assert target.read_bytes() == b"original\n"
@@ -244,9 +257,7 @@ async def test_real_loader_dials_only_public_answer_without_proxy(
     from tests.test_network_policy import FakeResolver
 
     delegate = FakeResolver("1.1.1.1")
-    monkeypatch.setattr(
-        patch_source, "PublicDNSResolver", lambda: PublicDNSResolver(delegate)
-    )
+    monkeypatch.setattr(patch_source, "PublicDNSResolver", lambda: PublicDNSResolver(delegate))
     monkeypatch.setenv("HTTPS_PROXY", "http://127.0.0.1:12345")
     attempted = []
 
@@ -256,8 +267,9 @@ async def test_real_loader_dials_only_public_answer_without_proxy(
 
     monkeypatch.setattr(aiohttp.TCPConnector, "_wrap_create_connection", observe_dial)
     item = definition(source_type="url", source="https://patch.example/file")
+    PatchSourceClient_operation = patch_source.PatchSourceClient(tmp_path, run)
     with pytest.raises(ValueError, match="source_unavailable"):
-        await patch_source.PatchSourceClient(tmp_path, run).load(item)
+        await PatchSourceClient_operation.load(item)
     assert delegate.calls == 1
     assert attempted
     assert "1.1.1.1" in str(attempted)
@@ -291,9 +303,7 @@ async def test_real_loader_reads_200_after_vetted_dns_with_offline_transport(
     server = await asyncio.start_server(serve, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
     delegate = FakeResolver("1.1.1.1")
-    monkeypatch.setattr(
-        patch_source, "PublicDNSResolver", lambda: PublicDNSResolver(delegate)
-    )
+    monkeypatch.setattr(patch_source, "PublicDNSResolver", lambda: PublicDNSResolver(delegate))
     attempts = []
 
     async def offline_transport(self, protocol_factory, *args, **kwargs):
@@ -316,7 +326,8 @@ async def test_real_loader_reads_200_after_vetted_dns_with_offline_transport(
         await server.wait_closed()
     assert delegate.calls == 1
     assert "1.1.1.1" in str(attempts)
-    assert requests and b"Host: patch.example" in requests[0]
+    assert requests
+    assert b"Host: patch.example" in requests[0]
 
 
 async def test_cancellation_closes_HTTPS_resolver(tmp_path, monkeypatch):
@@ -388,6 +399,7 @@ async def test_timeout_covers_post_download_hash_validation(tmp_path, monkeypatc
     target.parent.mkdir()
     target.write_bytes(b"original\n")
     item = definition(source_type="url", source="https://patch.example/file")
+    pending_load = patch_source.PatchSourceClient(tmp_path, stalled_hash).load(item)
     with pytest.raises(ValueError, match="source_unavailable"):
-        await asyncio.wait_for(patch_source.PatchSourceClient(tmp_path, stalled_hash).load(item), 1)
+        await asyncio.wait_for(pending_load, 1)
     assert target.read_bytes() == b"original\n"

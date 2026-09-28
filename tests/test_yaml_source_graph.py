@@ -109,3 +109,79 @@ def test_opaque_tag_operands_do_not_use_include_path_grammar(tmp_path, tag):
     (tmp_path / "configuration.yaml").write_text(f"value: {tag} 'FOO/../bar'\n")
 
     assert scan_source_graph(tmp_path).protects("configuration.yaml")
+
+
+def test_cyclic_include_is_denied(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text("sensor: !include nested.yaml\n")
+    (tmp_path / "nested.yaml").write_text("sensor: !include configuration.yaml\n")
+
+    with pytest.raises(PatchError, match="configuration_source_unavailable"):
+        scan_source_graph(tmp_path)
+
+
+@pytest.mark.parametrize("unsafe_entry", ["symlink", "hardlink"])
+def test_include_directory_rejects_links(tmp_path, unsafe_entry):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text(
+        "sensor: !include_dir_merge_list included\n"
+    )
+    included = tmp_path / "included"
+    included.mkdir()
+    original = tmp_path / "original.yaml"
+    original.write_text("- sensor.example\n")
+    entry = included / "linked.yaml"
+    if unsafe_entry == "symlink":
+        entry.symlink_to(original)
+    else:
+        os.link(original, entry)
+
+    with pytest.raises(PatchError, match="configuration_source_unavailable"):
+        scan_source_graph(tmp_path)
+    assert original.read_text() == "- sensor.example\n"
+
+
+def test_duplicate_keys_in_included_source_are_denied(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text("sensor: !include nested.yaml\n")
+    (tmp_path / "nested.yaml").write_text("sensor: []\nsensor: []\n")
+
+    with pytest.raises(PatchError, match="configuration_source_unavailable"):
+        scan_source_graph(tmp_path)
+
+
+def test_invalid_protected_path_is_not_treated_as_a_source(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text("sensor: []\n")
+
+    graph = scan_source_graph(tmp_path)
+
+    assert not graph.protects("../configuration.yaml")
+    assert not graph.protects("/configuration.yaml")
+
+
+def test_oversized_included_source_is_denied(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text("sensor: !include nested.yaml\n")
+    (tmp_path / "nested.yaml").write_bytes(b"#" + b"x" * (512 * 1024))
+
+    with pytest.raises(PatchError, match="configuration_source_unavailable"):
+        scan_source_graph(tmp_path)
+
+
+def test_excessively_nested_includes_are_denied(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text("sensor: !include 0.yaml\n")
+    for index in range(17):
+        (tmp_path / f"{index}.yaml").write_text(
+            f"sensor: !include {index + 1}.yaml\n"
+        )
+
+    with pytest.raises(PatchError, match="configuration_source_unavailable"):
+        scan_source_graph(tmp_path)

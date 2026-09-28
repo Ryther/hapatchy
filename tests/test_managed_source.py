@@ -26,13 +26,15 @@ def test_revision_roundtrip_is_private_and_idempotent(tmp_path):
     assert path.stat().st_mode & 0o777 == 0o600
     assert len(list(path.parent.iterdir())) == 1
     second = owned.save(DIFF.replace(b"+new", b"+newer"))
-    assert second != revision and owned.load(revision) == DIFF
+    assert second != revision
+    assert owned.load(revision) == DIFF
 
 
 @pytest.mark.parametrize("revision", ["../secrets", "A" * 64, ".storage/auth", "a" * 63])
 def test_revision_is_an_identifier_not_a_path(tmp_path, revision):
+    patch_store = store(tmp_path)
     with pytest.raises(PatchError):
-        store(tmp_path).load(revision)
+        patch_store.load(revision)
 
 
 def test_rejects_tampered_revision_without_overwriting(tmp_path):
@@ -75,8 +77,9 @@ def test_managed_storage_rejects_links(tmp_path, where):
     "data", [b"", b"\xff", b"x" * (2 * 1024 * 1024 + 1)], ids=["empty", "encoding", "oversize"]
 )
 def test_bad_managed_content_never_persisted(tmp_path, data):
+    patch_store = store(tmp_path)
     with pytest.raises(PatchError):
-        store(tmp_path).save(data)
+        patch_store.save(data)
     assert not list(tmp_path.rglob("*.patch"))
 
 

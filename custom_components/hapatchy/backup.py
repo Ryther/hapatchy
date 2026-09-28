@@ -12,6 +12,8 @@ from uuid import uuid4
 from .models import PatchError, Status
 from .safe_io import GuardedDirectory, Snapshot
 
+_METADATA_FILE = "metadata.json"
+
 _BACKUP_NAME = re.compile(r"\d{8}T\d{6}\.\d{6}Z-[0-9a-f]{32}")
 
 
@@ -61,7 +63,7 @@ class BackupManager:
                 with GuardedDirectory(self.root, (*self.parts, name)) as directory:
                     _write(directory.fd, "target", snapshot.data)
                     _write(
-                        directory.fd, "metadata.json", json.dumps(metadata, sort_keys=True).encode()
+                        directory.fd, _METADATA_FILE, json.dumps(metadata, sort_keys=True).encode()
                     )
                     directory.verify()
                     os.fsync(directory.fd)
@@ -75,20 +77,11 @@ class BackupManager:
         """Never follow links or recursively remove unknown files/directories."""
         try:
             with GuardedDirectory(self.root, self.parts) as parent:
-                candidates = []
-                for name in sorted(os.listdir(parent.fd)):
-                    if not _BACKUP_NAME.fullmatch(name):
-                        continue
-                    try:
-                        with GuardedDirectory(self.root, (*self.parts, name)) as directory:
-                            if self._complete(directory):
-                                candidates.append(name)
-                    except (OSError, PatchError):
-                        continue
+                candidates = self._complete_backups(parent)
                 for name in candidates[: -self.retention]:
                     with GuardedDirectory(self.root, (*self.parts, name)) as directory:
                         names = set(os.listdir(directory.fd))
-                        if names != {"target", "metadata.json"}:
+                        if names != {"target", _METADATA_FILE}:
                             continue
                         if any(
                             not stat.S_ISREG(
@@ -108,16 +101,29 @@ class BackupManager:
         except OSError:
             raise PatchError("backup_prune_failed", Status.APPLY_ERROR) from None
 
+    def _complete_backups(self, parent: GuardedDirectory) -> list[str]:
+        candidates = []
+        for name in sorted(os.listdir(parent.fd)):
+            if not _BACKUP_NAME.fullmatch(name):
+                continue
+            try:
+                with GuardedDirectory(self.root, (*self.parts, name)) as directory:
+                    if self._complete(directory):
+                        candidates.append(name)
+            except (OSError, PatchError):
+                continue
+        return candidates
+
     def _complete(self, directory: GuardedDirectory) -> bool:
         """Incomplete attempts must not count toward retention of recovery copies."""
-        if set(os.listdir(directory.fd)) != {"target", "metadata.json"}:
+        if set(os.listdir(directory.fd)) != {"target", _METADATA_FILE}:
             return False
-        for name in ("target", "metadata.json"):
+        for name in ("target", _METADATA_FILE):
             info = os.stat(name, dir_fd=directory.fd, follow_symlinks=False)
             if not stat.S_ISREG(info.st_mode) or info.st_nlink != 1:
                 return False
         fd = os.open(
-            "metadata.json", os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory.fd
+            _METADATA_FILE, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=directory.fd
         )
         try:
             raw = os.read(fd, 65537)
@@ -133,5 +139,5 @@ class BackupManager:
                 and metadata.get("patch_id") == self.patch_id
                 and isinstance(metadata.get("original_sha256"), str)
             )
-        except (ValueError, UnicodeError):
+        except ValueError:
             return False

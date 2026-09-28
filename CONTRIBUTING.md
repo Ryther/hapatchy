@@ -73,3 +73,59 @@ HA, capture the actual UI, and record the checks and their limits in the PR.
 Use synthetic examples; keep credentials, diagnostics and HA state private.
 The repository uses a default-deny `.gitignore`: add narrow exceptions for new
 source/docs/screenshots and check them before staging. Do not use `git add -f`.
+
+## Optional Sonar analysis
+
+Run SonarScanner from the repository root against your own SonarQube server.
+The tracked `sonar-project.properties` defines sources, tests and targeted
+rule/file exclusions; those exclusions are sent with each analysis, so they do
+not depend on retained server settings. They preserve HA-required hook signatures,
+the immutable Docker image pin, the credential-free coverage job's exact HA
+lock/source-only package exception and a report-content false positive in the
+fixed-path exporter. Other rules continue checking those files.
+Review exclusions as described in [AGENTS.md](AGENTS.md).
+
+Set `SONAR_HOST_URL` to your server and `SONAR_TOKEN` to a project analysis token
+in your shell or secret store. Never commit either credentials or generated
+scanner reports. Then run an installed SonarScanner CLI:
+
+```bash
+sonar-scanner -Dsonar.scm.revision="$(git rev-parse HEAD)"
+# For a local Community server with a different project key, also pass:
+# -Dsonar.projectKey=your-local-project-key
+```
+
+For coverage, first generate a fresh coverage.py XML report from the current
+checkout's test runs, then pass its path with
+`-Dsonar.python.coverage.reportPaths=/path/to/coverage.xml`. A stale report can
+misrepresent coverage or refer to lines that no longer exist. Server quality
+gates and quality profiles are separate server configuration: scanner exclusions
+do not recreate them. Record their names, analyzer version, exact commit and
+actual results when reporting an analysis. Sonar does not replace both HA test
+lanes, the native smoke tests or security review.
+
+## Sonar checks on pull requests
+
+`Sonar quality` runs coverage without secrets on every PR. On `main` and PRs
+originating in this repository, a separate scanner job submits to SonarQube
+Cloud with the repository `SONAR_TOKEN`. It only reads the proposed source; it
+does not run project code or install PR dependencies with that token. A PR from
+a fork or Dependabot uses a disposable Sonar Community Build and compares the
+base and proposed revisions without a persistent credential. This fallback
+checks introduced findings but is not a SonarQube Cloud PR quality gate. Both
+scanners use settings from the PR base revision once this workflow is on `main`,
+so a PR cannot relax its own source scope or rule exclusions; scanner-setting
+changes take effect after merge. This initial setup PR uses its new settings.
+
+Each scan publishes complete JSON findings and a readable report as a GitHub
+Actions artifact linked from the PR's checks. Artifacts expire after 90 days.
+Sonar's own PR decoration remains the authoritative Cloud result where present.
+The baseline and candidate reports distinguish existing findings from new ones;
+reviewers should inspect the linked report rather than treating a green check as
+proof of safety.
+
+The Cloud project uses CI-based analysis. Keep automatic analysis disabled under
+SonarQube Cloud **Administration → Analysis Method**; the two methods cannot
+run against the same project at once. When setting up the workflow, scan `main`
+first so PRs have a baseline. Only require the new check in branch protection
+after the first complete run and a real fork PR check.

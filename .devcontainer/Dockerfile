@@ -6,7 +6,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --uid 1000 --shell /bin/bash vscode
 COPY Dockerfile /usr/local/share/hapatchy-Dockerfile
-RUN python -c 'import hashlib,json,pathlib,sys; p=pathlib.Path("/usr/local/share"); (p/"hapatchy-image.json").write_text(json.dumps({"base_image":sys.argv[1],"build_inputs":hashlib.sha256((p/"hapatchy-Dockerfile").read_bytes()).hexdigest()}))' "${PYTHON_IMAGE}"
+RUN python -c 'import hashlib,json,pathlib,sys; \
+    p=pathlib.Path("/usr/local/share"); \
+    (p/"hapatchy-image.json").write_text(json.dumps({ \
+        "base_image":sys.argv[1], \
+        "build_inputs":hashlib.sha256((p/"hapatchy-Dockerfile").read_bytes()).hexdigest()}))' \
+    "${PYTHON_IMAGE}"
 USER vscode
 WORKDIR /workspaces/hapatchy
 CMD ["bash", "/workspaces/hapatchy/.devcontainer/scripts/entrypoint.sh"]

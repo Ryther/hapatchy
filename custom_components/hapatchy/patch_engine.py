@@ -71,6 +71,66 @@ def _headers(lines: list[str], target: str) -> int:
     return start + 2
 
 
+def _hunk_header(line: str) -> tuple[int, int, int, int]:
+    match = _HUNK.fullmatch(line)
+    if not match:
+        raise PatchError("invalid_hunk")
+    old_start, old_count, new_start, new_count = (int(value or "1") for value in match.groups())
+    if min(old_start, old_count, new_start, new_count) < 1:
+        raise PatchError("unanchored_hunk")
+    return old_start, old_count, new_start, new_count
+
+
+def _append_line(lines: list[str], value: str) -> None:
+    if lines and not lines[-1].endswith("\n"):
+        raise PatchError("invalid_newline_marker")
+    lines.append(value)
+
+
+def _read_hunk(
+    lines: list[str], index: int, old_count: int, new_count: int
+) -> tuple[Hunk, list[bytes], int]:
+    """Preserve newline markers in owned records and raw body bytes for parser checks."""
+    old: list[str] = []
+    new: list[str] = []
+    body: list[bytes] = []
+    while index < len(lines) and not lines[index].startswith("@@ "):
+        line = lines[index]
+        if not line or line[0] not in " +-":
+            raise PatchError("invalid_hunk_body")
+        prefix, value = line[0], line[1:] + "\n"
+        body.append((line + "\n").encode("utf-8"))
+        index += 1
+        if index < len(lines) and lines[index] == _NO_NEWLINE:
+            value = value[:-1]
+            index += 1
+        if prefix in " -":
+            _append_line(old, value)
+        if prefix in " +":
+            _append_line(new, value)
+    if len(old) != old_count or len(new) != new_count:
+        raise PatchError("hunk_count_mismatch")
+    if old == new:
+        raise PatchError("no_change")
+    return Hunk("".join(old).encode("utf-8"), "".join(new).encode("utf-8")), body, index
+
+
+def _unique_location(original: bytes, before: bytes) -> int | None:
+    """Require one whole-line context match in the unchanged original bytes."""
+    location = None
+    position = original.find(before)
+    while position >= 0:
+        end = position + len(before)
+        if (position == 0 or original[position - 1 : position] == b"\n") and (
+            before.endswith(b"\n") or end == len(original)
+        ):
+            if location is not None:
+                return None
+            location = position
+        position = original.find(before, position + 1)
+    return location
+
+
 class UnifiedDiffEngine:
     """Never mutates files or calls the third-party applicator."""
 
@@ -85,44 +145,12 @@ class UnifiedDiffEngine:
         bodies: list[list[bytes]] = []
         previous_old = previous_new = 0
         while index < len(lines):
-            match = _HUNK.fullmatch(lines[index])
-            if not match:
-                raise PatchError("invalid_hunk")
-            old_start, old_count, new_start, new_count = (
-                int(value or "1") for value in match.groups()
-            )
-            if min(old_start, old_count, new_start, new_count) < 1:
-                raise PatchError("unanchored_hunk")
+            old_start, old_count, new_start, new_count = _hunk_header(lines[index])
             if old_start < previous_old or new_start < previous_new:
                 raise PatchError("overlapping_hunks")
             previous_old, previous_new = old_start + old_count, new_start + new_count
-            index += 1
-            old: list[str] = []
-            new: list[str] = []
-            body: list[bytes] = []
-            while index < len(lines) and not lines[index].startswith("@@ "):
-                line = lines[index]
-                if not line or line[0] not in " +-":
-                    raise PatchError("invalid_hunk_body")
-                prefix, value = line[0], line[1:] + "\n"
-                body.append((line + "\n").encode("utf-8"))
-                index += 1
-                if index < len(lines) and lines[index] == _NO_NEWLINE:
-                    value = value[:-1]
-                    index += 1
-                if prefix in " -":
-                    if old and not old[-1].endswith("\n"):
-                        raise PatchError("invalid_newline_marker")
-                    old.append(value)
-                if prefix in " +":
-                    if new and not new[-1].endswith("\n"):
-                        raise PatchError("invalid_newline_marker")
-                    new.append(value)
-            if len(old) != old_count or len(new) != new_count:
-                raise PatchError("hunk_count_mismatch")
-            if old == new:
-                raise PatchError("no_change")
-            records.append(Hunk("".join(old).encode("utf-8"), "".join(new).encode("utf-8")))
+            record, body, index = _read_hunk(lines, index + 1, old_count, new_count)
+            records.append(record)
             bodies.append(body)
         if not records:
             raise PatchError("no_hunks")
@@ -144,20 +172,9 @@ class UnifiedDiffEngine:
         previous_end = 0
         for hunk in hunks:
             before, after = (hunk.after, hunk.before) if reverse else (hunk.before, hunk.after)
-            locations: list[int] = []
-            position = original.find(before)
-            while position >= 0:
-                end = position + len(before)
-                if (position == 0 or original[position - 1 : position] == b"\n") and (
-                    before.endswith(b"\n") or end == len(original)
-                ):
-                    locations.append(position)
-                    if len(locations) > 1:
-                        return None
-                position = original.find(before, position + 1)
-            if len(locations) != 1 or locations[0] < previous_end:
+            start = _unique_location(original, before)
+            if start is None or start < previous_end:
                 return None
-            start = locations[0]
             previous_end = start + len(before)
             replacements.append((start, previous_end, after))
         pieces: list[bytes] = []

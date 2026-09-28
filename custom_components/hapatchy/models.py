@@ -48,8 +48,7 @@ def relative_parts(path: str, *, internal: bool = False) -> tuple[str, ...]:
     ):
         raise PatchError("unsafe_path", Status.SECURITY_ERROR)
     if not internal and (
-        parts[0] in (".storage", ".hapatchy")
-        or parts[:2] == ("custom_components", "hapatchy")
+        parts[0] in (".storage", ".hapatchy") or parts[:2] == ("custom_components", "hapatchy")
     ):
         raise PatchError("protected_path", Status.SECURITY_ERROR)
     return parts
@@ -87,49 +86,10 @@ class PatchDefinition:
         ):
             raise PatchError("pattern_misses_target")
         source_type, source = data["source_type"], data["source"]
-        if source_type == "local":
-            if relative_parts(source) == target:
-                raise PatchError("source_is_target", Status.SECURITY_ERROR)
-        elif source_type == "managed":
-            if not re.fullmatch(r"[0-9a-f]{64}", source):
-                raise PatchError("invalid_managed_source", Status.SECURITY_ERROR)
-        elif source_type == "url":
-            try:
-                url = urlsplit(source)
-                port = url.port
-                valid = (
-                    url.scheme == "https"
-                    and url.hostname
-                    and url.username is None
-                    and url.password is None
-                    and "#" not in source
-                    and not any(char.isspace() or ord(char) < 32 for char in source)
-                    and (port is None or 1 <= port <= 65535)
-                )
-            except ValueError:
-                valid = False
-            if not valid:
-                raise PatchError("invalid_source_url", Status.SECURITY_ERROR)
-        else:
-            raise PatchError("invalid_source_type")
-        flags = {}
-        for key in ("enabled", "auto_apply", "reconcile_on_startup", "backup_before_apply"):
-            value = data.get(key, True)
-            if type(value) is not bool:
-                raise PatchError("invalid_boolean")
-            flags[key] = value
-        debounce = data.get("debounce_seconds", 1.5)
-        if (
-            type(debounce) not in (float, int)
-            or not math.isfinite(debounce)
-            or not 0.1 <= debounce <= 60
-        ):
-            raise PatchError("invalid_debounce")
-        digest = data.get("source_sha256") or None
-        if digest is not None and (
-            not isinstance(digest, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", digest)
-        ):
-            raise PatchError("invalid_source_hash")
+        _validate_source(source_type, source, target)
+        flags = _boolean_flags(data)
+        debounce = _debounce(data.get("debounce_seconds", 1.5))
+        digest = _source_digest(data.get("source_sha256") or None)
         return cls(
             patch_id,
             data["name"],
@@ -139,9 +99,65 @@ class PatchDefinition:
             source_type,
             source,
             debounce_seconds=float(debounce),
-            source_sha256=digest.lower() if digest else None,
+            source_sha256=digest,
             **flags,
         )
+
+
+def _validate_source(source_type: str, source: str, target: tuple[str, ...]) -> None:
+    if source_type == "local":
+        if relative_parts(source) == target:
+            raise PatchError("source_is_target", Status.SECURITY_ERROR)
+    elif source_type == "managed":
+        if not re.fullmatch(r"[0-9a-f]{64}", source):
+            raise PatchError("invalid_managed_source", Status.SECURITY_ERROR)
+    elif source_type == "url":
+        _validate_source_url(source)
+    else:
+        raise PatchError("invalid_source_type")
+
+
+def _validate_source_url(source: str) -> None:
+    try:
+        url = urlsplit(source)
+        port = url.port
+        valid = (
+            url.scheme == "https"
+            and url.hostname
+            and url.username is None
+            and url.password is None
+            and "#" not in source
+            and not any(char.isspace() or ord(char) < 32 for char in source)
+            and (port is None or 1 <= port <= 65535)
+        )
+    except ValueError:
+        valid = False
+    if not valid:
+        raise PatchError("invalid_source_url", Status.SECURITY_ERROR)
+
+
+def _boolean_flags(data: dict[str, Any]) -> dict[str, bool]:
+    flags = {}
+    for key in ("enabled", "auto_apply", "reconcile_on_startup", "backup_before_apply"):
+        value = data.get(key, True)
+        if type(value) is not bool:
+            raise PatchError("invalid_boolean")
+        flags[key] = value
+    return flags
+
+
+def _debounce(value: Any) -> float:
+    if type(value) not in (float, int) or not math.isfinite(value) or not 0.1 <= value <= 60:
+        raise PatchError("invalid_debounce")
+    return float(value)
+
+
+def _source_digest(digest: Any) -> str | None:
+    if digest is not None and (
+        not isinstance(digest, str) or not re.fullmatch(r"[0-9a-fA-F]{64}", digest)
+    ):
+        raise PatchError("invalid_source_hash")
+    return digest.lower() if digest else None
 
 
 @dataclass

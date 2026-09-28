@@ -64,15 +64,19 @@ async def test_sensor_is_bound_to_native_subentry(hass, tmp_path):
     assert {entity.domain for entity in entities} == {"sensor", "binary_sensor"}
     assert all(entity.config_subentry_id == pid for entity in entities)
     device_ids = {entity.device_id for entity in entities}
-    assert len(device_ids) == 1 and None not in device_ids
+    assert len(device_ids) == 1
+    assert None not in device_ids
     device = dr.async_get(hass).async_get(next(iter(device_ids)))
-    assert device is not None and device.name == "Example"
+    assert device is not None
+    assert device.name == "Example"
     # HA 2025.3 groups entities into devices but has no device subentry field.
     if hasattr(device, "config_subentry_id"):
         assert device.config_subentry_id == pid
     status = next(entity for entity in entities if entity.domain == "sensor")
     attention = next(entity for entity in entities if entity.domain == "binary_sensor")
-    assert hass.states.get(attention.entity_id).attributes["friendly_name"] == "Example Patch health"
+    assert (
+        hass.states.get(attention.entity_id).attributes["friendly_name"] == "Example Patch health"
+    )
     assert hass.states.get(attention.entity_id).attributes["device_class"] == "problem"
     assert attention.unique_id == f"{entry.entry_id}_{pid}_attention"
     assert hass.states.get(status.entity_id).state == "unknown"
@@ -88,7 +92,8 @@ async def test_attention_turns_on_for_conflict_and_off_after_recovery(hass, tmp_
     from homeassistant.helpers import entity_registry as er
 
     attention = next(
-        entity for entity in er.async_get(hass).entities.values()
+        entity
+        for entity in er.async_get(hass).entities.values()
         if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
     )
     (tmp_path / "scripts/a.py").write_bytes(b"context\nupstream\n")
@@ -111,7 +116,8 @@ async def test_disabled_patch_stays_visible_and_cannot_apply(hass, tmp_path):
     from homeassistant.helpers import entity_registry as er
 
     attention = next(
-        entity for entity in er.async_get(hass).entities.values()
+        entity
+        for entity in er.async_get(hass).entities.values()
         if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
     )
     assert hass.states.get(attention.entity_id).state == "unknown"
@@ -204,7 +210,8 @@ async def test_metadata_round_trip_and_redaction(hass, tmp_path, hass_storage):
     saved = hass_storage[f"hapatchy.{entry.entry_id}"]["data"][pid]
     assert saved["last_applied_at"]
     assert len(saved["target_sha256"]) == 64
-    assert "source" not in saved and "target_path" not in saved
+    assert "source" not in saved
+    assert "target_path" not in saved
 
 
 async def test_future_major_config_is_not_rewritten(hass, tmp_path):
@@ -214,7 +221,8 @@ async def test_future_major_config_is_not_rewritten(hass, tmp_path):
     entry = MockConfigEntry(domain="hapatchy", version=99, data={"future": "preserve"})
     entry.add_to_hass(hass)
     assert not await hass.config_entries.async_setup(entry.entry_id)
-    assert entry.version == 99 and entry.data == {"future": "preserve"}
+    assert entry.version == 99
+    assert entry.data == {"future": "preserve"}
 
 
 async def test_cancelled_caller_does_not_abandon_commit_result(hass, tmp_path, monkeypatch):
@@ -336,7 +344,8 @@ async def test_corrupt_metadata_rebuild_preserves_backups(hass, tmp_path, hass_s
         for record in caplog.records
         if record.name.startswith("custom_components.hapatchy")
     )
-    assert "metadata_invalid" in owned_logs and "do-not-log-secret" not in owned_logs
+    assert "metadata_invalid" in owned_logs
+    assert "do-not-log-secret" not in owned_logs
 
 
 async def test_failed_setup_releases_runtime_for_retry(hass, tmp_path, monkeypatch):

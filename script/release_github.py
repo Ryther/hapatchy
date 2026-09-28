@@ -115,21 +115,25 @@ def _verified_draft(github: GitHub, tag: str, sha: str, release_id: int) -> dict
     return release
 
 
+def _upload_artifact(github: GitHub, release: dict, release_id: int, artifact: Path) -> None:
+    digest = "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
+    matching = [asset for asset in release["assets"] if asset["name"] == artifact.name]
+    if matching:
+        if len(matching) != 1 or matching[0].get("digest") != digest:
+            raise ValueError("Existing draft asset differs or has no verifiable digest")
+    else:
+        uploaded = github.upload(release_id, artifact)
+        if uploaded.get("digest") != digest:
+            raise ValueError("Uploaded asset digest does not match local bytes")
+
+
 def publish_release(root: Path, github: GitHub, tag: str, sha: str, release_id: int) -> None:
     verify_checkout(root, sha)
     release_version(root, tag)
     release = _verified_draft(github, tag, sha, release_id)
     artifacts = build_archive(root, tag)
     for artifact in artifacts:
-        digest = "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
-        matching = [asset for asset in release["assets"] if asset["name"] == artifact.name]
-        if matching:
-            if len(matching) != 1 or matching[0].get("digest") != digest:
-                raise ValueError("Existing draft asset differs or has no verifiable digest")
-        else:
-            uploaded = github.upload(release_id, artifact)
-            if uploaded.get("digest") != digest:
-                raise ValueError("Uploaded asset digest does not match local bytes")
+        _upload_artifact(github, release, release_id, artifact)
     # Re-read before the irreversible publish step, including hashes of both assets.
     release = _verified_draft(github, tag, sha, release_id)
     for artifact in artifacts:
@@ -140,6 +144,22 @@ def publish_release(root: Path, github: GitHub, tag: str, sha: str, release_id: 
     result = github.publish(release_id)
     if result["draft"] is not False:
         raise ValueError("GitHub did not publish the release")
+
+
+def _pending_release(github: GitHub, output_path: Path | None) -> None:
+    drafts = [
+        r
+        for r in github.releases()
+        if r["draft"] and r["tag_name"].startswith("v") and VERSION.fullmatch(r["tag_name"][1:])
+    ]
+    if len(drafts) > 1:
+        raise ValueError("Multiple release drafts exist; select one with resume_tag")
+    if drafts:
+        inspect_release(github, drafts[0]["tag_name"])
+        if output_path:
+            with output_path.open("a") as output:
+                output.write(f"tag={drafts[0]['tag_name']}\n")
+        print(drafts[0]["tag_name"])
 
 
 def main() -> None:
@@ -153,21 +173,7 @@ def main() -> None:
     github = GitHub(os.environ.get("GITHUB_REPOSITORY", ""))
     try:
         if args.command == "pending":
-            drafts = [
-                r
-                for r in github.releases()
-                if r["draft"]
-                and r["tag_name"].startswith("v")
-                and VERSION.fullmatch(r["tag_name"][1:])
-            ]
-            if len(drafts) > 1:
-                raise ValueError("Multiple release drafts exist; select one with resume_tag")
-            if drafts:
-                inspect_release(github, drafts[0]["tag_name"])
-                if args.output:
-                    with args.output.open("a") as output:
-                        output.write(f"tag={drafts[0]['tag_name']}\n")
-                print(drafts[0]["tag_name"])
+            _pending_release(github, args.output)
             return
         if not args.tag:
             parser.error("inspect and publish require --tag")

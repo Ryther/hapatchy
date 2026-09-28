@@ -16,12 +16,17 @@
 !/README.md
 !/CONTRIBUTING.md
 !/LICENSE
+!/sonar-project.properties
+!/script/sonar_ci_report.py
+!/tests/test_sonar_ci_report.py
 !/pyproject.toml
 !/hacs.json
 !/.github/
 !/.github/pull_request_template.md
 !/.github/workflows/
 !/.github/workflows/tests.yaml
+!/.github/workflows/sonar.yaml
+!/script/sonar_ci_local.py
 !/.github/workflows/codeql.yaml
 !/.github/dependabot.yml
 !/tests/

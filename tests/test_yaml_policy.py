@@ -100,6 +100,47 @@ def test_source_graph_change_denies_without_reloading_grants(tmp_path):
     assert policy.hapatchy_directories == ("scripts",)
 
 
+def test_included_source_change_denies_without_reloading_grants(tmp_path):
+    from custom_components.hapatchy.yaml_policy import load_yaml_policy
+
+    _write_config(
+        tmp_path,
+        "hapatchy:\n  allowed_directories:\n    - scripts\n"
+        "sensor: !include sensors.yaml\n",
+    )
+    included = tmp_path / "sensors.yaml"
+    included.write_text("- platform: template\n")
+    policy = load_yaml_policy(
+        tmp_path, {"hapatchy": {"allowed_directories": ["scripts"]}, "sensor": []}
+    )
+
+    included.write_text("- platform: command_line\n")
+
+    with pytest.raises(PatchError, match="configuration_source_changed"):
+        policy.check_current()
+    assert policy.hapatchy_directories == ("scripts",)
+
+
+def test_removed_included_source_denies_after_boot(tmp_path):
+    from custom_components.hapatchy.yaml_policy import load_yaml_policy
+
+    _write_config(
+        tmp_path,
+        "hapatchy:\n  allowed_directories:\n    - scripts\n"
+        "sensor: !include sensors.yaml\n",
+    )
+    included = tmp_path / "sensors.yaml"
+    included.write_text("[]\n")
+    policy = load_yaml_policy(
+        tmp_path, {"hapatchy": {"allowed_directories": ["scripts"]}, "sensor": []}
+    )
+
+    included.unlink()
+
+    with pytest.raises(PatchError, match="configuration_source_unavailable"):
+        policy.check_current()
+
+
 def test_schema_validator_returns_immutable_validated_directories():
     from custom_components.hapatchy.yaml_policy import validate_hapatchy_directories
 
