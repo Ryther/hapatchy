@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.5](https://github.com/Ryther/hapatchy/compare/v1.0.4...v1.0.5) (2026-09-29)
+
+
+### Bug Fixes
+
+* **config-flow:** recover native setup and patch retries ([#75](https://github.com/Ryther/hapatchy/issues/75)) ([0d9a490](https://github.com/Ryther/hapatchy/commit/0d9a4907e915e7544c36b6f0b220f50307621150))
+
 ## [1.0.4](https://github.com/Ryther/hapatchy/compare/v1.0.3...v1.0.4) (2026-09-28)
 
 
