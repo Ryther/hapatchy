@@ -94,9 +94,14 @@ requests immediate Apply with a backup, startup check and automatic application.
 If reading the selected file fails, the Add patch form stays open with an error;
 help the user resolve that error before retrying. The External source form is
 only for a local patch path or HTTPS URL, never the file-editing route.
+
+If the file is denied, choose a different authorized file in the same form.
+With Watch directory blank, HAPatchY uses the new file's parent; if the user
+entered a watch directory, they must change it to contain the new file.
 After a recoverable save or validation error, the submitted bounded text stays
-in the editor for correction; a changed target or grant instead requires
-reopening Add patch. Malformed Unicode or oversized API input is refused.
+in the editor for correction. If the target's bytes or grants changed after the
+editor opened, reopen Add patch for a fresh snapshot. Malformed Unicode or
+oversized API input is refused.
 **Created configuration does not confirm that Apply succeeded.** Wait for the
 sensor's raw state `applied`, check the target bytes, and inspect Repairs on an
 error. A brief `unknown` is normal. The original bytes are retained under

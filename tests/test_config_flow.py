@@ -67,6 +67,25 @@ async def test_single_entry(hass):
         await hass.async_block_till_done()
 
 
+async def test_abandoned_setup_form_does_not_block_new_setup_flow(hass):
+    """An unfinished confirmation must not reserve the only integration entry."""
+    with patch(
+        "custom_components.hapatchy.async_setup_entry",
+        new=AsyncMock(return_value=True),
+        create=True,
+    ):
+        abandoned = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        assert abandoned["type"] == FlowResultType.FORM
+
+        retry = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
+        assert retry["type"] == FlowResultType.FORM, retry.get("reason")
+        done = await hass.config_entries.flow.async_configure(retry["flow_id"], {})
+        assert done["type"] == FlowResultType.CREATE_ENTRY
+        assert done["result"].unique_id == DOMAIN
+        assert len(hass.config_entries.async_entries(DOMAIN)) == 1
+        await hass.async_block_till_done()
+
+
 async def test_add_native_patch_subentry(hass, files):
     require_flow()
     entry = MockConfigEntry(domain=DOMAIN, version=1, minor_version=1, data={})
@@ -181,6 +200,44 @@ async def test_edit_file_denied_target_never_opens_contents(hass, files):
     assert result["step_id"] == "user"
     assert result["errors"]
     assert "never disclose me" not in str(result)
+
+
+async def test_edit_file_retry_after_denied_target_uses_new_target_parent(hass, files):
+    """Correcting the file in one dialog must not retain an inferred denied watch root."""
+    (files / "www").mkdir()
+    denied = files / "www/secret.txt"
+    denied.write_bytes(b"denied\n")
+    allowed = files / "scripts/a.py"
+    original = allowed.read_bytes()
+    entry = MockConfigEntry(domain=DOMAIN, data={})
+    entry.add_to_hass(hass)
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, "patch"), context={"source": "user"}
+    )
+
+    denied_result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            "name": "Retry target",
+            "target_path": "www/secret.txt",
+            "source_type": "edit_file",
+        },
+    )
+    assert denied_result["step_id"] == "user"
+    assert denied_result["errors"]
+    # A native form submits the defaults of unchanged fields on retry.
+    defaults = denied_result["data_schema"](
+        {
+            "name": "Retry target",
+            "target_path": "scripts/a.py",
+            "source_type": "edit_file",
+        }
+    )
+    retried = await hass.config_entries.subentries.async_configure(result["flow_id"], defaults)
+    assert retried["step_id"] == "edit_file", retried["errors"]
+    assert retried["data_schema"]({})["edited_text"] == original.decode()
+    assert denied.read_bytes() == b"denied\n"
+    assert allowed.read_bytes() == original
 
 
 @pytest.mark.parametrize(
