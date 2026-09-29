@@ -79,7 +79,11 @@ jobs:
           CREATED_TAG: ${{ steps.release.outputs.tag_name }}
         run: |
           tag="${RESUME_TAG:-${PENDING_TAG:-$CREATED_TAG}}"
-          python -m script.release_github inspect --tag "$tag" --output "$GITHUB_OUTPUT"
+          args=()
+          if [ -n "$CREATED_TAG" ]; then
+            args+=(--wait-for-draft)
+          fi
+          python -m script.release_github inspect --tag "$tag" --output "$GITHUB_OUTPUT" "${args[@]}"
   tests:
     needs: prepare
     if: needs.prepare.outputs.tag != ''

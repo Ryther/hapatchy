@@ -325,6 +325,72 @@ def test_inspect_release_cli_emits_candidate_identity(tmp_path, monkeypatch, cap
     assert github.writes == []
 
 
+def test_inspect_new_draft_waits_for_api_visibility(tmp_path, monkeypatch):
+    publisher = module("release_github")
+    github = FakeGitHub("a" * 40)
+    responses = iter([[], [github.release.copy()]])
+    calls = []
+
+    def releases():
+        calls.append("list")
+        return next(responses)
+
+    monkeypatch.setattr(github, "releases", releases)
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    output = tmp_path / "step-output"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "release_github",
+            "inspect",
+            "--tag",
+            "v0.2.0",
+            "--output",
+            str(output),
+            "--wait-for-draft",
+        ],
+    )
+
+    publisher.main()
+
+    assert calls == ["list", "list"]
+    assert output.read_text() == f"tag=v0.2.0\nsha={'a' * 40}\nrelease_id=42\n"
+
+
+def test_inspect_new_draft_stops_if_still_invisible(tmp_path, monkeypatch):
+    publisher = module("release_github")
+    github = FakeGitHub("a" * 40)
+    calls = []
+
+    def releases():
+        calls.append("list")
+        return []
+
+    monkeypatch.setattr(github, "releases", releases)
+    monkeypatch.setattr(publisher, "GitHub", lambda repository: github)
+    monkeypatch.setattr("time.sleep", lambda seconds: None)
+    output = tmp_path / "step-output"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "release_github",
+            "inspect",
+            "--tag",
+            "v0.2.0",
+            "--output",
+            str(output),
+            "--wait-for-draft",
+        ],
+    )
+
+    with pytest.raises(SystemExit, match="Expected exactly one existing release"):
+        publisher.main()
+
+    assert len(calls) == 6
+    assert not output.exists()
+
+
 def test_pending_release_cli_refuses_moving_target(tmp_path, monkeypatch):
     publisher = module("release_github")
     github = FakeGitHub("main")
