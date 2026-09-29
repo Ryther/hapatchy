@@ -73,6 +73,9 @@ installation. Internet access may be required for dependency installation.
 3. Search for **HAPatchY**, select it, submit the confirmation form and select **Finish**.
 4. Open the HAPatchY integration page. You should see **Add patch**.
 
+If you close the confirmation before submitting it, open **Add integration**
+again to restart setup; you do not need to restart HA.
+
 Create HAPatchY only once. Multiple patches live inside that one integration.
 No patch device or sensor appears until you add a patch. Each patch then has a
 status sensor and a **Patch health** binary sensor. The default Add patch

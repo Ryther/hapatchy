@@ -43,9 +43,15 @@ If the initial read fails, the **Add patch** form remains open and shows the
 reason. **External source** is only the next step for a local patch path or
 HTTPS URL, not for **Edit selected file**.
 
-If the file or its grants changed while the form was open, close it and start
-**Add patch** again so HAPatchY reads a fresh snapshot. An unchanged edit or a
-diff that cannot be applied and reversed uniquely is refused before saving.
+If a selected file is denied, you can choose a different authorized file in
+the same **Add patch** form and submit again. When **Watch directory** is blank,
+HAPatchY uses the new file's parent; if you entered a watch directory yourself,
+update it to contain the new file too.
+
+If the file's contents or grants changed externally after its editor opened,
+close the form and start **Add patch** again so HAPatchY reads a fresh snapshot.
+An unchanged edit or a diff that cannot be applied and reversed uniquely is
+refused before saving.
 For a recoverable validation or save error, the bounded text you submitted
 remains in the editor so you can correct it. An oversized or invalid Unicode
 API submission is refused without keeping that malformed input. Do not try to

@@ -54,9 +54,9 @@ class HAPatchYConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_user(self, user_input=None):
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
-        await self.async_set_unique_id(DOMAIN)
-        self._abort_if_unique_id_configured()
         if user_input is not None:
+            await self.async_set_unique_id(DOMAIN)
+            self._abort_if_unique_id_configured()
             return self.async_create_entry(title="HAPatchY", data={})
         return self.async_show_form(step_id="user", data_schema=vol.Schema({}))
 
@@ -142,14 +142,17 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
     async def async_step_user(self, user_input=None):
         errors = {}
         if user_input is not None:
+            attempted_data = self._data | user_input
             try:
                 method, definition, placeholder = await self._prepare_source(user_input)
             except PatchError as error:
+                self._data = attempted_data
                 errors["base"] = error.reason
             else:
                 result = await self._start_source_step(method, definition, placeholder, errors)
                 if result is not None:
                     return result
+                self._data = attempted_data
         try:
             self._targets = await self.hass.async_add_executor_job(
                 list_targets, self._root, self._policy
