@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.6](https://github.com/Ryther/hapatchy/compare/v1.0.5...v1.0.6) (2026-09-29)
+
+
+### Bug Fixes
+
+* **brand:** use bordered HAPatchY icons ([#77](https://github.com/Ryther/hapatchy/issues/77)) ([7c19796](https://github.com/Ryther/hapatchy/commit/7c19796661a6a3b69ba96bbefcb311aa26ae0f03))
+
 ## [1.0.5](https://github.com/Ryther/hapatchy/compare/v1.0.4...v1.0.5) (2026-09-29)
 
 
