@@ -6,6 +6,7 @@ import json
 import os
 import re
 import subprocess
+import time
 from pathlib import Path
 from urllib.parse import quote
 
@@ -74,10 +75,15 @@ class GitHub:
         )
 
 
-def inspect_release(github: GitHub, tag: str) -> dict:
+def inspect_release(github: GitHub, tag: str, *, wait_for_draft: bool = False) -> dict:
     if not tag.startswith("v") or not VERSION.fullmatch(tag[1:]):
         raise ValueError("Expected a stable vMAJOR.MINOR.PATCH tag")
-    matching = [release for release in github.releases() if release["tag_name"] == tag]
+    checks = 6 if wait_for_draft else 1
+    for attempt in range(checks):
+        matching = [release for release in github.releases() if release["tag_name"] == tag]
+        if matching or attempt + 1 == checks:
+            break
+        time.sleep(2)
     if len(matching) != 1:
         raise ValueError("Expected exactly one existing release for the tag")
     release = matching[0]
@@ -169,6 +175,7 @@ def main() -> None:
     parser.add_argument("--sha")
     parser.add_argument("--release-id", type=int)
     parser.add_argument("--output", type=Path, help="GitHub step output file for inspect")
+    parser.add_argument("--wait-for-draft", action="store_true", help="Wait for a new draft to appear")
     args = parser.parse_args()
     github = GitHub(os.environ.get("GITHUB_REPOSITORY", ""))
     try:
@@ -178,7 +185,7 @@ def main() -> None:
         if not args.tag:
             parser.error("inspect and publish require --tag")
         if args.command == "inspect":
-            release = inspect_release(github, args.tag)
+            release = inspect_release(github, args.tag, wait_for_draft=args.wait_for_draft)
             outputs = {
                 "tag": args.tag,
                 "sha": release["target_commitish"],

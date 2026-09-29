@@ -239,6 +239,9 @@ From that directory, use `sha256sum --check hapatchy-<version>.zip.sha256`.
 
 Open the failed **Release** run first and identify the failed job. A draft is
 not a published version. Do not manually publish it to bypass a failed check.
+After Release Please creates a draft, the prepare job waits briefly if GitHub's
+release list has not yet caught up. It retries only that missing-draft case;
+API errors, duplicate drafts and invalid release identities still stop the run.
 
 For a transient failure, choose **Actions → Release → Run workflow**, select
 `main` and set **resume_tag** to the draft tag. The workflow retests that draft's
