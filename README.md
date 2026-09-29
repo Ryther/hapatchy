@@ -8,6 +8,8 @@
 > independent HA backup and try HAPatchY in a disposable installation before
 > using it on important files.
 
+![HAPatchY — Home Assistant Patch Manager](https://raw.githubusercontent.com/Ryther/hapatchy/main/docs/images/hapatchy-banner.png)
+
 [![Latest release](https://img.shields.io/github/v/release/Ryther/hapatchy)](https://github.com/Ryther/hapatchy/releases/latest)
 [![License](https://img.shields.io/github/license/Ryther/hapatchy)](https://github.com/Ryther/hapatchy/blob/main/LICENSE)
 [![Tests](https://github.com/Ryther/hapatchy/actions/workflows/tests.yaml/badge.svg?branch=main)](https://github.com/Ryther/hapatchy/actions/workflows/tests.yaml)
