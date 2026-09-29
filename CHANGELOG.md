@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.7](https://github.com/Ryther/hapatchy/compare/v1.0.6...v1.0.7) (2026-09-29)
+
+
+### Bug Fixes
+
+* **brand:** add unified banner to public guides ([#79](https://github.com/Ryther/hapatchy/issues/79)) ([5b41fb2](https://github.com/Ryther/hapatchy/commit/5b41fb272f2f67e710cd72ed46a3e8e0e731e3c9))
+
 ## [1.0.6](https://github.com/Ryther/hapatchy/compare/v1.0.5...v1.0.6) (2026-09-29)
 
 
