@@ -153,7 +153,7 @@ target file's contents. It contains no file or patch text. The status sensor's
 stable unique ID is retained when an existing patch gains a device; an entity
 ID previously customized in HA is not deliberately renamed.
 
-![Patch health and Status both show Unknown before the first check in disposable HA 2026.9.0](images/patch-health-unknown.png)
+![A disabled patch shows Patch health Unknown and Status Disabled in disposable HA 2026.9.0](images/patch-health-unknown.png)
 
 ## Administrator actions
 
