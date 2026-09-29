@@ -1,5 +1,7 @@
 # HAPatchY documentation
 
+![HAPatchY — Home Assistant Patch Manager](images/hapatchy-banner.png)
+
 HAPatchY keeps a deliberate change to one Home Assistant configuration file
 when an update replaces that file. It applies a patch only when the surrounding
 text still matches unambiguously. Start with an unused text file before changing
