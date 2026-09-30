@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/Ryther/hapatchy/compare/v1.0.7...v2.0.0) (2026-09-30)
+
+
+### ⚠ BREAKING CHANGES
+
+* **compat:** HAPatchY now requires Home Assistant 2026.7.4 and Python 3.14.2 or newer.
+
+### Bug Fixes
+
+* **compat:** require Home Assistant 2026.7.4 ([009918b](https://github.com/Ryther/hapatchy/commit/009918b4c76f7f967b6e24f30e54a5e080ddeffd))
+
+
+### Documentation
+
+* align compatibility guidance with the new HA minimum ([8788328](https://github.com/Ryther/hapatchy/commit/8788328f95b179c564d80370421f52b6045df754))
+
 ## [1.0.7](https://github.com/Ryther/hapatchy/compare/v1.0.6...v1.0.7) (2026-09-29)
 
 
