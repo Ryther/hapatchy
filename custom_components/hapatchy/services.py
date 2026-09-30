@@ -36,8 +36,7 @@ async def _handle_action(hass: HomeAssistant, call: ServiceCall):
 
 
 async def _handle_read(hass: HomeAssistant, call: ServiceCall):
-    # HA 2025.3's admin-registration helper cannot return service data.
-    # Apply its user check before reading any patch bytes.
+    # Preserve an explicit user check before reading any patch bytes.
     if call.context.user_id:
         user = await hass.auth.async_get_user(call.context.user_id)
         if user is None:

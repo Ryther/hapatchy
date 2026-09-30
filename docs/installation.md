@@ -4,7 +4,8 @@
 
 ## What you need
 
-- Home Assistant **2025.3.0 or newer** and an administrator account.
+- Home Assistant **2026.7.4 or newer** and an administrator account. This HA
+  release requires Python 3.14.2 or newer; HA supplies its own Python runtime.
 - A backup of your HA configuration and a separate copy of any file you plan to
   change. HAPatchY's per-file backups are not a replacement for a full HA backup.
 - A way to edit files in the **HA configuration directory**. Use an editor or file

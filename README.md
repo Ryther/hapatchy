@@ -96,7 +96,7 @@ restarts HA for you.
 
 | Tested Home Assistant baseline | Python in that test environment |
 | --- | --- |
-| **2025.3.0** — minimum supported HA | 3.13.12 |
+| **2026.7.4** — minimum supported HA | 3.14.7 |
 | **2026.9.4** — development baseline | 3.14.7 |
 
 The same integration code is tested at both endpoints. Intermediate HA releases
@@ -105,16 +105,15 @@ not download a separate Python interpreter or create a HAPatchY virtual environm
 The development baseline is updated through a guarded PR when a newer stable HA
 and its exact test plugin are available; a blocked candidate does not change the
 tested version shown here.
-The Dev Container's Python 3.14 requirement does not raise the product minimum.
-The minimum is a compatibility baseline, not a recommendation to run an old,
-unpatched HA installation. Keep HA updated within a version compatible with your
-other integrations.
+HA 2026.7.4 requires Python 3.14.2 or newer. The minimum is a compatibility
+baseline, not a recommendation to run an old, unpatched HA installation. Keep
+HA updated within a version compatible with your other integrations.
 
-## Version 1.x contract
+## Compatibility contract
 
 The documented single-file patch format, directory grants, native Add patch
 flow, administrator actions, statuses and retained backups are the supported
-user-facing interfaces for 1.x. Incompatible changes to those interfaces require
+user-facing interfaces. Incompatible changes to those interfaces require
 a new major release. Exact matching can still fail after upstream changes;
 conflicts and authorization failures stop writes. See the
 [reference](https://ryther.github.io/hapatchy/reference/) for limits and recovery paths.
