@@ -61,9 +61,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python: '3.13.12'
-            ha: '2025.3.0'
-            typing: '3.13'
+          - python: '3.14.7'
+            ha: '2026.7.4'
+            typing: '3.14'
             lock: tests/requirements-ha-min.txt
           - python: '3.14.7'
             ha: 'recent lock'
@@ -100,8 +100,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - python: '3.13.12'
-            ha: '2025.3.0'
+          - python: '3.14.7'
+            ha: '2026.7.4'
             lock: tests/requirements-ha-min-runtime.txt
             version_lock: tests/requirements-ha-min.txt
           - python: '3.14.7'

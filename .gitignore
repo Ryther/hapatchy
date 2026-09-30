@@ -51,6 +51,7 @@
 !/tests/
 !/tests/*.py
 !/tests/requirements-ha-min.txt
+!/tests/requirements-ha-min.in
 !/tests/requirements-ha-min-runtime.txt
 !/script/check_sonar_release.py
 !/script/install_ci_requirements.py
