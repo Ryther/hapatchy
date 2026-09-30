@@ -91,11 +91,11 @@ install its lock over the running recent HA environment. Use temporary files and
 fake network/GitHub boundaries in tests; no test should need household HA, a real
 GitHub token, or publication permissions.
 The CI functional smoke starts a separate HA process in each Python/HA lane.
-The minimum runtime input adds the HA 2025.3 frontend to its test lock; the
-recent lane uses the complete Dev Container HA lock. Each process creates manual
-and editor-generated managed patches through HA's API, verifies Apply/Revert
-and backup bytes, checks failed Apply status, and denies an unlisted target
-without a write.
+The minimum runtime input adds the HA 2026.7.4 frontend and camera dependency
+to its test lock; the recent lane uses the complete Dev Container HA lock.
+Each process creates manual and editor-generated managed patches through HA's
+API, verifies Apply/Revert and backup bytes, checks failed Apply status, and
+denies an unlisted target without a write.
 
 ## Packaging and release boundaries
 

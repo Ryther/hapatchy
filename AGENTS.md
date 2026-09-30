@@ -30,11 +30,13 @@ Use the repository's Dev Container. It starts disposable HA without household
 configuration. Discover the current container and forwarded port; do not hardcode
 another session's container ID, port, author identity or credentials.
 
-The Dev Container runs HA 2026.9.4 / Python 3.14.7. CI also tests HA 2025.3.0 /
-Python 3.13.12. The authoritative locks and commands are in `.github/workflows/tests.yaml`.
+The Dev Container runs HA 2026.9.4 / Python 3.14.7. CI also tests HA 2026.7.4 /
+Python 3.14.7. The authoritative locks and commands are in `.github/workflows/tests.yaml`.
 HACS uses the installed HA interpreter; it does not create a private interpreter
 or virtual environment for this integration. Do not raise the product minimum
 simply because development uses a newer Python.
+The commit and release jobs may use Python 3.13 to run repository tooling; they
+do not execute the integration and do not lower its runtime requirement.
 
 Keep the lane-specific Python allowlists and minimum-lane exclusions in `.github/dependabot.yml`
 under review. These are fully resolved HA/test-plugin locks: Dependabot proposes
@@ -50,6 +52,9 @@ baselines before changing a pinned transitive dependency. If a security fix need
 a newer pinned dependency, evaluate an HA baseline update instead of overriding
 HA's requirement in one lock.
 
+The minimum-lane lock input is `tests/requirements-ha-min.in`; resolve it with
+the pinned Dev Container `uv` for Python 3.14.7 and review HA's exact optional
+integration requirements before updating the boot-smoke runtime additions.
 The recent-lane lock inputs are `.devcontainer/requirements-{tools,ha}.in`.
 `script/resolve_ha_locks.py` resolves both complete locks together using pinned
 `uv`; never edit only the HA line in a lock. The scheduled updater proposes a

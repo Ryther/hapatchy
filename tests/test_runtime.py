@@ -69,7 +69,7 @@ async def test_sensor_is_bound_to_native_subentry(hass, tmp_path):
     device = dr.async_get(hass).async_get(next(iter(device_ids)))
     assert device is not None
     assert device.name == "Example"
-    # HA 2025.3 groups entities into devices but has no device subentry field.
+    # HA versions differ in whether devices expose their subentry directly.
     if hasattr(device, "config_subentry_id"):
         assert device.config_subentry_id == pid
     status = next(entity for entity in entities if entity.domain == "sensor")

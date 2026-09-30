@@ -79,7 +79,7 @@ VS Code's **Tasks: Run Task** offers each check, **Checks: all** (sequential) an
 Tests create temporary HA objects/configuration directories. They do not make
 requests to the browser HA or to a household installation. The container runs
 the recent baseline, **HA 2026.9.4 / Python 3.14.7**. CI also tests
-**HA 2025.3.0 / Python 3.13.12** with its separate lock. Passing this container's
+**HA 2026.7.4 / Python 3.14.7** with its separate lock. Passing this container's
 checks is not proof that a minimum-lane-specific failure is fixed.
 
 The recent tool and runtime locks are generated together from

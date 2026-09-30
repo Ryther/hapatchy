@@ -217,12 +217,26 @@ can still suppress Dependabot security-update PRs for withheld packages:
 inspect GitHub security alerts at least monthly and after baseline changes,
 and change the whole compatible lock deliberately when a fix is needed.
 
-In particular, the 2025.3.0 test plugin pins `pytest-socket==0.7.0` and
-`pipdeptree==2.25.0`; the 2026.9.4 plugin pins `pytest-socket==0.8.0` and
-`pipdeptree==2.26.1` and requires that HA release. The recent HA camera and
-stream manifests pin `PyTurboJPEG==1.8.3`. A passing generic test run cannot
-authorize changing an optional integration's pin: inspect HA's manifest and
-re-resolve the relevant lane when upgrading HA.
+The minimum lane's direct inputs are in `tests/requirements-ha-min.in`. In the
+Dev Container, regenerate its complete test lock with:
+
+```bash
+UV_CACHE_DIR=_tmp/uv-cache .venv/bin/python -m uv pip compile \
+  tests/requirements-ha-min.in -o tests/requirements-ha-min.txt \
+  --python-version 3.14.7 --no-header --no-annotate
+```
+
+Update `tests/requirements-ha-min-runtime.txt` from the matching HA frontend
+and optional integration manifests, then run that exact test and boot-smoke
+lane. Do not change an HA-owned pin alone.
+
+The minimum HA 2026.7.4 test plugin is `0.13.348`; it requires that exact HA
+release and pins `pytest-socket==0.8.0` and `pipdeptree==2.26.1`. The recent
+HA 2026.9.4 plugin is `0.13.367` with the same two test-tool pins. The minimum
+HA frontend manifest requires `home-assistant-frontend==20260624.6`, and its
+camera manifest requires `PyTurboJPEG==1.8.3` for boot smoke. A passing generic
+test run cannot authorize changing an optional integration's pin: inspect HA's
+manifest and re-resolve the relevant lane when upgrading HA.
 
 Tests, local metadata validation and hassfest use the candidate SHA. When the
 repository is public, HACS checks remote repository metadata in its event

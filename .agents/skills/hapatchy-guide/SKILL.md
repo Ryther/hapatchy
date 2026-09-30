@@ -20,10 +20,11 @@ HA version, intended target and current status before giving case-specific steps
 
 ## Install and authorize
 
-HAPatchY supports HA 2025.3.0 or newer; the tested endpoints are 2025.3.0 and
-2026.9.0. HA supplies Python and installs declared dependencies. HAPatchY does
-not create a Python environment. A published HACS release may lag behind this
-skill; ask what Add patch options the user actually sees before giving UI steps.
+HAPatchY supports HA 2026.7.4 or newer; the tested endpoints are 2026.7.4 and
+2026.9.4. HA supplies Python 3.14.2 or newer and installs declared dependencies.
+HAPatchY does not create a Python environment. A published HACS release may lag
+behind this skill; ask what Add patch options the user actually sees before
+giving UI steps.
 
 For manual installation, get the current archive from
 `https://github.com/Ryther/hapatchy/releases/latest`. Copy the entire
