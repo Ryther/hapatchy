@@ -40,16 +40,16 @@ updates:
     ignore:
       - dependency-name: homeassistant
       - dependency-name: home-assistant-frontend
-      # These are fixed by the HA 2025.3.0 / pytest plugin dependency graph.
+      # These are fixed by the HA 2026.7.4 / pytest plugin dependency graph.
       # Revisit them when that baseline or its test plugin changes.
       - dependency-name: bleak
       - dependency-name: pydantic-core
-      # HA 2025.3.0 pins aiodns; its bleak pin excludes newer adapters.
+      # HA 2026.7.4 pins aiodns; its Bluetooth manifest pins bleak and adapters.
       - dependency-name: aiodns
       - dependency-name: bluetooth-adapters
-      # The 0.13.221 plugin pins these exact test-tool versions.
+      # The 0.13.348 plugin pins these exact test-tool versions.
       - dependency-name: pytest-socket
       - dependency-name: pipdeptree
-      # HA 2025.3.0 pins these core dependencies exactly.
+      # HA 2026.7.4 pins these core dependencies exactly.
       - dependency-name: awesomeversion
       - dependency-name: fnv-hash-fast

@@ -1,0 +1,9 @@
+# Minimum supported Home Assistant and its exact pytest plugin on Python 3.14.
+# Resolve this as a unit; do not override Home Assistant's transitive pins.
+homeassistant==2026.7.4
+pytest-homeassistant-custom-component==0.13.348
+patch-ng==1.19.1
+watchdog==6.0.0
+mypy==2.3.1
+ruff==0.16.9
+supervisor==4.3.0

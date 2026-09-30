@@ -1,3 +1,4 @@
-# The minimum HA test lock, plus the frontend required to boot its server.
+# The minimum HA test lock, plus integration requirements used by its boot smoke.
 -r requirements-ha-min.txt
-home-assistant-frontend==20250305.0
+home-assistant-frontend==20260624.6
+PyTurboJPEG==1.8.3
