@@ -142,6 +142,12 @@ to diagnose the denied path.
 A status describes the last completed check, not continuous proof of the current
 file contents. A missing watch root can produce a Repair even when a previous
 status was `applied`. Missing/replaced roots are rechecked every 60 seconds.
+After a root returns, `watcher_recheck_required` stays true and the Repair says
+the patch is being checked. The warning clears only when a completed check has
+no error; a conflict or other failed check keeps an error Repair. A YAML-source
+change is a security error, not evidence that the directory is missing. The
+temporary watch Repairs omit hashes because the last recorded hashes may refer
+to the file from before the directory was replaced.
 
 The **Patch health** binary sensor displays **Unknown** before a completed check
 or while the rule is disabled. After a check, it displays **Problem** for a

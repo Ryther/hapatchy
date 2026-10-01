@@ -185,6 +185,13 @@ View patch**, enters `patch_id`, and reads the `patch` field in the response.
 The read does not alter the target or status. External local/HTTPS sources may
 have changed since the last Apply; review the returned text before sharing it.
 
+If an updater temporarily removes a watched directory, HAPatchY raises a
+Repair and checks again every 60 seconds. After the directory returns, a
+**Checking patch** Repair remains until the current target and patch have been
+verified. A successful check clears it; a conflict keeps an error Repair and
+does not force a write. A changed YAML configuration source instead causes a
+security error until HA restarts, even if the directory still exists.
+
 **Refresh source** checks the source/target without writing. **Reconcile** may
 write if automatic application is enabled. A disabled rule rejects actions;
 automatic application off still allows explicit Apply. To edit a saved managed

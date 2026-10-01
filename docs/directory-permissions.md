@@ -63,9 +63,14 @@ If an integration update temporarily removes an authorized directory, HAPatchY
 does not recreate it. Its watcher becomes unavailable and a Repair is raised;
 the status sensor can retain its last successful state until another check.
 The watcher checks for the directory every 60 seconds, then checks the patch
-again when the directory returns. Automatic application still requires an
-exact match against the reinstalled target. A changed Python file needs an HA
-restart before the running integration uses the changed code.
+again when the directory returns. The Repair remains while this check is
+pending; it clears only after a completed check with no error. If the updated
+target conflicts with the patch, the Repair changes to the conflict reason
+and the target is left unchanged. Automatic application still requires an exact
+match against the reinstalled target. A changed Python file needs an HA restart
+before the running integration uses the changed code. A YAML configuration
+source changed during the HA run is instead reported as a security error; it
+requires an HA restart, even when the watch directory itself exists.
 
 `watch_pattern` belongs to an individual patch and filters filesystem events
 for that patch's one exact target. It does not restrict which new targets can
