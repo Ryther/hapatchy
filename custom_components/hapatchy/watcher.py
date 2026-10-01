@@ -18,10 +18,25 @@ from .safe_io import GuardedDirectory
 def _root_identity(config_dir: Path, root: str, policy):
     try:
         policy.check_path(root, directory=True)
+    except PatchError as error:
+        # HA's live path check can deny a previously authorized root simply
+        # because it no longer exists during an integration replacement.
+        if error.reason == "ha_path_not_allowed":
+            try:
+                with GuardedDirectory(config_dir, relative_parts(root)):
+                    pass
+            except FileNotFoundError:
+                return None
+            except (OSError, PatchError):
+                pass
+        return error
+    try:
         with GuardedDirectory(config_dir, relative_parts(root)) as directory:
             info = os.fstat(directory.fd)
             return info.st_dev, info.st_ino
-    except (OSError, PatchError):
+    except PatchError as error:
+        return error
+    except OSError:
         return None
 
 
@@ -81,7 +96,7 @@ class PatchWatcher:
                 if available is not None:
                     self._publish_root(root, available, reconcile_recovered)
 
-    async def _refresh_root(self, root: str) -> bool | None:
+    async def _refresh_root(self, root: str) -> bool | PatchError | None:
         """Replace one observer watch; None means its identity is unchanged."""
         identity = await self.runtime.run_io(
             partial(_root_identity, self.config_dir, root, self.runtime.path_policy)
@@ -95,6 +110,8 @@ class PatchWatcher:
             except KeyError:
                 pass
             self._watches.pop(root, None)
+        if isinstance(identity, PatchError):
+            return identity
         available = False
         if identity is not None:
             try:
@@ -113,9 +130,14 @@ class PatchWatcher:
                 available = True
         return available
 
-    def _publish_root(self, root: str, available: bool, reconcile_recovered: bool) -> None:
+    def _publish_root(
+        self, root: str, available: bool | PatchError, reconcile_recovered: bool
+    ) -> None:
         for key, definition in self.runtime.definitions.items():
             if definition.watch_root == root and definition.enabled:
+                if isinstance(available, PatchError):
+                    self.runtime.watch_denied(key, available)
+                    continue
                 self.runtime.watch_available(key, available)
                 if available and reconcile_recovered:
                     self._debounce(key)

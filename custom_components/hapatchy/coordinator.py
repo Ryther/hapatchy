@@ -117,7 +117,19 @@ class PatchManagerRuntime:
         return patch_id in self._busy
 
     def watch_available(self, patch_id: str, available: bool):
-        self.states[patch_id].watcher_available = available
+        state = self.states[patch_id]
+        state.watcher_available = available
+        if not available:
+            state.watcher_recheck_required = True
+        self._publish(patch_id)
+
+    def watch_denied(self, patch_id: str, error: PatchError):
+        state = self.states[patch_id]
+        state.watcher_available = False
+        state.watcher_recheck_required = True
+        state.status = Status.SECURITY_ERROR
+        if state.last_error != "durability_unconfirmed":
+            state.last_error = error.reason
         self._publish(patch_id)
 
     def matches_entry(self) -> bool:
@@ -240,6 +252,14 @@ class PatchManagerRuntime:
                         )
                     else:
                         self._suppress_reapply.discard(patch_id)
+                if (
+                    result.inspection.status == Status.SECURITY_ERROR
+                    and result.inspection.reason == "ha_path_not_allowed"
+                ):
+                    # HA may reject an otherwise granted path when its watched
+                    # directory disappears. Refresh the guarded root before
+                    # deciding which user-facing failure to retain.
+                    await self.watcher.async_refresh()
                 self._record_result(patch_id, definition, state, action, result, pending)
                 await self.store.save(self.states)
                 self._publish(patch_id)
@@ -250,7 +270,19 @@ class PatchManagerRuntime:
             self.watcher.action_complete(patch_id)
 
     def _record_result(self, patch_id, definition, state, action, result, pending) -> None:
+        if (
+            result.inspection.status == Status.SECURITY_ERROR
+            and result.inspection.reason == "ha_path_not_allowed"
+            and not state.watcher_available
+            and state.watcher_recheck_required
+        ):
+            # HA also rejects a path when its authorized directory is absent.
+            # The watcher has already reported that loss (or a stronger policy
+            # denial); this failed attempt did not inspect the patch or target.
+            return
         state.status = result.inspection.status
+        if state.watcher_available:
+            state.watcher_recheck_required = False
         # Policy denial must not erase an outstanding fsync retry.
         state.last_error = (
             "durability_unconfirmed"

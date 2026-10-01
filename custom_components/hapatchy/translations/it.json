@@ -498,8 +498,12 @@
       "description": "{target}\n\nLa sostituzione è avvenuta ma fsync non ha confermato la durabilità. Una nuova verifica tenterà la sincronizzazione senza riscrivere il file.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
     },
     "watch_unavailable": {
-      "title": "Patch da verificare",
-      "description": "{target}\n\nLa cartella monitorata non è disponibile. HAPatchY ricontrolla ogni 60 secondi.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+      "title": "Controllo patch sospeso",
+      "description": "{target}\n\nLa cartella monitorata non è disponibile. HAPatchY ricontrolla ogni 60 secondi.\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "watch_rechecking": {
+      "title": "Verifica patch in corso",
+      "description": "{target}\n\nLa cartella monitorata è di nuovo disponibile. HAPatchY sta controllando il file e ritirerà l'avviso solo dopo una verifica riuscita.\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
     }
   },
   "selector": {

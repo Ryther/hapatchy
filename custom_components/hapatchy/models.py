@@ -164,6 +164,7 @@ def _source_digest(digest: Any) -> str | None:
 class PatchRuntimeState:
     status: Status = Status.UNKNOWN
     watcher_available: bool = False
+    watcher_recheck_required: bool = False
     last_checked_at: str | None = None
     last_applied_at: str | None = None
     target_sha256: str | None = None

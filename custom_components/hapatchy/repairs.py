@@ -21,7 +21,11 @@ class IssueManager:
         self.hass = hass
 
     def update(self, definition: PatchDefinition, state: PatchRuntimeState) -> None:
-        if (state.status not in _ERRORS and state.watcher_available) or not definition.enabled:
+        if (
+            state.status not in _ERRORS
+            and state.watcher_available
+            and not state.watcher_recheck_required
+        ) or not definition.enabled:
             self.clear(definition.patch_id)
             return
         key = (
@@ -30,7 +34,17 @@ class IssueManager:
             else state.status.value
         )
         if state.status not in _ERRORS:
-            key = "watch_unavailable"
+            key = "watch_rechecking" if state.watcher_available else "watch_unavailable"
+        if state.status == Status.SECURITY_ERROR:
+            placeholders = {}
+        elif key in {"watch_unavailable", "watch_rechecking"}:
+            placeholders = {"target": definition.target_path}
+        else:
+            placeholders = {
+                "target": definition.target_path,
+                "target_sha256": state.target_sha256 or "unknown",
+                "patch_sha256": state.patch_sha256 or "unknown",
+            }
         ir.async_create_issue(
             self.hass,
             DOMAIN,
@@ -38,15 +52,7 @@ class IssueManager:
             is_fixable=False,
             severity=ir.IssueSeverity.WARNING,
             translation_key=key,
-            translation_placeholders=(
-                {}
-                if state.status == Status.SECURITY_ERROR
-                else {
-                    "target": definition.target_path,
-                    "target_sha256": state.target_sha256 or "unknown",
-                    "patch_sha256": state.patch_sha256 or "unknown",
-                }
-            ),
+            translation_placeholders=placeholders,
         )
 
     def clear(self, patch_id: str) -> None:

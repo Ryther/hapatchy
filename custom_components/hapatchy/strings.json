@@ -498,8 +498,12 @@
       "description": "{target}\n\nReplacement occurred but fsync did not confirm durability. Reconciliation will retry synchronization without rewriting the file.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
     },
     "watch_unavailable": {
-      "title": "Patch needs attention",
-      "description": "{target}\n\nThe watch directory is unavailable. HAPatchY retries every 60 seconds.\n\nTarget SHA-256: {target_sha256}\nPatch SHA-256: {patch_sha256}\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+      "title": "Patch check paused",
+      "description": "{target}\n\nThe watch directory is unavailable. HAPatchY retries every 60 seconds.\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
+    },
+    "watch_rechecking": {
+      "title": "Checking patch",
+      "description": "{target}\n\nThe watch directory has returned. HAPatchY is checking the target and will clear this warning only after a successful check.\n\n[HAPatchY](/config/integrations/integration/hapatchy)"
     }
   },
   "selector": {
