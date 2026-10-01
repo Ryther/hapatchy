@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.1](https://github.com/Ryther/hapatchy/compare/v2.0.0...v2.0.1) (2026-10-01)
+
+
+### Bug Fixes
+
+* clear watch repairs after verified recovery ([7c55057](https://github.com/Ryther/hapatchy/commit/7c55057b94a90ebe1e19b4de4906748a4fdfee8a))
+
 ## [2.0.0](https://github.com/Ryther/hapatchy/compare/v1.0.7...v2.0.0) (2026-09-30)
 
 
