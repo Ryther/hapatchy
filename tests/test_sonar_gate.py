@@ -9,6 +9,8 @@ from script.sonar_gate import evaluate, main
     ("event", "trusted", "cloud", "community", "expected"),
     [
         ("push", False, "success", "skipped", True),
+        ("workflow_dispatch", False, "success", "skipped", True),
+        ("workflow_dispatch", False, "skipped", "success", False),
         ("pull_request", True, "success", "skipped", True),
         ("pull_request", False, "skipped", "success", True),
         ("push", False, "skipped", "success", False),

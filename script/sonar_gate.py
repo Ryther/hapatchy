@@ -23,7 +23,7 @@ def evaluate(
     """Return whether coverage and the event's sole expected scanner passed."""
     if coverage != "success" or not report_present:
         return False
-    if event_name == "push":
+    if event_name in {"push", "workflow_dispatch"}:
         return cloud == "success" and community == "skipped"
     if event_name == "pull_request":
         if trusted_pr:
