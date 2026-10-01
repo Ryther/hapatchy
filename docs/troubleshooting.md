@@ -133,7 +133,12 @@ application using stale cached data. Fix the source, then run Refresh source.
 Check the configured target and watch directory. HAPatchY does not create missing
 targets for you. It can wait for an integration installer/updater to create one.
 The watcher checks missing/replaced directories every 60 seconds; allow for that
-interval and the configured debounce delay after an update.
+interval and the configured debounce delay after an update. When the directory
+returns, a **Checking patch** Repair remains until HAPatchY has checked the patch
+against the current file. If the patch applies or the file already matches, the
+Repair clears; if the check conflicts, follow the conflict Repair and leave the
+upstream file intact. A previous `applied` status alone does not confirm the
+newly installed file.
 
 Do not broaden the watch to the whole configuration folder. Use an explicit
 subdirectory containing the target. If the directory remains unavailable, inspect

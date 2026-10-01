@@ -5,6 +5,7 @@ import os
 from pathlib import Path
 
 import pytest
+from homeassistant.helpers import issue_registry as ir
 
 from tests.test_runtime import setup
 
@@ -77,10 +78,120 @@ async def test_missing_root_is_restored_without_broad_watch(hass, tmp_path):
     (tmp_path / "scripts").mkdir()
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
     await owner.async_refresh()
-    await ready(runtime, pid, "applied")
+    for _ in range(80):
+        if not runtime.states[pid].watcher_recheck_required:
+            break
+        await asyncio.sleep(0.025)
+    assert not runtime.states[pid].watcher_recheck_required
     assert runtime.states[pid].watcher_available
     assert hass.states.get(attention.entity_id).state == "off"
     assert set(owner.roots) == {"scripts"}
+
+
+@pytest.mark.parametrize("restored", [b"context\nold\n", b"context\nnew\n"])
+async def test_recovered_root_keeps_repair_until_patch_is_verified(
+    hass, tmp_path, monkeypatch, restored
+):
+    _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
+    from homeassistant.helpers import entity_registry as er
+
+    attention = next(
+        entity
+        for entity in er.async_get(hass).entities.values()
+        if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
+    )
+    owner = watcher(runtime)
+    target = tmp_path / "scripts/a.py"
+    await runtime.async_action(pid, "apply")
+    target.unlink()
+    target.parent.rmdir()
+    await owner.async_refresh()
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None and issue.translation_key == "watch_unavailable"
+
+    target.parent.mkdir()
+    target.write_bytes(restored)
+    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
+    await owner.async_refresh()
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None and issue.translation_key == "watch_rechecking"
+    assert runtime.states[pid].watcher_recheck_required
+    assert hass.states.get(attention.entity_id).state == "on"
+    assert target.read_bytes() == restored
+
+    await runtime.async_action(pid, "reconcile")
+    assert target.read_bytes() == b"context\nnew\n"
+    assert not runtime.states[pid].watcher_recheck_required
+    assert hass.states.get(attention.entity_id).state == "off"
+    assert ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}") is None
+
+
+async def test_recovered_root_keeps_repair_when_reconcile_conflicts(hass, tmp_path, monkeypatch):
+    _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
+    owner = watcher(runtime)
+    target = tmp_path / "scripts/a.py"
+    await runtime.async_action(pid, "apply")
+    target.unlink()
+    target.parent.rmdir()
+    await owner.async_refresh()
+
+    target.parent.mkdir()
+    target.write_bytes(b"unrelated upstream bytes\n")
+    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
+    await owner.async_refresh()
+    await runtime.async_action(pid, "reconcile")
+
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert runtime.states[pid].status == "conflict"
+    assert issue is not None and issue.translation_key == "conflict"
+    assert target.read_bytes() == b"unrelated upstream bytes\n"
+
+
+@pytest.mark.parametrize("refresh_before_action", [True, False])
+async def test_action_during_missing_root_keeps_unavailable_repair(
+    hass, tmp_path, monkeypatch, refresh_before_action
+):
+    _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
+    owner = watcher(runtime)
+    target = tmp_path / "scripts/a.py"
+    await runtime.async_action(pid, "apply")
+    target.unlink()
+    target.parent.rmdir()
+    if refresh_before_action:
+        await owner.async_refresh()
+    denied = await runtime.async_action(pid, "reconcile")
+    assert denied.service_error == "ha_path_not_allowed"
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None and issue.translation_key == "watch_unavailable"
+
+    target.parent.mkdir()
+    target.write_bytes(b"context\nold\n")
+    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
+    await owner.async_refresh()
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None and issue.translation_key == "watch_rechecking"
+    await runtime.async_action(pid, "reconcile")
+    assert target.read_bytes() == b"context\nnew\n"
+    assert ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}") is None
+
+
+async def test_changed_yaml_source_is_security_error_not_missing_directory(hass, tmp_path):
+    _, runtime, pid = await setup(hass, tmp_path)
+    owner = watcher(runtime)
+    target = tmp_path / "scripts/a.py"
+    original = target.read_bytes()
+    config = tmp_path / "configuration.yaml"
+    config.write_text(config.read_text() + "\n# changed after boot\n")
+
+    await owner.async_refresh()
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert runtime.states[pid].status == "security_error"
+    assert runtime.states[pid].last_error == "configuration_source_changed"
+    assert issue is not None and issue.translation_key == "security_error"
+    assert not runtime.states[pid].watcher_available
+    result = await runtime.async_action(pid, "apply")
+    assert result.inspection.status == "security_error"
+    assert target.read_bytes() == original
 
 
 async def test_unload_cancels_pending_debounce(hass, tmp_path):

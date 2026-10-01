@@ -95,7 +95,9 @@ jobs:
     needs: ux-review
     name: HA boot smoke (${{ matrix.ha }} / Python ${{ matrix.python }})
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # The pinned HA frontend wheel is large; a slow package mirror must not
+    # cancel a still-progressing, exact-lock installation.
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
