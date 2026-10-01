@@ -2,6 +2,12 @@ name: Sonar quality
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing draft release tag to scan at its exact commit
+        type: string
+        required: true
   pull_request:
     types: [opened, synchronize, reopened]
 permissions:
@@ -17,6 +23,7 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.release_tag || github.ref }}
           persist-credentials: false
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
@@ -38,7 +45,7 @@ jobs:
   cloud:
     name: Sonar Cloud
     if: >-
-      github.event_name == 'push' ||
+      github.event_name == 'push' || github.event_name == 'workflow_dispatch' ||
       (github.event.pull_request.head.repo.full_name == github.repository &&
        github.event.pull_request.user.login != 'dependabot[bot]')
     needs: coverage
@@ -49,8 +56,19 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
+          ref: ${{ inputs.release_tag || github.ref }}
           fetch-depth: 0
           persist-credentials: false
+      - name: Require a main-ancestor draft release for manual scans
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          git fetch origin main
+          git merge-base --is-ancestor HEAD origin/main
+          test "$(gh release view "$RELEASE_TAG" --json isDraft,targetCommitish --jq '.isDraft')" = true
+          test "$(gh release view "$RELEASE_TAG" --json targetCommitish --jq '.targetCommitish')" = "$(git rev-parse HEAD)"
       - name: Use trusted scanner settings and report exporter
         if: github.event_name == 'pull_request'
         run: |
@@ -67,7 +85,7 @@ jobs:
             cp script/sonar_ci_report.py "$RUNNER_TEMP/sonar_ci_report.py"
           fi
       - name: Copy report exporter from main commit
-        if: github.event_name == 'push'
+        if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         run: cp script/sonar_ci_report.py "$RUNNER_TEMP/sonar_ci_report.py"
       - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
@@ -85,6 +103,9 @@ jobs:
           mkdir -p "$RUNNER_TEMP/sonar-task"
           chmod 0777 "$RUNNER_TEMP/sonar-task"
           args=('-Dsonar.projectKey=Ryther_hapatchy' '-Dsonar.organization=ryther' '-Dsonar.python.coverage.reportPaths=coverage.xml' '-Dsonar.working.directory=/sonar-task')
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            args+=('-Dsonar.branch.name=main' "-Dsonar.scm.revision=$(git rev-parse HEAD)")
+          fi
           if [ -n "$PR_NUMBER" ]; then
             args+=("-Dsonar.pullrequest.key=$PR_NUMBER" "-Dsonar.pullrequest.branch=$PR_HEAD" "-Dsonar.pullrequest.base=$PR_BASE")
           fi

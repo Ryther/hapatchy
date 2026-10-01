@@ -192,6 +192,7 @@ Only stable `vMAJOR.MINOR.PATCH` releases are supported by the publisher today.
 | [tests.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/tests.yaml) | Push/PR/manual run; lint workflow definitions, scan for secrets, test both HA/Python baselines, and exercise native managed-patch Apply/Revert and denied-target flows in disposable HA on both baselines. Release can supply an exact commit. |
 | [validation.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/validation.yaml) | Push/PR/manual run; local metadata and hassfest on the checkout, plus HACS repository validation when public. Also called by Release. |
 | [codeql.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/codeql.yaml) | Push/PR/weekly/manual scan of product Python and our GitHub Actions workflows with the extended security query suite; results appear under GitHub code scanning. It has no release-publishing permission. |
+| [sonar.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/sonar.yaml) | Push/PR quality scan; a manual run can scan the exact commit of an existing draft release if GitHub did not start a `main` push scan. |
 | [docs.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/docs.yaml) | PR and `main` build of the documentation site with strict link validation; a `main` push or manual run publishes to GitHub Pages when Pages uses GitHub Actions and `DOCS_PAGES_ENABLED=true`. |
 | [release.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/release.yaml) | Push to `main` or manual run on `main`; maintain the release PR, then validate its merged candidate, require a clean exact-commit Sonar security result, and publish. |
 | [update-ha-baseline.yaml](https://github.com/Ryther/hapatchy/blob/main/.github/workflows/update-ha-baseline.yaml) | Schedule/manual run on trusted `main`; propose the newest compatible recent HA lock pair in one PR. |
@@ -261,6 +262,13 @@ For a transient failure, choose **Actions → Release → Run workflow**, select
 `main` and set **resume_tag** to the draft tag. The workflow retests that draft's
 original commit. A later push to `main` also discovers and retries an unfinished
 draft before maintaining another release PR.
+
+If the exact-commit Sonar scan is missing, first choose **Actions → Sonar quality
+→ Run workflow**, select `main`, and enter the existing draft's tag in
+**release_tag**. This scans the tag's code and coverage as the `main` branch
+only if that tag belongs to a draft release and points to an ancestor of `main`.
+Wait for **Sonar required** to pass, then resume the Release workflow with the
+same tag. Do not substitute a PR scan or a newer `main` commit for this check.
 
 Matching assets from a partial upload are retained. Different bytes, an
 unverifiable digest, a tag pointing elsewhere or an already published release
