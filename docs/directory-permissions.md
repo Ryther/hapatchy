@@ -36,9 +36,13 @@ such as `hapatchy_ui_demo_other/`.
 
 Create the directory and target file, save the YAML, then **restart Home
 Assistant**. HAPatchY verifies the grants at startup and keeps that snapshot
-until the next restart. Editing, deleting or replacing a configuration source
-while HA is running blocks patch operations until a restart; reloading only the
-HAPatchY integration does not approve a new grant. A missing or malformed section
+until the next restart. Changing `configuration.yaml` or an included file that
+defines `hapatchy` grants, HA's `allowlist_external_dirs`, or HA packages blocks
+patch operations until a restart; reloading only the HAPatchY integration does
+not approve a new grant. Editing an unrelated include such as `automations.yaml`
+does not revoke the frozen grants. Removing an include, changing the include
+graph, or making any YAML source unsafe or unreadable still blocks operations.
+A missing or malformed section
 grants nothing, and malformed YAML can prevent HA itself from starting. Keep a
 backup before editing the configuration.
 
@@ -68,9 +72,11 @@ pending; it clears only after a completed check with no error. If the updated
 target conflicts with the patch, the Repair changes to the conflict reason
 and the target is left unchanged. Automatic application still requires an exact
 match against the reinstalled target. A changed Python file needs an HA restart
-before the running integration uses the changed code. A YAML configuration
-source changed during the HA run is instead reported as a security error; it
-requires an HA restart, even when the watch directory itself exists.
+before the running integration uses the changed code. A grant source or include
+graph changed during the HA run is instead reported as a security error; it
+requires an HA restart, even when the watch directory itself exists. An ordinary
+content edit to an unrelated include such as `automations.yaml` does not cause
+this error.
 
 `watch_pattern` belongs to an individual patch and filters filesystem events
 for that patch's one exact target. It does not restrict which new targets can
