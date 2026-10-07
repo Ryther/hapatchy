@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.0.2](https://github.com/Ryther/hapatchy/compare/v2.0.1...v2.0.2) (2026-10-07)
+
+
+### Bug Fixes
+
+* preserve patch health after unrelated YAML edits ([b6c42c0](https://github.com/Ryther/hapatchy/commit/b6c42c084bad11dee134c2e4ad8edec647787f2b))
+
 ## [2.0.1](https://github.com/Ryther/hapatchy/compare/v2.0.0...v2.0.1) (2026-10-01)
 
 
