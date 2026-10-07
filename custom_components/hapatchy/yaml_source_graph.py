@@ -74,11 +74,29 @@ class DirectoryScope:
 
 @dataclass(frozen=True)
 class SourceGraph:
-    """The complete protected source graph, suitable for exact comparison."""
+    """Protected paths and the files that can define directory authority."""
 
     sources: tuple[SourceFile, ...]
     directories: tuple[DirectoryScope, ...]
     secret_candidates: tuple[tuple[str, ...], ...]
+    grant_sources: tuple[tuple[str, ...], ...]
+
+    def same_authority_as(self, previous: SourceGraph) -> bool:
+        """Allow content edits only outside grant sources and include structure."""
+        if (
+            tuple(source.path for source in self.sources)
+            != tuple(source.path for source in previous.sources)
+            or self.directories != previous.directories
+            or self.secret_candidates != previous.secret_candidates
+            or self.grant_sources != previous.grant_sources
+        ):
+            return False
+        old_sources = {source.path: source for source in previous.sources}
+        return all(
+            source == old_sources[source.path]
+            for source in self.sources
+            if source.path in self.grant_sources
+        )
 
     def protects(self, relative_path: str) -> bool:
         """Return whether a normalized relative path is part of the snapshot."""
@@ -99,19 +117,21 @@ class _Scanner:
         self.sources: dict[tuple[str, ...], SourceFile] = {}
         self.directories: dict[tuple[str, ...], DirectoryScope] = {}
         self.secrets: set[tuple[str, ...]] = set()
+        self.grant_sources: set[tuple[str, ...]] = set()
         self.stack: set[tuple[str, ...]] = set()
         self.includes = self.loads = self.directories_seen = self.entries = 0
         self.total_bytes = self.events = self.nodes = 0
 
     def scan(self) -> SourceGraph:
-        self._load(("configuration.yaml",), 0)
+        self._load(("configuration.yaml",), 0, ())
         return SourceGraph(
             tuple(sorted(self.sources.values(), key=lambda source: source.path)),
             tuple(sorted(self.directories.values(), key=lambda scope: scope.path)),
             tuple(sorted(self.secrets)),
+            tuple(sorted(self.grant_sources)),
         )
 
-    def _load(self, parts: tuple[str, ...], depth: int) -> None:
+    def _load(self, parts: tuple[str, ...], depth: int, context: tuple[str, ...]) -> None:
         if depth > _MAX_DEPTH:
             self._deny()
         if parts in self.stack:
@@ -138,13 +158,17 @@ class _Scanner:
         previous = self.sources.setdefault(parts, source)
         if previous != source or len(self.sources) > _MAX_FILES:
             self._deny()
+        if _defines_grants(context):
+            self.grant_sources.add(parts)
         self.stack.add(parts)
         try:
-            self._compose_and_visit(data, parts, depth)
+            self._compose_and_visit(data, parts, depth, context)
         finally:
             self.stack.remove(parts)
 
-    def _compose_and_visit(self, data: bytes, current: tuple[str, ...], depth: int) -> None:
+    def _compose_and_visit(
+        self, data: bytes, current: tuple[str, ...], depth: int, context: tuple[str, ...]
+    ) -> None:
         try:
             for _ in yaml.parse(data, Loader=_YAML_LOADER):
                 self.events += 1
@@ -156,7 +180,7 @@ class _Scanner:
         except yaml.YAMLError:
             self._deny()
         if node is not None:
-            self._visit(node, current, depth, 1, set())
+            self._visit(node, current, depth, 1, set(), context)
 
     def _visit(
         self,
@@ -165,6 +189,7 @@ class _Scanner:
         include_depth: int,
         node_depth: int,
         active: set[int],
+        context: tuple[str, ...],
     ) -> None:
         if node_depth > _MAX_NODE_DEPTH or id(node) in active:
             self._deny()
@@ -174,15 +199,17 @@ class _Scanner:
         if not (node.tag.startswith(_YAML_TAG) or node.tag in _KNOWN_TAGS):
             self._deny()
         if node.tag in _KNOWN_TAGS:
-            self._visit_tag(node, current, include_depth)
+            self._visit_tag(node, current, include_depth, context)
             return
         active.add(id(node))
         try:
-            self._visit_children(node, current, include_depth, node_depth, active)
+            self._visit_children(node, current, include_depth, node_depth, active, context)
         finally:
             active.remove(id(node))
 
-    def _visit_tag(self, node: Node, current: tuple[str, ...], include_depth: int) -> None:
+    def _visit_tag(
+        self, node: Node, current: tuple[str, ...], include_depth: int, context: tuple[str, ...]
+    ) -> None:
         if not isinstance(node, ScalarNode):
             self._deny()
         if node.tag == _INCLUDE_TAG:
@@ -190,16 +217,16 @@ class _Scanner:
             self.includes += 1
             if self.includes > _MAX_INCLUDES:
                 self._deny()
-            self._load(current[:-1] + _parts(operand), include_depth + 1)
+            self._load(current[:-1] + _parts(operand), include_depth + 1, context)
         elif node.tag in _DIRECTORY_TAGS:
             operand = self._path_operand(node)
             self.includes += 1
             if self.includes > _MAX_INCLUDES:
                 self._deny()
-            self._include_directory(current[:-1] + _parts(operand), include_depth + 1)
+            self._include_directory(current[:-1] + _parts(operand), include_depth + 1, context)
         elif node.tag == _SECRET_TAG:
             self._literal_operand(node)
-            self._secret_candidates(current[:-1])
+            self._secret_candidates(current[:-1], context)
 
     def _visit_children(
         self,
@@ -208,10 +235,11 @@ class _Scanner:
         include_depth: int,
         node_depth: int,
         active: set[int],
+        context: tuple[str, ...],
     ) -> None:
         if isinstance(node, SequenceNode):
             for child in node.value:
-                self._visit(child, current, include_depth, node_depth + 1, active)
+                self._visit(child, current, include_depth, node_depth + 1, active, context)
         elif isinstance(node, MappingNode):
             keys: set[tuple[str, str]] = set()
             for key, value in node.value:
@@ -220,12 +248,19 @@ class _Scanner:
                     if marker in keys:
                         self._deny()
                     keys.add(marker)
-                self._visit(key, current, include_depth, node_depth + 1, active)
-                self._visit(value, current, include_depth, node_depth + 1, active)
+                self._visit(key, current, include_depth, node_depth + 1, active, context)
+                child_context = (
+                    context + (key.value,)
+                    if isinstance(key, ScalarNode) and key.tag == _YAML_TAG + "str"
+                    else ()  # An unusual key is conservatively authority-bearing.
+                )
+                self._visit(value, current, include_depth, node_depth + 1, active, child_context)
         elif not isinstance(node, ScalarNode):
             self._deny()
 
-    def _include_directory(self, parts: tuple[str, ...], depth: int) -> None:
+    def _include_directory(
+        self, parts: tuple[str, ...], depth: int, context: tuple[str, ...]
+    ) -> None:
         fd, info = self._open_directory(parts)
         try:
             inventory: list[tuple[str, ...]] = []
@@ -239,7 +274,7 @@ class _Scanner:
         finally:
             os.close(fd)
         for path in files:
-            self._load(path, depth)
+            self._load(path, depth, context)
 
     def _walk_directory(
         self,
@@ -296,12 +331,12 @@ class _Scanner:
         else:
             self._deny()
 
-    def _secret_candidates(self, parent: tuple[str, ...]) -> None:
+    def _secret_candidates(self, parent: tuple[str, ...], context: tuple[str, ...]) -> None:
         for index in range(len(parent), -1, -1):
             candidate = parent[:index] + ("secrets.yaml",)
             self.secrets.add(candidate)
             try:
-                self._load(candidate, 0)
+                self._load(candidate, 0, context)
             except FileNotFoundError:
                 continue
 
@@ -416,6 +451,15 @@ def _parts(path: str) -> tuple[str, ...]:
     if any(part in ("", ".", "..") for part in parts):
         raise ValueError
     return parts
+
+
+def _defines_grants(context: tuple[str, ...]) -> bool:
+    """Identify YAML branches read by HAPatchY's startup grant validation."""
+    if not context or context[0] == "hapatchy":
+        return True
+    return context[0] == "homeassistant" and (
+        len(context) == 1 or context[1] in {"allowlist_external_dirs", "packages"}
+    )
 
 
 def _stat_identity(info: os.stat_result) -> tuple[int, ...]:

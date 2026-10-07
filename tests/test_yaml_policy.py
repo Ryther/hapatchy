@@ -100,7 +100,7 @@ def test_source_graph_change_denies_without_reloading_grants(tmp_path):
     assert policy.hapatchy_directories == ("scripts",)
 
 
-def test_included_source_change_denies_without_reloading_grants(tmp_path):
+def test_unrelated_included_source_change_preserves_frozen_grants(tmp_path):
     from custom_components.hapatchy.yaml_policy import load_yaml_policy
 
     _write_config(
@@ -116,9 +116,57 @@ def test_included_source_change_denies_without_reloading_grants(tmp_path):
 
     included.write_text("- platform: command_line\n")
 
+    policy.check_current()
+    assert policy.hapatchy_directories == ("scripts",)
+    assert policy.graph.protects("sensors.yaml")
+
+
+@pytest.mark.parametrize(
+    ("configuration", "source", "boot"),
+    [
+        (
+            "hapatchy: !include grants.yaml\n",
+            "allowed_directories:\n  - scripts\n",
+            {"hapatchy": {"allowed_directories": ["scripts"]}},
+        ),
+        (
+            "homeassistant: !include grants.yaml\n",
+            "allowlist_external_dirs:\n  - /config/scripts\n",
+            {"homeassistant": {"allowlist_external_dirs": ["/config/scripts"]}},
+        ),
+        (
+            "homeassistant:\n  packages: !include grants.yaml\n",
+            "example:\n  sensor: []\n",
+            {"homeassistant": {"packages": {"example": {"sensor": []}}}},
+        ),
+    ],
+)
+def test_grant_related_include_change_still_denies(tmp_path, configuration, source, boot):
+    from custom_components.hapatchy.yaml_policy import load_yaml_policy
+
+    _write_config(tmp_path, configuration)
+    included = tmp_path / "grants.yaml"
+    included.write_text(source)
+    policy = load_yaml_policy(tmp_path, boot)
+
+    included.write_text(source + "\n# changed after boot\n")
+
     with pytest.raises(PatchError, match="configuration_source_changed"):
         policy.check_current()
-    assert policy.hapatchy_directories == ("scripts",)
+
+
+def test_unrelated_include_structure_change_still_denies(tmp_path):
+    from custom_components.hapatchy.yaml_policy import load_yaml_policy
+
+    _write_config(tmp_path, "sensor: !include sensors.yaml\n")
+    included = tmp_path / "sensors.yaml"
+    included.write_text("- platform: template\n")
+    policy = load_yaml_policy(tmp_path, {"sensor": []})
+    (tmp_path / "extra.yaml").write_text("[]\n")
+    included.write_text("- platform: !include extra.yaml\n")
+
+    with pytest.raises(PatchError, match="configuration_source_changed"):
+        policy.check_current()
 
 
 def test_removed_included_source_denies_after_boot(tmp_path):

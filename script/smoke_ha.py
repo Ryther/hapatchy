@@ -47,6 +47,7 @@ def prepare_config(root: Path, port: int) -> None:
     (root / "scripts" / "ambiguous.txt").write_text(BEFORE_TEXT)
     (root / "www").mkdir()
     (root / "www" / "denied.txt").write_text("untouched\n")
+    (root / "automations.yaml").write_text("[]\n")
     shutil.copytree(
         ROOT / "custom_components" / "hapatchy",
         root / "custom_components" / "hapatchy",
@@ -60,6 +61,7 @@ def prepare_config(root: Path, port: int) -> None:
         "hapatchy:\n"
         "  allowed_directories:\n"
         "    - scripts\n"
+        "automation: !include automations.yaml\n"
         "http:\n"
         "  server_host: 127.0.0.1\n"
         f"  server_port: {port}\n"
@@ -252,6 +254,19 @@ def _verify_manual_patch(base: str, root: Path, token: str, entry: str) -> None:
     api_request(base, "/api/services/hapatchy/apply", {"patch_id": patch_id}, token=token)
     if target.read_bytes() != b"patched\n":
         raise RuntimeError("Apply did not change target bytes")
+    (root / "automations.yaml").write_text(
+        "- alias: CI changed automation\n  triggers: []\n  actions: []\n"
+    )
+    api_request(base, "/api/services/hapatchy/reconcile", {"patch_id": patch_id}, token=token)
+    states = api_request(base, STATES_PATH, token=token)
+    status = next(item for item in states if item["entity_id"].startswith("sensor.ci_smoke"))
+    health = next(
+        item for item in states if item["entity_id"].startswith("binary_sensor.ci_smoke")
+    )
+    if status["state"] != "applied" or health["state"] != "off":
+        raise RuntimeError("Unrelated automation edit made the applied patch unhealthy")
+    if target.read_bytes() != b"patched\n":
+        raise RuntimeError("Automation edit changed the patched target")
     api_request(base, "/api/services/hapatchy/revert", {"patch_id": patch_id}, token=token)
     if target.read_bytes() != b"original\n":
         raise RuntimeError("Revert did not restore target bytes")
@@ -433,6 +448,29 @@ def verify_patch_flow(base: str, root: Path) -> None:
     _verify_file_editor(base, root, token, entry)
     _verify_editor_retry(base, root, token, entry)
     _verify_failed_apply(base, root, token, entry)
+    target = root / "scripts" / "smoke.txt"
+    original = target.read_bytes()
+    config = root / "configuration.yaml"
+    config.write_text(config.read_text() + "\n# grant source changed after boot\n")
+    states = api_request(base, STATES_PATH, token=token)
+    patch_id = next(
+        item["attributes"]["patch_id"]
+        for item in states
+        if item["entity_id"].startswith("sensor.ci_smoke")
+    )
+    # HA reports the refused administrator action as a service error. Its HTTP
+    # response may fail; the sensor and unchanged bytes are the stable contract.
+    try:
+        api_request(base, "/api/services/hapatchy/reconcile", {"patch_id": patch_id}, token=token)
+    except RuntimeError as error:
+        if not str(error).startswith(
+            "HA API /api/services/hapatchy/reconcile returned HTTP "
+        ):
+            raise
+    states = api_request(base, STATES_PATH, token=token)
+    status = next(item for item in states if item["entity_id"].startswith("sensor.ci_smoke"))
+    if status["state"] != "security_error" or target.read_bytes() != original:
+        raise RuntimeError("Changed grant source was not denied with unchanged target")
 
 
 def run_smoke() -> None:
@@ -456,7 +494,8 @@ def run_smoke() -> None:
                 verify_patch_flow(f"http://127.0.0.1:{port}", root)
                 print(
                     "Disposable HA native editor, backed-up Apply, failed Apply status, "
-                    "Revert, retry text retention, denied target and byte checks: PASS"
+                    "Revert, automation/grant source checks, retry text retention, "
+                    "denied target and byte checks: PASS"
                 )
             except Exception:
                 log.flush()

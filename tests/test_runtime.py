@@ -22,12 +22,12 @@ DATA = {
 DIFF = b"--- a/scripts/a.py\n+++ b/scripts/a.py\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n"
 
 
-async def setup(hass, tmp_path, changes=None):
+async def setup(hass, tmp_path, changes=None, *, config_extra=""):
     assert Path("custom_components/hapatchy/coordinator.py").exists(), (
         "Runtime lifecycle is missing"
     )
     hass.config.config_dir = str(tmp_path)
-    grant_directories(tmp_path, hass=hass)
+    grant_directories(tmp_path, hass=hass, extra_yaml=config_extra)
     (tmp_path / "scripts").mkdir(exist_ok=True)
     (tmp_path / "patches").mkdir(exist_ok=True)
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")

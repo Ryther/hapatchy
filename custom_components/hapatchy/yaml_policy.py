@@ -33,12 +33,12 @@ class YamlPolicy:
     graph: SourceGraph
 
     def check_current(self) -> None:
-        """Reject operations when any protected configuration source changed."""
+        """Reject changed grants or include structure, keeping boot grants frozen."""
         try:
             current = scan_source_graph(self.root)
         except (OSError, PatchError, yaml.YAMLError):
             raise PatchError("configuration_source_unavailable", Status.SECURITY_ERROR) from None
-        if current != self.graph:
+        if not current.same_authority_as(self.graph):
             raise PatchError("configuration_source_changed", Status.SECURITY_ERROR)
 
 
