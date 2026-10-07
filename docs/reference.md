@@ -122,7 +122,7 @@ may display friendly labels; the raw state values below are stable identifiers.
 | `missing_target` | The target does not exist | Check the path or wait for installation/update to finish |
 | `source_error` | The patch could not be read, downloaded or verified | Check source, connectivity and SHA-256 |
 | `invalid_patch` | The diff is malformed, unsupported or ambiguous | Regenerate it with correct headers and distinctive context |
-| `security_error` | A path, YAML-source, file safety or HTTPS destination check failed | Check both directory grants, configuration-source changes and the source hostname; restart HA after YAML edits |
+| `security_error` | A path, grant source, include graph, file safety or HTTPS destination check failed | Check both directory grants, grant-bearing YAML and the source hostname; restart HA after changing grants or include structure |
 | `apply_error` | A backup, write or durability check failed | Read the Repair; do not assume no bytes changed |
 
 Useful attributes include:

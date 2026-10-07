@@ -147,8 +147,13 @@ its permissions and check for a symlink rather than repeatedly forcing actions.
 ## Security error
 
 Start with [both directory lists](directory-permissions.md): the operator must
-name the target and watch directory, then restart HA. A changed, missing or
-unreadable YAML source also blocks operations until restart. Paths must stay
+name the target and watch directory, then restart HA. A changed grant source
+(`configuration.yaml`, a `hapatchy` or HA allowlist/packages include), a changed
+include graph, or a missing or unreadable YAML source blocks operations until
+restart. An ordinary edit to an unrelated include such as `automations.yaml`
+does not revoke grants. If Patch health already shows a security error after
+upgrading from an affected release, restart HA to load the corrected integration
+and let its next check clear the Repair. Paths must stay
 inside the HA configuration folder. Absolute paths, traversal,
 symlinks, hard-linked files, special files and protected internal directories are
 not supported. Use a normal file under a normal subdirectory. HAPatchY's own code,

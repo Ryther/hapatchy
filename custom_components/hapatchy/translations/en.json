@@ -152,7 +152,7 @@
         "hapatchy_path_not_allowed": "The target or watch directory is not listed under hapatchy.allowed_directories in configuration.yaml. Ask the operator to update it and restart Home Assistant.",
         "ha_path_not_allowed": "The target or watch directory is not authorized by Home Assistant’s allowlist_external_dirs. Update that setting and restart HA.",
         "configuration_source_unavailable": "Home Assistant configuration sources cannot be read safely. Check configuration.yaml and its includes, then restart Home Assistant.",
-        "configuration_source_changed": "Home Assistant configuration sources changed since startup. Restart Home Assistant to load and verify the current grants.",
+        "configuration_source_changed": "Directory-grant YAML or the configuration include structure changed since startup. Restart Home Assistant to verify the current grants.",
         "configuration_mismatch": "The loaded Home Assistant configuration does not match the operator YAML grants. Check packages and includes, then restart Home Assistant.",
         "hapatchy_yaml_invalid": "The hapatchy section in configuration.yaml is invalid. Use allowed_directories with a list of relative folders.",
         "revert_metadata_unavailable": "The file was reverted, but Home Assistant could not save the disabled automatic reapply setting. Automatic reapply is suspended; check storage and retry Revert.",
@@ -450,7 +450,7 @@
       "message": "Home Assistant configuration sources cannot be read safely. Check configuration.yaml and its includes, then restart Home Assistant."
     },
     "configuration_source_changed": {
-      "message": "Home Assistant configuration sources changed since startup. Restart Home Assistant to load and verify the current grants."
+      "message": "Directory-grant YAML or the configuration include structure changed since startup. Restart Home Assistant to verify the current grants."
     },
     "configuration_mismatch": {
       "message": "The loaded Home Assistant configuration does not match the operator YAML grants. Check packages and includes, then restart Home Assistant."

@@ -7,13 +7,13 @@ from custom_components.hapatchy.path_policy import PathPolicy
 from custom_components.hapatchy.yaml_policy import load_yaml_policy
 
 
-def grant_directories(root: Path, directories=("scripts",), *, hass=None):
+def grant_directories(root: Path, directories=("scripts",), *, hass=None, extra_yaml=""):
     explicit = [str(root / directory) for directory in directories]
     yaml_lines = ["homeassistant:", "  allowlist_external_dirs:"]
     yaml_lines += [f"    - {directory}" for directory in explicit]
     yaml_lines += ["hapatchy:", "  allowed_directories:"]
     yaml_lines += [f"    - {directory}" for directory in directories]
-    (root / "configuration.yaml").write_text("\n".join(yaml_lines) + "\n")
+    (root / "configuration.yaml").write_text("\n".join(yaml_lines) + "\n" + extra_yaml)
     boot = {
         "homeassistant": {"allowlist_external_dirs": explicit},
         "hapatchy": {"allowed_directories": list(directories)},

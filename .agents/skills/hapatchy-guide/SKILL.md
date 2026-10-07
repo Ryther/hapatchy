@@ -189,8 +189,10 @@ If an updater temporarily removes a watched directory, HAPatchY raises a
 Repair and checks again every 60 seconds. After the directory returns, a
 **Checking patch** Repair remains until the current target and patch have been
 verified. A successful check clears it; a conflict keeps an error Repair and
-does not force a write. A changed YAML configuration source instead causes a
-security error until HA restarts, even if the directory still exists.
+does not force a write. A changed grant-bearing YAML source or include graph
+instead causes a security error until HA restarts, even if the directory still
+exists. Editing unrelated included content, such as `automations.yaml`, does
+not revoke grants; missing or unsafe YAML sources still deny patch operations.
 
 **Refresh source** checks the source/target without writing. **Reconcile** may
 write if automatic application is enabled. A disabled rule rejects actions;

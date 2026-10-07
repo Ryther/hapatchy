@@ -62,6 +62,48 @@ def test_recursive_include_sources_and_future_files_are_protected(tmp_path):
     assert scan_source_graph(tmp_path) != graph
 
 
+def test_authority_comparison_ignores_only_unrelated_content(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text(
+        "hapatchy: !include grants.yaml\nautomation: !include automations.yaml\n"
+    )
+    (tmp_path / "grants.yaml").write_text("allowed_directories:\n  - scripts\n")
+    automations = tmp_path / "automations.yaml"
+    automations.write_text("[]\n")
+    original = scan_source_graph(tmp_path)
+
+    automations.write_text("- alias: Example\n  trigger: []\n")
+    changed = scan_source_graph(tmp_path)
+    assert changed.same_authority_as(original)
+    assert changed.protects("automations.yaml")
+
+    (tmp_path / "grants.yaml").write_text("allowed_directories:\n  - www\n")
+    assert not scan_source_graph(tmp_path).same_authority_as(original)
+
+
+def test_replaced_unrelated_include_is_allowed_but_shared_grant_source_is_not(tmp_path):
+    from custom_components.hapatchy.yaml_source_graph import scan_source_graph
+
+    (tmp_path / "configuration.yaml").write_text(
+        "homeassistant:\n  customize: !include customize.yaml\n"
+        "hapatchy: !include shared.yaml\nsensor: !include shared.yaml\n"
+    )
+    customize = tmp_path / "customize.yaml"
+    customize.write_text("{}\n")
+    shared = tmp_path / "shared.yaml"
+    shared.write_text("allowed_directories:\n  - scripts\n")
+    original = scan_source_graph(tmp_path)
+
+    replacement = tmp_path / "replacement.tmp"
+    replacement.write_text("sensor.example:\n  friendly_name: Changed\n")
+    os.replace(replacement, customize)
+    assert scan_source_graph(tmp_path).same_authority_as(original)
+
+    shared.write_text("allowed_directories:\n  - www\n")
+    assert not scan_source_graph(tmp_path).same_authority_as(original)
+
+
 def test_repeated_include_directory_scans_close_descriptors(tmp_path):
     from custom_components.hapatchy.yaml_source_graph import scan_source_graph
 

@@ -49,8 +49,11 @@ report its outcome.
 
 Native subentries own patch definitions. Operator YAML owns directory grants;
 HAPatchY does not write it. At startup the integration compares raw YAML and
-HA's loaded configuration, snapshots configuration sources, and denies a target
-if a source changes before the next restart. HA's live path check remains an
+HA's loaded configuration and snapshots its bounded YAML source graph. It denies
+operations if a grant-bearing source or the include structure changes before the
+next restart. Content edits in unrelated includes, such as `automations.yaml`,
+do not change the frozen grants; all source paths stay protected from patching.
+HA's live path check remains an
 independent condition. Revert persists auto-apply off after a non-security
 reconciliation; if that persistence fails, automatic reapplication is suppressed
 and state records a controlled error. HA storage and the target file do not share

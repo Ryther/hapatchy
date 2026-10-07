@@ -194,6 +194,35 @@ async def test_changed_yaml_source_is_security_error_not_missing_directory(hass,
     assert target.read_bytes() == original
 
 
+async def test_automation_include_edit_keeps_applied_patch_healthy(hass, tmp_path):
+    from homeassistant.helpers import entity_registry as er
+
+    included = tmp_path / "automations.yaml"
+    included.write_text("[]\n")
+    _, runtime, pid = await setup(
+        hass, tmp_path, config_extra="automation: !include automations.yaml\n"
+    )
+    attention = next(
+        entity
+        for entity in er.async_get(hass).entities.values()
+        if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
+    )
+    target = tmp_path / "scripts/a.py"
+    await runtime.async_action(pid, "apply")
+    patched = target.read_bytes()
+    assert hass.states.get(attention.entity_id).state == "off"
+
+    included.write_text("- alias: Automation changed in HA\n  triggers: []\n  actions: []\n")
+    await watcher(runtime).async_refresh()
+    await runtime.async_action(pid, "reconcile")
+
+    assert target.read_bytes() == patched
+    assert runtime.states[pid].status == "applied"
+    assert runtime.states[pid].watcher_available
+    assert hass.states.get(attention.entity_id).state == "off"
+    assert ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}") is None
+
+
 async def test_unload_cancels_pending_debounce(hass, tmp_path):
     entry, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.2})
     owner = watcher(runtime)

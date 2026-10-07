@@ -152,7 +152,7 @@
         "hapatchy_path_not_allowed": "Il file o la cartella da monitorare non è in hapatchy.allowed_directories di configuration.yaml. Chiedi al gestore di aggiornarlo e riavviare Home Assistant.",
         "ha_path_not_allowed": "Il file o la cartella da monitorare non è autorizzato da allowlist_external_dirs di Home Assistant. Aggiorna la configurazione e riavvia HA.",
         "configuration_source_unavailable": "Impossibile leggere in sicurezza la configurazione di Home Assistant. Controlla configuration.yaml e i file inclusi, poi riavvia Home Assistant.",
-        "configuration_source_changed": "I file di configurazione di Home Assistant sono cambiati dopo l’avvio. Riavvia Home Assistant per caricare e verificare le autorizzazioni correnti.",
+        "configuration_source_changed": "Il file YAML dei permessi delle cartelle o la struttura degli include è cambiata dopo l’avvio. Riavvia Home Assistant per verificare le autorizzazioni correnti.",
         "configuration_mismatch": "La configurazione caricata da Home Assistant non corrisponde alle autorizzazioni YAML. Controlla packages e inclusioni, poi riavvia Home Assistant.",
         "hapatchy_yaml_invalid": "La sezione hapatchy in configuration.yaml non è valida. Usa allowed_directories con un elenco di cartelle relative.",
         "revert_metadata_unavailable": "Il file è stato ripristinato, ma Home Assistant non ha salvato la disattivazione della riapplicazione automatica. La riapplicazione automatica è sospesa; controlla lo storage e riprova Revert.",
@@ -450,7 +450,7 @@
       "message": "Impossibile leggere in sicurezza la configurazione di Home Assistant. Controlla configuration.yaml e i file inclusi, poi riavvia Home Assistant."
     },
     "configuration_source_changed": {
-      "message": "I file di configurazione di Home Assistant sono cambiati dopo l’avvio. Riavvia Home Assistant per caricare e verificare le autorizzazioni correnti."
+      "message": "Il file YAML dei permessi delle cartelle o la struttura degli include è cambiata dopo l’avvio. Riavvia Home Assistant per verificare le autorizzazioni correnti."
     },
     "configuration_mismatch": {
       "message": "La configurazione caricata da Home Assistant non corrisponde alle autorizzazioni YAML. Controlla packages e inclusioni, poi riavvia Home Assistant."
