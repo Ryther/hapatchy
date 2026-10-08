@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
@@ -58,6 +59,8 @@ async def test_single_entry(hass):
     ):
         first = await hass.config_entries.flow.async_init(DOMAIN, context={"source": "user"})
         assert first["type"] == FlowResultType.FORM
+        schema_module = getattr(config_entries, "probatio", None) or config_entries.vol
+        assert isinstance(first["data_schema"], schema_module.Schema)
         done = await hass.config_entries.flow.async_configure(first["flow_id"], {})
         assert done["type"] == FlowResultType.CREATE_ENTRY
         assert done["result"].unique_id == DOMAIN

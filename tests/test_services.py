@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 import voluptuous as vol
+from homeassistant import config_entries
 from homeassistant.core import Context
 from homeassistant.exceptions import ServiceValidationError, Unauthorized
 
@@ -26,6 +27,11 @@ async def call(hass, pid, action="apply", **kwargs):
 async def test_admin_apply_and_persistent_revert(hass, tmp_path, hass_admin_user):
     require_services()
     entry, runtime, pid = await setup(hass, tmp_path)
+    schema_module = getattr(config_entries, "probatio", None) or config_entries.vol
+    assert isinstance(
+        hass.services.async_services()["hapatchy"]["apply"].schema,
+        schema_module.Schema,
+    )
     context = Context(user_id=hass_admin_user.id)
     await call(hass, pid, context=context)
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nnew\n"

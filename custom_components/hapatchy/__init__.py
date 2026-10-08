@@ -2,9 +2,8 @@
 
 from pathlib import Path
 
-import voluptuous as vol
-
 from .const import DOMAIN
+from .schema_compat import vol
 
 
 def _grant_list(value):
