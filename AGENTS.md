@@ -57,7 +57,10 @@ the pinned Dev Container `uv` for Python 3.14.7 and review HA's exact optional
 integration requirements before updating the boot-smoke runtime additions.
 The recent-lane lock inputs are `.devcontainer/requirements-{tools,ha}.in`.
 `script/resolve_ha_locks.py` resolves both complete locks together using pinned
-`uv`; never edit only the HA line in a lock. The scheduled updater proposes a
+resolver tooling and HA-owned exact pins read from the verified candidate HA wheel;
+never edit only the HA line in a lock. Keep HAPatchY and independent-tool pins
+explicit in the inputs. A missing or inconsistent HA-owned pin is a stop, not a
+reason to guess or hard-code a version. The scheduled updater proposes a
 whole recent-lane PR and leaves the minimum lane untouched. Review generated
 Dependabot comment/exclusion changes against HA and plugin metadata. The PR
 advisory gate scans exact Python requirements declared by HAPatchY in its

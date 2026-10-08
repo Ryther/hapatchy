@@ -22,6 +22,7 @@
 !/script/sonar_gate.py
 !/script/resolve_ha_locks.py
 !/script/ha_release_catalog.py
+!/script/ha_distribution.py
 !/script/audit_ha_locks.py
 !/script/update_ha_baseline.py
 !/script/ha_update_merge.py
@@ -30,6 +31,7 @@
 !/tests/test_sonar_gate.py
 !/tests/test_resolve_ha_locks.py
 !/tests/test_ha_release_catalog.py
+!/tests/test_ha_distribution.py
 !/tests/test_audit_ha_locks.py
 !/tests/test_update_ha_baseline.py
 !/tests/test_ha_update_merge.py

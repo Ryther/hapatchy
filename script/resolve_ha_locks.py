@@ -11,11 +11,31 @@ import sys
 import tempfile
 from pathlib import Path
 
+from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
+
+from script.ha_distribution import load_ha_constraints
 
 INPUT_DIR = Path(__file__).resolve().parents[1] / ".devcontainer"
 ROOT = INPUT_DIR.parent
 LOCK_NAMES = ("requirements-tools", "requirements-ha")
+HA_OWNED_ROOTS = frozenset(
+    {
+        "uv",
+        "aiohasupervisor",
+        "av",
+        "gazetteer-matcher",
+        "ha-ffmpeg",
+        "hassil",
+        "home-assistant-frontend",
+        "infrared-protocols",
+        "mutagen",
+        "pymicro-vad",
+        "pyspeex-noise",
+        "pyturbojpeg",
+        "rf-protocols",
+    }
+)
 VERSION = re.compile(r"[0-9]+(?:\.[0-9]+){2}")
 PIN = re.compile(r"([A-Za-z0-9_.-]+)==([A-Za-z0-9_.!+\-]+)")
 
@@ -48,6 +68,24 @@ def validate_lock(path: Path) -> dict[str, str]:
     return pins
 
 
+def _ha_owned_roots(inputs: dict[str, str]) -> frozenset[str]:
+    roots: set[str] = set()
+    for content in inputs.values():
+        for line in content.splitlines():
+            line = line.strip()
+            if not line or line.startswith("#"):
+                continue
+            requirement = Requirement(line)
+            name = canonicalize_name(requirement.name)
+            if not requirement.specifier:
+                if name not in HA_OWNED_ROOTS or requirement.marker or requirement.extras:
+                    raise ValueError(f"Unpinned non-HA requirement: {name}")
+                roots.add(name)
+            elif name in HA_OWNED_ROOTS:
+                raise ValueError(f"HA-owned requirement is pinned in an input: {name}")
+    return frozenset(roots)
+
+
 def render(
     ha_version: str,
     plugin_version: str,
@@ -57,31 +95,45 @@ def render(
     output_dir.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix=".hapatchy-locks-", dir=output_dir) as temporary:
         staging = Path(temporary)
+        inputs = {
+            name: render_input(
+                (INPUT_DIR / f"{name}.in").read_text(encoding="utf-8"),
+                ha_version,
+                plugin_version,
+            )
+            for name in LOCK_NAMES
+        }
+        roots = _ha_owned_roots(inputs)
+        constraints = staging / "ha-constraints.txt"
+        if roots:
+            constraints.write_bytes(load_ha_constraints(ha_version, roots))
         for name in LOCK_NAMES:
             input_path = staging / f"{name}.in"
             output_path = staging / f"{name}.txt"
-            template = (INPUT_DIR / f"{name}.in").read_text(encoding="utf-8")
-            input_path.write_text(render_input(template, ha_version, plugin_version))
+            input_path.write_text(inputs[name])
             previous = output_dir / f"{name}.txt"
             if not previous.exists():
                 previous = INPUT_DIR / f"{name}.txt"
             shutil.copyfile(previous, output_path)
+            command = [
+                sys.executable,
+                "-m",
+                "uv",
+                "pip",
+                "compile",
+                str(input_path),
+                "--output-file",
+                str(output_path),
+                "--no-header",
+                "--no-annotate",
+                "--python-version",
+                "3.14.7",
+                "--quiet",
+            ]
+            if roots:
+                command.extend(("--constraint", str(constraints)))
             subprocess.run(
-                [
-                    sys.executable,
-                    "-m",
-                    "uv",
-                    "pip",
-                    "compile",
-                    str(input_path),
-                    "--output-file",
-                    str(output_path),
-                    "--no-header",
-                    "--no-annotate",
-                    "--python-version",
-                    "3.14.7",
-                    "--quiet",
-                ],
+                command,
                 check=True,
                 env={**os.environ, "UV_CACHE_DIR": str(staging / "uv-cache")},
             )

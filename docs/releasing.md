@@ -107,7 +107,11 @@ leaves merging to a maintainer.
 The scheduled [Update HA baseline](https://github.com/Ryther/hapatchy/actions/workflows/update-ha-baseline.yaml)
 workflow checks PyPI for the latest stable HA release and a published pytest
 plugin that pins it exactly. It resolves both recent Python locks from the
-tracked `.in` inputs with pinned `uv`, then proposes a `fix(compat):` PR. It
+tracked `.in` inputs with pinned resolver tooling. For HA-owned roots, including
+`uv` and optional integrations loaded by the boot smoke, it reads exact pins
+from the candidate HA wheel after verifying its PyPI size and SHA-256. Missing
+or conflicting pins stop the proposal; HAPatchY's own requirements and
+independent tools stay fixed in the inputs. It then proposes a `fix(compat):` PR. It
 lets the test/boot matrix read the new HA pin directly from each lock and updates its current-version references;
 the minimum HA/Python lane and dated screenshot evidence remain unchanged.
 Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
