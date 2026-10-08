@@ -97,7 +97,7 @@ restarts HA for you.
 | Tested Home Assistant baseline | Python in that test environment |
 | --- | --- |
 | **2026.7.4** — minimum supported HA | 3.14.7 |
-| **2026.9.4** — development baseline | 3.14.7 |
+| **2026.10.0** — development baseline | 3.14.7 |
 
 The same integration code is tested at both endpoints. Intermediate HA releases
 have not been individually tested. Your installed HA supplies Python: **HACS does

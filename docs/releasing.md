@@ -237,7 +237,7 @@ lane. Do not change an HA-owned pin alone.
 
 The minimum HA 2026.7.4 test plugin is `0.13.348`; it requires that exact HA
 release and pins `pytest-socket==0.8.0` and `pipdeptree==2.26.1`. The recent
-HA 2026.9.4 plugin is `0.13.367` with the same two test-tool pins. The minimum
+HA 2026.10.0 plugin is `0.13.367` with the same two test-tool pins. The minimum
 HA frontend manifest requires `home-assistant-frontend==20260624.6`, and its
 camera manifest requires `PyTurboJPEG==1.8.3` for boot smoke. A passing generic
 test run cannot authorize changing an optional integration's pin: inspect HA's
