@@ -1,13 +1,31 @@
 """HA setup freezes operator YAML grants without exposing a grant-writing flow."""
 
+import subprocess
+import sys
+
 import pytest
 import voluptuous as vol
+from homeassistant import config_entries
 
 from custom_components.hapatchy.const import DOMAIN
 
 
+def test_preloaded_voluptuous_does_not_select_stale_schema_module():
+    code = (
+        "import voluptuous; "
+        "from homeassistant import config_entries; "
+        "from custom_components.hapatchy import CONFIG_SCHEMA; "
+        "schema = getattr(config_entries, 'probatio', None) or config_entries.vol; "
+        "assert isinstance(CONFIG_SCHEMA, schema.Schema)"
+    )
+    subprocess.run([sys.executable, "-c", code], check=True, capture_output=True, text=True)
+
+
 def test_config_schema_accepts_literal_yaml_grants():
     from custom_components.hapatchy import CONFIG_SCHEMA
+
+    schema_module = getattr(config_entries, "probatio", None) or config_entries.vol
+    assert isinstance(CONFIG_SCHEMA, schema_module.Schema)
 
     assert CONFIG_SCHEMA({"hapatchy": {"allowed_directories": ["scripts"]}})[DOMAIN] == {
         "allowed_directories": ["scripts"]

@@ -2,13 +2,13 @@
 
 from functools import partial
 
-import voluptuous as vol
 from homeassistant.core import HomeAssistant, ServiceCall, SupportsResponse, callback
 from homeassistant.exceptions import ServiceValidationError, Unauthorized, UnknownUser
 from homeassistant.helpers.service import async_register_admin_service
 
 from .const import DOMAIN
 from .models import PatchError
+from .schema_compat import vol
 
 ADMIN_ACTIONS = ("reconcile", "apply", "revert", "refresh_source")
 READ_ACTION = "get_patch"

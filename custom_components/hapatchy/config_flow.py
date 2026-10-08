@@ -6,7 +6,6 @@ from dataclasses import asdict
 from pathlib import Path
 from typing import Any
 
-import voluptuous as vol
 from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.helpers import selector
@@ -16,6 +15,7 @@ from .managed_source import ManagedPatchStore, validate_content
 from .models import PatchDefinition, PatchError, Status
 from .patch_builder import MAX_EDITOR_BYTES, build_patch
 from .safe_io import Snapshot
+from .schema_compat import vol
 from .source_upload import read_upload
 from .target_picker import list_targets
 from .validation import (
