@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.0.3](https://github.com/Ryther/hapatchy/compare/v2.0.2...v2.0.3) (2026-10-08)
+
+
+### Bug Fixes
+
+* **compat:** derive HA-owned lock pins from candidate wheel ([#93](https://github.com/Ryther/hapatchy/issues/93)) ([e3ddff6](https://github.com/Ryther/hapatchy/commit/e3ddff6854623e35a560c5bc24b327ddb092a66a))
+* **compat:** use installed HA schema implementation ([#96](https://github.com/Ryther/hapatchy/issues/96)) ([12daae5](https://github.com/Ryther/hapatchy/commit/12daae5b2ee7fa97033aa14dee223ed6349c7150))
+* **compat:** validate Home Assistant 2026.10.0 ([#95](https://github.com/Ryther/hapatchy/issues/95)) ([39fa76f](https://github.com/Ryther/hapatchy/commit/39fa76f6413e1f2b2a77af3c50817bc6c0c9fc1d))
+
 ## [2.0.2](https://github.com/Ryther/hapatchy/compare/v2.0.1...v2.0.2) (2026-10-07)
 
 
