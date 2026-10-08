@@ -85,7 +85,11 @@ checks is not proof that a minimum-lane-specific failure is fixed.
 The recent tool and runtime locks are generated together from
 [`requirements-tools.in`](requirements-tools.in) and
 [`requirements-ha.in`](requirements-ha.in). The `--check` command above verifies
-that the tracked locks reproduce exactly. For an approved HA/plugin pair, run
+that the tracked locks reproduce exactly. HA-owned roots, including `uv` and the
+optional integrations exercised by the boot smoke, get their exact versions from
+the candidate HA wheel on PyPI. The resolver checks the wheel's published size
+and SHA-256 and stops if any required pin is missing or inconsistent. HAPatchY's
+own requirements and independent tools remain pinned in the inputs. For an approved HA/plugin pair, run
 the resolver with `--ha` and `--plugin`; it writes to the ignored `_tmp/resolved-ha-locks` directory. Use a disposable
 output directory first. The scheduled updater uses the same resolver and changes
 only the recent lane. Rebuild the container after merging a lock update; do not

@@ -84,6 +84,39 @@ def test_successful_resolution_publishes_both_complete_locks(tmp_path, monkeypat
     assert not list(output.glob(".hapatchy-locks-*"))
 
 
+def test_render_uses_candidate_wheel_constraints_for_unpinned_ha_roots(tmp_path, monkeypatch):
+    source = tmp_path / "inputs"
+    output = tmp_path / "output"
+    source.mkdir()
+    for name in ("requirements-tools", "requirements-ha"):
+        (source / f"{name}.in").write_text(
+            "homeassistant=={ha_version}\nuv\n"
+            + ("pytest-homeassistant-custom-component=={plugin_version}\n" if name == "requirements-tools" else "")
+        )
+        (source / f"{name}.txt").write_text("homeassistant==2026.9.4\nuv==0.12.5\n")
+    monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
+    seen = []
+    monkeypatch.setattr(
+        resolve_ha_locks,
+        "load_ha_constraints",
+        lambda ha, roots: seen.append((ha, roots)) or b"uv==0.12.23\n",
+    )
+
+    def compile_once(command, **kwargs):
+        constraints = Path(command[command.index("--constraint") + 1])
+        assert constraints.read_bytes() == b"uv==0.12.23\n"
+        path = Path(command[command.index("--output-file") + 1])
+        pin = "homeassistant==2026.10.0\nuv==0.12.23\n"
+        if path.name == "requirements-tools.txt":
+            pin += "pytest-homeassistant-custom-component==0.13.371\n"
+        path.write_text(pin)
+        return CompletedProcess(command, 0)
+
+    monkeypatch.setattr(resolve_ha_locks.subprocess, "run", compile_once)
+    resolve_ha_locks.render("2026.10.0", "0.13.371", output)
+    assert seen == [("2026.10.0", frozenset({"uv"}))]
+
+
 def test_check_current_detects_drift_and_cli_returns_failure(tmp_path, monkeypatch):
     source = tmp_path / "inputs"
     source.mkdir()

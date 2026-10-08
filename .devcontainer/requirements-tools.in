@@ -7,5 +7,6 @@ patch-ng==1.19.1
 pytest-homeassistant-custom-component=={plugin_version}
 ruff==0.16.8
 supervisor==4.3.0
-uv==0.12.5
+# HA owns uv; its exact pin comes from the verified candidate wheel.
+uv
 watchdog==6.0.0
