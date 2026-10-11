@@ -10,7 +10,7 @@ from packaging.version import Version
 from script.update_ha_baseline import EDITABLE_PATHS
 
 REPOSITORY = "Ryther/hapatchy"
-UPDATE_BRANCH = "automation/ha-baseline"
+UPDATE_BRANCH_PREFIX = "automation/ha-baseline/"
 RELEASE_BRANCH = "release-please--branches--main--components--hapatchy"
 UPDATE_PATHS = frozenset(EDITABLE_PATHS)
 RELEASE_PATHS = frozenset(
@@ -26,6 +26,7 @@ MANDATORY_CHECKS = frozenset(
 )
 SHA = re.compile(r"[0-9a-f]{40}")
 UPDATE_TITLE = re.compile(r"fix\(compat\): validate Home Assistant ([0-9]+\.[0-9]+\.[0-9]+)")
+UPDATE_BRANCH_PATTERN = re.compile(r"automation/ha-baseline/([0-9]+\.[0-9]+\.[0-9]+)")
 RELEASE_TITLE = re.compile(r"chore\(main\): release ([0-9]+\.[0-9]+\.[0-9]+)")
 
 
@@ -86,7 +87,9 @@ def eligible_update(repo: RepoSnapshot, pr: PullRequestSnapshot) -> Decision:
     common = _common(repo, pr)
     if not common.eligible:
         return common
-    if pr.head_ref != UPDATE_BRANCH or UPDATE_TITLE.fullmatch(pr.title) is None:
+    branch = UPDATE_BRANCH_PATTERN.fullmatch(pr.head_ref)
+    title = UPDATE_TITLE.fullmatch(pr.title)
+    if branch is None or title is None or branch.group(1) != title.group(1):
         return Decision(False, "Not the expected HA update proposal")
     if set(pr.changed_files) != {str(path) for path in UPDATE_PATHS}:
         return Decision(False, "HA update changes unexpected files")
