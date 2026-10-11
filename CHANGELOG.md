@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.0.4](https://github.com/Ryther/hapatchy/compare/v2.0.3...v2.0.4) (2026-10-11)
+
+
+### Bug Fixes
+
+* **ci:** version HA baseline proposal branches ([#97](https://github.com/Ryther/hapatchy/issues/97)) ([e433ce4](https://github.com/Ryther/hapatchy/commit/e433ce423640f69a4c98905157ce25fb531d27de))
+* **compat:** validate Home Assistant 2026.10.1 ([#99](https://github.com/Ryther/hapatchy/issues/99)) ([e058a52](https://github.com/Ryther/hapatchy/commit/e058a52456130070028fa8f4bfc712cba18a8974))
+
 ## [2.0.3](https://github.com/Ryther/hapatchy/compare/v2.0.2...v2.0.3) (2026-10-08)
 
 
