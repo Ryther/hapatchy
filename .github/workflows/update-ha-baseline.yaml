@@ -52,9 +52,24 @@ jobs:
           HA_VERSION: ${{ steps.candidate.outputs.ha }}
         run: |
           set -euo pipefail
-          branch=automation/ha-baseline
+          if [[ ! "$HA_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo 'Candidate HA version is invalid.' >&2
+            exit 1
+          fi
+          branch="automation/ha-baseline/$HA_VERSION"
           title="fix(compat): validate Home Assistant $HA_VERSION"
-          existing=$(gh pr list --head "$branch" --base main --state open --json number --jq '.[0].number // empty')
+          open_pulls=$(gh api "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100")
+          if [ "$(jq 'length' <<< "$open_pulls")" -ge 100 ]; then
+            echo 'Too many open PRs to prove HA baseline PR uniqueness.' >&2
+            exit 1
+          fi
+          existing=$(jq -r --arg branch "$branch" --arg repo "$GITHUB_REPOSITORY" \
+            '.[] | select(.head.ref == $branch and .head.repo.full_name == $repo and .base.ref == "main") | .number' <<< "$open_pulls")
+          update_pulls=$(jq -r '.[] | select(.head.ref == "automation/ha-baseline" or (.head.ref | startswith("automation/ha-baseline/"))) | .number' <<< "$open_pulls")
+          if [ -n "$update_pulls" ] && [ "$update_pulls" != "$existing" ]; then
+            echo 'Another HA baseline PR is open; manual review required.' >&2
+            exit 1
+          fi
           old_sha=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" --jq '.object.sha' 2>/dev/null) || old_sha=''
           if [ -n "$old_sha" ] && [[ ! "$old_sha" =~ ^[0-9a-f]{40}$ ]]; then
             echo 'Automation branch lookup returned an invalid commit ID.' >&2

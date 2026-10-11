@@ -17,7 +17,8 @@ from script.ha_update_merge import (
     RELEASE_BRANCH,
     RELEASE_PATHS,
     REPOSITORY,
-    UPDATE_BRANCH,
+    UPDATE_BRANCH_PATTERN,
+    UPDATE_BRANCH_PREFIX,
     UPDATE_PATHS,
     PullRequestSnapshot,
     RepoSnapshot,
@@ -53,7 +54,11 @@ def _api_list(endpoint: str) -> list[dict[str, Any]]:
 def open_targets() -> tuple[list[int], list[int]]:
     """Return all open updater and Release Please PR numbers; reject duplicates."""
     pulls = _api_list(f"repos/{REPOSITORY}/pulls?state=open&per_page=100")
-    updates = [item["number"] for item in pulls if item.get("head", {}).get("ref") == UPDATE_BRANCH]
+    updates = [
+        item["number"] for item in pulls
+        if (ref := item.get("head", {}).get("ref", "")) == UPDATE_BRANCH_PREFIX.removesuffix("/")
+        or ref.startswith(UPDATE_BRANCH_PREFIX)
+    ]
     releases = [item["number"] for item in pulls if item.get("head", {}).get("ref") == RELEASE_BRANCH]
     if len(updates) > 1 or len(releases) > 1:
         raise ValueError("Multiple matching automation PRs require review")
@@ -206,7 +211,7 @@ def load_pr(number: int, repo: RepoSnapshot) -> PullRequestSnapshot:
     checks_green = all(checks.get(name) == "success" for name in repo.required_checks)
     content_ok = False
     update_ok = False
-    if checks_green and response["head"]["ref"] == UPDATE_BRANCH:
+    if checks_green and UPDATE_BRANCH_PATTERN.fullmatch(response["head"]["ref"]):
         update_ok = exact_update(head_sha, response["title"], base_sha)
     if checks_green and response["head"]["ref"] == RELEASE_BRANCH:
         title = response["title"]

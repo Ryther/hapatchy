@@ -115,6 +115,10 @@ independent tools stay fixed in the inputs. It then proposes a `fix(compat):` PR
 lets the test/boot matrix read the new HA pin directly from each lock and updates its current-version references;
 the minimum HA/Python lane and dated screenshot evidence remain unchanged.
 Use **Run workflow → dry_run** to inspect a candidate without creating a PR.
+The updater names its proposal branch `automation/ha-baseline/<HA version>` and
+allows only one open HA baseline PR across versions. GitHub deletes merged
+branches automatically; an existing branch for the candidate version without
+its PR still stops the updater for manual review.
 
 On every PR, the advisory gate checks the exact Python requirements in
 HAPatchY's `manifest.json` against active high/critical GitHub advisories and

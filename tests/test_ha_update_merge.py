@@ -22,7 +22,7 @@ def _update(**changes):
         number=61,
         title="fix(compat): validate Home Assistant 2026.9.4",
         author="Ryther",
-        head_ref="automation/ha-baseline",
+        head_ref="automation/ha-baseline/2026.9.4",
         head_repo="Ryther/hapatchy",
         base_ref="main",
         base_sha="a" * 40,
@@ -58,6 +58,15 @@ def _release(**changes):
 
 def test_clean_update_is_eligible():
     assert merge.eligible_update(_repo(), _update()).eligible
+
+
+def test_update_branch_must_name_the_title_version():
+    assert not merge.eligible_update(
+        _repo(), replace(_update(), head_ref="automation/ha-baseline/2026.9.5")
+    ).eligible
+    assert not merge.eligible_update(
+        _repo(), replace(_update(), head_ref="automation/ha-baseline")
+    ).eligible
 
 
 def test_preexisting_release_pr_blocks_update():

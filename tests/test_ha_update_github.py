@@ -72,12 +72,25 @@ def test_github_api_parses_success_without_logging_token(monkeypatch):
     assert github._gh_json("repos/Ryther/hapatchy") == {"ok": True}
 
 
+def test_open_targets_rejects_two_versioned_update_prs(monkeypatch):
+    monkeypatch.setattr(
+        github,
+        "_api_list",
+        lambda endpoint: [
+            {"number": 61, "head": {"ref": "automation/ha-baseline/2026.9.4"}},
+            {"number": 62, "head": {"ref": "automation/ha-baseline/2026.10.0"}},
+        ],
+    )
+    with pytest.raises(ValueError, match="Multiple matching automation PRs"):
+        github.open_targets()
+
+
 def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
     main_sha, head_sha = "a" * 40, "b" * 40
 
     def get(endpoint):
         if endpoint.endswith("pulls?state=open&per_page=100"):
-            return [{"number": 61, "head": {"ref": "automation/ha-baseline"}}]
+            return [{"number": 61, "head": {"ref": "automation/ha-baseline/2026.9.4"}}]
         if endpoint.endswith("branches/main"):
             return {
                 "commit": {"sha": main_sha},
@@ -99,7 +112,7 @@ def test_exact_update_snapshot_and_dry_run(monkeypatch, capsys):
                 "state": "open",
                 "title": "fix(compat): validate Home Assistant 2026.9.4",
                 "user": {"login": "Ryther"},
-                "head": {"ref": "automation/ha-baseline", "sha": head_sha, "repo": {"full_name": "Ryther/hapatchy"}},
+                "head": {"ref": "automation/ha-baseline/2026.9.4", "sha": head_sha, "repo": {"full_name": "Ryther/hapatchy"}},
                 "base": {"ref": "main", "sha": main_sha},
                 "auto_merge": None,
             }
@@ -171,7 +184,7 @@ def test_red_check_skips_expensive_update_contents(monkeypatch):
             return {
                 "state": "open", "title": "fix(compat): validate Home Assistant 2026.9.4",
                 "user": {"login": "Ryther"},
-                "head": {"ref": "automation/ha-baseline", "sha": head_sha, "repo": {"full_name": "Ryther/hapatchy"}},
+                "head": {"ref": "automation/ha-baseline/2026.9.4", "sha": head_sha, "repo": {"full_name": "Ryther/hapatchy"}},
                 "base": {"ref": "main", "sha": main_sha}, "auto_merge": None,
             }
         if endpoint.endswith("/pulls/66/files?per_page=100"):
@@ -234,7 +247,7 @@ def test_merge_command_rechecks_state_and_matches_exact_head(monkeypatch):
         61,
         "fix(compat): validate Home Assistant 2026.9.4",
         "Ryther",
-        "automation/ha-baseline",
+        "automation/ha-baseline/2026.9.4",
         "Ryther/hapatchy",
         "main",
         repo.main_sha,
