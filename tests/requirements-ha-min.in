@@ -4,6 +4,6 @@ homeassistant==2026.7.4
 pytest-homeassistant-custom-component==0.13.348
 patch-ng==1.19.1
 watchdog==6.0.0
-mypy==2.3.1
+mypy==2.4.0
 ruff==0.16.9
 supervisor==4.3.0
