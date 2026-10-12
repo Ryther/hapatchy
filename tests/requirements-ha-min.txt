@@ -35,7 +35,7 @@ certifi==2026.7.22
 cffi==2.1.1
 charset-normalizer==3.5.2
 ciso8601==2.3.3
-coverage==7.14.1
+coverage[toml]==7.14.1
 cronsim==2.7
 cryptography==48.0.1
 dbus-fast==5.0.22
@@ -77,7 +77,6 @@ paho-mqtt==2.1.0
 patch-ng==1.19.1
 pathspec==1.1.1
 pillow==12.2.0
-pip==26.2.1
 pipdeptree==2.26.1
 pluggy==1.6.0
 propcache==0.5.2
@@ -89,7 +88,7 @@ pycparser==3.0
 pydantic==2.13.4
 pydantic-core==2.46.4
 pygments==2.21.0
-pyjwt==2.12.1
+pyjwt[crypto]==2.12.1
 pynacl==1.6.2
 pyopenssl==26.2.0
 pyrfc3339==2.1.0
@@ -114,7 +113,7 @@ regex==2026.9.29
 requests==2.34.2
 requests-mock==1.12.1
 respx==0.23.1
-ruff==0.16.9
+ruff==0.16.10
 s3transfer==0.19.2
 securetar==2026.4.1
 sentence-stream==1.3.0
