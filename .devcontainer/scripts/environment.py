@@ -136,6 +136,9 @@ def check_pins(venv: Path, lock: Path) -> None:
         timeout=30,
     )
     actual = {re.sub(r"[-_.]+", "-", k).lower(): v for k, v in json.loads(data).items()}
+    # venv provides pip for installation even when the tools lock does not require it.
+    if "pip" not in expected:
+        actual.pop("pip", None)
     if actual != expected:
         raise RuntimeError(
             f"{venv.name} packages differ from its lock; restart after correcting pins"
