@@ -119,6 +119,49 @@ class EnvironmentTests(unittest.TestCase):
             self.env.prepare_venv(self.root, ".venv", lock.name, {}, live=False)
         self.assertFalse((self.root / ".venv/.hapatchy-environment.json").exists())
 
+    def test_bootstrap_pip_is_allowed_only_when_not_pinned(self):
+        lock = self.root / "requirements.txt"
+        lock.write_text("example==1.0\n")
+        venv = self.root / ".venv"
+        with (
+            patch.object(
+                self.env.subprocess,
+                "check_output",
+                return_value=json.dumps({"example": "1.0", "pip": "26.2.1"}),
+            ),
+            patch.object(self.env, "run") as run,
+        ):
+            self.env.check_pins(venv, lock)
+        run.assert_called_once_with(str(venv / "bin/python"), "-m", "pip", "check")
+
+    def test_unlocked_package_still_fails_pin_check(self):
+        lock = self.root / "requirements.txt"
+        lock.write_text("example==1.0\n")
+        with (
+            patch.object(
+                self.env.subprocess,
+                "check_output",
+                return_value=json.dumps({"example": "1.0", "pip": "26.2.1", "extra": "1.0"}),
+            ),
+            patch.object(self.env, "run"),
+            self.assertRaisesRegex(RuntimeError, "packages differ"),
+        ):
+            self.env.check_pins(self.root / ".venv", lock)
+
+    def test_explicit_pip_pin_still_requires_exact_version(self):
+        lock = self.root / "requirements.txt"
+        lock.write_text("example==1.0\npip==26.2.1\n")
+        with (
+            patch.object(
+                self.env.subprocess,
+                "check_output",
+                return_value=json.dumps({"example": "1.0", "pip": "26.2.0"}),
+            ),
+            patch.object(self.env, "run"),
+            self.assertRaisesRegex(RuntimeError, "packages differ"),
+        ):
+            self.env.check_pins(self.root / ".venv", lock)
+
     def test_live_changed_or_missing_marker_preserves_environment(self):
         lock = self.root / ".devcontainer/requirements-tools.txt"
         lock.write_text("example==1.0\n")
