@@ -412,7 +412,16 @@ class PatchSubentryFlow(config_entries.ConfigSubentryFlow):
             vol.Optional(name, default=self._data.get(name, True)): bool
             for name in ("enabled", "auto_apply", "reconcile_on_startup", "backup_before_apply")
         }
-        fields[vol.Optional("source_sha256", default=self._data.get("source_sha256") or "")] = str
+        if self._data.get("source_type") == "url":
+            digest = self._data.get("source_sha256")
+            marker = (
+                vol.Required("source_sha256", default=digest)
+                if digest
+                else vol.Required("source_sha256")
+            )
+        else:
+            marker = vol.Optional("source_sha256", default=self._data.get("source_sha256") or "")
+        fields[marker] = str
         fields[
             vol.Optional("debounce_seconds", default=self._data.get("debounce_seconds", 1.5))
         ] = vol.All(vol.Coerce(float), vol.Range(min=0.1, max=60))

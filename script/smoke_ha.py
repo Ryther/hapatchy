@@ -45,6 +45,7 @@ def prepare_config(root: Path, port: int) -> None:
     (root / "scripts" / "editor.txt").write_text(BEFORE_TEXT)
     (root / "scripts" / "failure.txt").write_text("safe\n")
     (root / "scripts" / "ambiguous.txt").write_text(BEFORE_TEXT)
+    (root / "scripts" / "unlisted.txt").write_text("untouched\n")
     (root / "www").mkdir()
     (root / "www" / "denied.txt").write_text("untouched\n")
     (root / "automations.yaml").write_text("[]\n")
@@ -59,8 +60,11 @@ def prepare_config(root: Path, port: int) -> None:
         "  allowlist_external_dirs:\n"
         f"    - {root / 'scripts'}\n"
         "hapatchy:\n"
-        "  allowed_directories:\n"
-        "    - scripts\n"
+        "  allowed_files:\n"
+        "    - scripts/smoke.txt\n"
+        "    - scripts/editor.txt\n"
+        "    - scripts/failure.txt\n"
+        "    - scripts/ambiguous.txt\n"
         "automation: !include automations.yaml\n"
         "http:\n"
         "  server_host: 127.0.0.1\n"
@@ -273,25 +277,57 @@ def _verify_manual_patch(base: str, root: Path, token: str, entry: str) -> None:
 
 
 def _verify_denied_target(base: str, root: Path, token: str, entry: str) -> None:
-    denied_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
+    for target_path, expected_error in (
+        ("scripts/unlisted.txt", "hapatchy_file_not_allowed"),
+        ("www/denied.txt", "hapatchy_file_not_allowed"),
+    ):
+        denied_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
+            "flow_id"
+        ]
+        denied = api_request(
+            base,
+            PATCH_FLOW_PREFIX + denied_flow,
+            {
+                "name": "Denied CI smoke",
+                "target_path": target_path,
+                "source_type": "managed",
+                "watch_root": target_path.rpartition("/")[0],
+                "watch_pattern": "",
+            },
+            token=token,
+        )
+        if denied.get("type") != "form" or denied.get("errors", {}).get("base") != expected_error:
+            raise RuntimeError("Unlisted target was not rejected by the native flow")
+        if (root / target_path).read_bytes() != b"untouched\n":
+            raise RuntimeError("Unlisted target changed")
+
+
+def _verify_url_requires_hash(base: str, root: Path, token: str, entry: str) -> None:
+    flow_id = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
         "flow_id"
     ]
-    denied = api_request(
+    path = PATCH_FLOW_PREFIX + flow_id
+    result = api_request(
         base,
-        PATCH_FLOW_PREFIX + denied_flow,
+        path,
         {
-            "name": "Denied CI smoke",
-            "target_path": "www/denied.txt",
-            "source_type": "managed",
-            "watch_root": "www",
-            "watch_pattern": "",
+            "name": "URL hash smoke",
+            "target_path": "scripts/smoke.txt",
+            "source_type": "url",
+            "watch_root": "scripts",
         },
         token=token,
     )
-    if denied.get("type") != "form" or not denied.get("errors"):
-        raise RuntimeError("Unlisted target was not rejected by the native flow")
-    if (root / "www" / "denied.txt").read_bytes() != b"untouched\n":
-        raise RuntimeError("Unlisted target changed")
+    if result.get("step_id") != "source":
+        raise RuntimeError("URL flow did not request a source")
+    result = api_request(base, path, {"source": "https://patch.example/file"}, token=token)
+    if result.get("step_id") != "options" or not any(
+        field.get("name") == "source_sha256" and field.get("required") is True
+        for field in result.get("data_schema", [])
+    ):
+        raise RuntimeError("URL flow did not require a patch SHA-256")
+    if (root / "scripts/smoke.txt").read_bytes() != b"original\n":
+        raise RuntimeError("URL flow changed the target before validation")
 
 
 def wait_for_editor_applied(base: str, token: str) -> dict:
@@ -445,6 +481,7 @@ def verify_patch_flow(base: str, root: Path) -> None:
     entry = _setup_entry(base, token)
     _verify_manual_patch(base, root, token, entry)
     _verify_denied_target(base, root, token, entry)
+    _verify_url_requires_hash(base, root, token, entry)
     _verify_file_editor(base, root, token, entry)
     _verify_editor_retry(base, root, token, entry)
     _verify_failed_apply(base, root, token, entry)

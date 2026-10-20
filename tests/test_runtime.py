@@ -9,6 +9,7 @@ import pytest
 from homeassistant.helpers import issue_registry as ir
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.hapatchy.models import Status
 from tests.policy_helpers import grant_directories
 
 DATA = {
@@ -27,7 +28,7 @@ async def setup(hass, tmp_path, changes=None, *, config_extra=""):
         "Runtime lifecycle is missing"
     )
     hass.config.config_dir = str(tmp_path)
-    grant_directories(tmp_path, hass=hass, extra_yaml=config_extra)
+    grant_directories(tmp_path, hass=hass, extra_yaml=config_extra, files=("scripts/a.py",))
     (tmp_path / "scripts").mkdir(exist_ok=True)
     (tmp_path / "patches").mkdir(exist_ok=True)
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
@@ -164,6 +165,7 @@ async def test_saved_legacy_url_fails_closed_at_startup_and_actions(hass, tmp_pa
         {
             "source_type": "url",
             "source": "https://127.0.0.1/patch",
+            "source_sha256": "0" * 64,
             "reconcile_on_startup": True,
         },
     )
@@ -176,6 +178,93 @@ async def test_saved_legacy_url_fails_closed_at_startup_and_actions(hass, tmp_pa
         assert result.service_error == "source_network_denied"
         assert target.read_bytes() == original
     assert entry.subentries[pid].data.get("auto_apply", True) is True
+
+
+async def test_saved_url_without_hash_reports_migration_and_never_writes(hass, tmp_path):
+    _, runtime, pid = await setup(
+        hass,
+        tmp_path,
+        {
+            "source_type": "url",
+            "source": "https://patch.example/file",
+            "reconcile_on_startup": True,
+        },
+    )
+    target = tmp_path / "scripts/a.py"
+    assert runtime.states[pid].last_error == "source_hash_required"
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None
+    assert issue.translation_key == "source_hash_required"
+    assert target.read_bytes() == b"context\nold\n"
+    result = await runtime.async_action(pid, "apply")
+    assert result.service_error == "source_hash_required"
+    assert target.read_bytes() == b"context\nold\n"
+
+
+async def test_saved_url_without_startup_check_still_reports_migration(hass, tmp_path):
+    _, runtime, pid = await setup(
+        hass,
+        tmp_path,
+        {
+            "source_type": "url",
+            "source": "https://patch.example/file",
+            "reconcile_on_startup": False,
+        },
+    )
+    assert runtime.states[pid].last_error == "source_hash_required"
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None
+    assert issue.translation_key == "source_hash_required"
+
+
+async def test_disabled_saved_url_without_hash_still_reports_migration(hass, tmp_path):
+    _, runtime, pid = await setup(
+        hass,
+        tmp_path,
+        {
+            "source_type": "url",
+            "source": "https://patch.example/file",
+            "enabled": False,
+            "reconcile_on_startup": False,
+        },
+    )
+    assert runtime.states[pid].status == Status.DISABLED
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None
+    assert issue.translation_key == "source_hash_required"
+
+
+async def test_adding_url_hash_clears_migration_repair_after_reload(hass, tmp_path):
+    entry, _, pid = await setup(
+        hass,
+        tmp_path,
+        {
+            "source_type": "url",
+            "source": "https://patch.example/file",
+            "reconcile_on_startup": False,
+        },
+    )
+    assert ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}") is not None
+    subentry = entry.subentries[pid]
+    hass.config_entries.async_update_subentry(
+        entry,
+        subentry,
+        data=dict(subentry.data) | {"source_sha256": "0" * 64},
+    )
+    await hass.async_block_till_done(wait_background_tasks=True)
+    assert ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}") is None
+
+
+async def test_missing_exact_file_grant_has_specific_repair(hass, tmp_path):
+    _, runtime, pid = await setup(hass, tmp_path, {"reconcile_on_startup": False})
+    state = runtime.states[pid]
+    state.status = Status.SECURITY_ERROR
+    state.last_error = "hapatchy_file_not_allowed"
+    runtime.issues.update(runtime.definitions[pid], state)
+    issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
+    assert issue is not None
+    assert issue.translation_key == "hapatchy_file_not_allowed"
+    assert issue.translation_placeholders == {}
 
 
 async def test_unload_waits_for_admitted_executor_transaction(hass, tmp_path, monkeypatch):

@@ -42,7 +42,7 @@ def require_flow():
 @pytest.fixture
 def files(hass, tmp_path):
     hass.config.config_dir = str(tmp_path)
-    grant_directories(tmp_path, hass=hass)
+    grant_directories(tmp_path, hass=hass, files=("scripts/a.py", "scripts/missing.py"))
     (tmp_path / "scripts").mkdir()
     (tmp_path / "patches").mkdir()
     (tmp_path / "scripts/a.py").write_bytes(b"context\nold\n")
@@ -475,7 +475,11 @@ async def test_native_reconfigure_preserves_identity(hass, files):
 
 
 async def test_denied_legacy_url_requires_remove_and_safe_readd(hass, files):
-    legacy = DATA | {"source_type": "url", "source": "https://127.0.0.1/patch"}
+    legacy = DATA | {
+        "source_type": "url",
+        "source": "https://127.0.0.1/patch",
+        "source_sha256": "0" * 64,
+    }
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={},
@@ -553,8 +557,54 @@ async def test_remote_flow_validates_fetched_diff(hass, files):
             DATA
             | {"source_type": "url", "source": "https://raw.githubusercontent.com/example/patch"},
         )
-        result = await configure(hass, result["flow_id"], {})
+        assert result["step_id"] == "options"
+        assert type(next(
+            marker for marker in result["data_schema"].schema if marker.schema == "source_sha256"
+        )).__name__ == "Required"
+        result = await configure(
+            hass,
+            result["flow_id"],
+            {"source_sha256": "0" * 64},
+        )
     assert result["type"] == FlowResultType.CREATE_ENTRY
+    assert next(iter(entry.subentries.values())).data["source_sha256"] == "0" * 64
+
+
+async def test_existing_url_without_hash_can_be_reconfigured_with_patch_hash(hass, files):
+    legacy = DATA | {
+        "source_type": "url",
+        "source": "https://patch.example/file",
+    }
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={},
+        subentries_data=[
+            {
+                "subentry_type": "patch",
+                "title": "Legacy URL",
+                "unique_id": "scripts/a.py",
+                "data": legacy,
+            }
+        ],
+    )
+    entry.add_to_hass(hass)
+    patch_id = next(iter(entry.subentries))
+    digest = "0" * 64
+    with patch(
+        "custom_components.hapatchy.patch_source.PatchSourceClient.load",
+        new=AsyncMock(return_value=DIFF),
+    ):
+        flow = await hass.config_entries.subentries.async_init(
+            (entry.entry_id, "patch"),
+            context={"source": "reconfigure", "subentry_id": patch_id},
+        )
+        flow = await configure(hass, flow["flow_id"], legacy)
+        assert flow["step_id"] == "options"
+        flow = await configure(hass, flow["flow_id"], {"source_sha256": digest})
+    assert flow["type"] == FlowResultType.ABORT
+    assert flow["reason"] == "reconfigure_successful"
+    assert entry.subentries[patch_id].data["source_sha256"] == digest
+    assert (files / "scripts/a.py").read_bytes() == b"context\nold\n"
 
 
 async def test_bad_basic_fields_remain_editable(hass, files):

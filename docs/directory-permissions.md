@@ -1,19 +1,16 @@
-# Allow a directory for HAPatchY
+# Authorize exact files for HAPatchY
 
 [Documentation home](index.md) · [← Installation](installation.md) · [First patch →](first-patch.md)
 
-HAPatchY starts with **no permitted patch destinations**. The Home Assistant
-operator must name each permitted subdirectory in two settings in
-`configuration.yaml`. HAPatchY's forms and API cannot add these grants.
-The native file editor also reads the full contents of a selected file inside
-these folders. An administrator with HA API access can therefore read as well
-as patch files there. Grant a folder only when both forms of access are intended.
-The administrator **View patch** action also returns the current diff on demand;
-the diff is not included in HA entity states or diagnostics. It rechecks that
-the patch's target directory is still authorized before reading its source.
+HAPatchY starts with no authorized targets. The Home Assistant operator must
+allow the **containing directory** in HA's `allowlist_external_dirs` and name
+**each exact target file** in HAPatchY's `allowed_files`. The Add patch form and
+API cannot grant permission. This distinction matters: allowing a directory in
+HA does not authorize all of its files for HAPatchY.
 
-For the [first-patch tutorial](first-patch.md), add the following entries to your
-existing `configuration.yaml`:
+For the [first-patch tutorial](first-patch.md), create
+`hapatchy_ui_demo/settings.txt` and add these entries to your existing
+`configuration.yaml`:
 
 ```yaml
 homeassistant:
@@ -21,71 +18,71 @@ homeassistant:
     - /config/hapatchy_ui_demo
 
 hapatchy:
-  allowed_directories:
-    - hapatchy_ui_demo
+  allowed_files:
+    - hapatchy_ui_demo/settings.txt
 ```
 
-Keep your other `homeassistant:` settings in the **same** section; do not create
-a second `homeassistant:` key. If you already have `allowlist_external_dirs`, add
-the directory to that list. `/config` is HA's common *internal* configuration
-path; installations using another path must use their actual path in HA's list.
-The HAPatchY entry is always relative to the directory containing
-`configuration.yaml`, with no leading slash. The example authorizes files below
-`hapatchy_ui_demo/`; it does not authorize the configuration root or a sibling
-such as `hapatchy_ui_demo_other/`.
+Keep other `homeassistant:` settings in the **same** mapping; do not create a
+second key. `/config` is HA's common internal configuration path; use the path
+HA actually sees if different. HAPatchY's file path is relative to the folder
+containing `configuration.yaml`, with no leading slash. Add one list item per
+file. The example authorizes only `settings.txt`, not another file in the same
+folder. Glob patterns, directory names, absolute paths, `..`, links, protected
+paths and files directly in the configuration root are not valid file grants.
+The backend also refuses a root-level target even if a stored definition or
+direct API request names it. Authorized files in subfolders remain eligible.
+An entry in `allowed_files` can name a file that is temporarily missing; it
+never authorizes a different file that later appears beside it.
 
-Create the directory and target file, save the YAML, then **restart Home
-Assistant**. HAPatchY verifies the grants at startup and keeps that snapshot
-until the next restart. Changing `configuration.yaml` or an included file that
-defines `hapatchy` grants, HA's `allowlist_external_dirs`, or HA packages blocks
-patch operations until a restart; reloading only the HAPatchY integration does
-not approve a new grant. Editing an unrelated include such as `automations.yaml`
-does not revoke the frozen grants. Removing an include, changing the include
-graph, or making any YAML source unsafe or unreadable still blocks operations.
-A missing or malformed section
-grants nothing, and malformed YAML can prevent HA itself from starting. Keep a
-backup before editing the configuration.
+Save the YAML and **restart Home Assistant**. HAPatchY freezes the grants at
+startup. Changing a grant-bearing YAML source or its include structure during
+a run blocks patch operations until the next HA restart. Reloading only the
+integration does not approve new grants. Malformed YAML can prevent HA itself
+from starting, so keep a backup of your configuration before editing it. The
+Add patch picker suggests existing permitted files; manually entered paths and
+direct API calls receive the same backend checks. HA's live path-permission
+check also applies.
 
-The Add patch form then lists eligible files and explains both requirements:
+![The Add patch form names the exact HAPatchY file grant and HA directory allowlist](images/file-permissions.png)
 
-![The Add patch form explains both directory lists in disposable Home Assistant](images/yaml-directory-authorization.png)
+This Add patch form was captured in Chromium on disposable HA 2026.10.1 using
+this repository revision. The native API smoke test also verified that an
+unlisted sibling in the same HA-allowed folder is refused without changing its
+bytes; the screenshot alone does not prove that backend check.
 
-This screenshot was captured on HA 2026.9.0 after a real restart with the YAML
-above adapted to the Dev Container path. The same disposable instance accepted a
-managed patch in an authorized `scripts/` directory, applied and reverted it,
-and its target bytes were checked. A direct native-flow API attempt against an
-unlisted `www/` target was refused with its bytes unchanged.
+## Existing installations
 
-Only explicit, existing directories are accepted. Do not use `.` (the whole
-configuration), absolute paths, `..`, wildcards, symlinks, or protected locations
-such as `.storage`, `.hapatchy`, and HAPatchY's own integration code. A target's
-watch directory must also be within a grant. The target selector is a convenience;
-typing a path manually or using HA's API receives the same backend checks.
-Home Assistant's live path-permission check still applies after the YAML checks.
+Replace each old `hapatchy.allowed_directories` entry with exact target paths in
+`hapatchy.allowed_files`, then restart HA. Existing patch definitions are kept,
+but a directory entry alone no longer authorizes Apply, Revert, Refresh source,
+startup checks or editor reads. A denied patch reports a Repair explaining the
+missing file grant; HAPatchY does not infer or approve grants from saved patch
+definitions. You may leave an old `allowed_directories` list temporarily while
+migrating: it is validated but grants no access. Remove it when the file list is
+complete. Keep HA's `allowlist_external_dirs` as directory entries.
 
-If an integration update temporarily removes an authorized directory, HAPatchY
-does not recreate it. Its watcher becomes unavailable and a Repair is raised;
-the status sensor can retain its last successful state until another check.
-The watcher checks for the directory every 60 seconds, then checks the patch
-again when the directory returns. The Repair remains while this check is
-pending; it clears only after a completed check with no error. If the updated
-target conflicts with the patch, the Repair changes to the conflict reason
-and the target is left unchanged. Automatic application still requires an exact
-match against the reinstalled target. A changed Python file needs an HA restart
-before the running integration uses the changed code. A grant source or include
-graph changed during the HA run is instead reported as a security error; it
-requires an HA restart, even when the watch directory itself exists. An ordinary
-content edit to an unrelated include such as `automations.yaml` does not cause
-this error.
+For example, an existing rule targeting `custom_components/huawei_solar/const.py`
+needs that **exact path** under `hapatchy.allowed_files`; an HA grant for the
+containing directory remains separate. A rule targeting a second file needs a
+second file entry. A watch pattern filters events for one configured target and
+does not widen the file grant.
 
-`watch_pattern` belongs to an individual patch and filters filesystem events
-for that patch's one exact target. It does not restrict which new targets can
-be configured within an authorized directory. The YAML grants accept explicit
-directory paths, not wildcard patterns.
+The native editor reads the full text of an authorized file for an HA
+administrator using the API. The same authorization permits a patch to change
+that file. Grant only specific files whose contents may be read and changed
+through this API. A directory or file grant does not review patch contents or
+sandbox Python that HA may later execute. An agent that can edit
+`configuration.yaml` or use another unrestricted file-writing API is outside
+this API-only boundary.
 
-Grant only folders whose **future contents** you are willing to let the API
-agent read and alter. A directory grant does not review an individual diff. Patching
-Python or other executable configuration can change what HA later runs. An agent
-that can edit `configuration.yaml`, invoke another unrestricted file-writing API,
-or obtain filesystem access is outside this API-only boundary. Review the patch
-contents and API permissions before granting code directories.
+The administrator **View patch** action can return the current diff on demand
+after checking the target authorization; the diff is not included in entity
+states or diagnostics.
+
+If an integration update temporarily removes the target or its containing
+folder, HAPatchY does not recreate it. The watcher retries an unavailable
+folder every 60 seconds and checks the patch when it returns. A Repair remains
+until a completed check succeeds. Reapplication still requires a unique exact
+match; if upstream changed incompatibly, the patch reports a conflict and
+leaves the target unchanged. A changed Python file needs an HA restart before
+the running integration uses its new code.

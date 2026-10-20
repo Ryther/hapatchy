@@ -198,6 +198,9 @@ async def test_batch_failure_does_not_prevent_other_patch(hass, tmp_path):
 
     require_services()
     entry, _, first = await setup(hass, tmp_path)
+    from tests.policy_helpers import grant_directories
+
+    grant_directories(tmp_path, hass=hass, files=("scripts/a.py", "scripts/b.py"))
     (tmp_path / "scripts/b.py").write_bytes(b"context\nold\n")
     (tmp_path / "patches/b.patch").write_bytes(DIFF.replace(b"scripts/a.py", b"scripts/b.py"))
     sub = ConfigSubentry(

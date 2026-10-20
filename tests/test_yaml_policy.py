@@ -16,18 +16,44 @@ def test_main_yaml_grants_match_boot_configuration(tmp_path):
     _write_config(
         tmp_path,
         f"homeassistant:\n  allowlist_external_dirs:\n    - {explicit}\n"
-        "hapatchy:\n  allowed_directories:\n    - scripts\n",
+        "hapatchy:\n  allowed_files:\n    - scripts/a.py\n",
     )
     boot = {
         "homeassistant": {"allowlist_external_dirs": [explicit]},
-        "hapatchy": {"allowed_directories": ["scripts"]},
+        "hapatchy": {"allowed_files": ["scripts/a.py"]},
     }
 
     policy = load_yaml_policy(tmp_path, boot)
 
-    assert policy.hapatchy_directories == ("scripts",)
+    assert policy.hapatchy_files == ("scripts/a.py",)
     assert policy.ha_explicit_directories == (explicit,)
     assert policy.graph.protects("configuration.yaml")
+
+
+def test_exact_file_grants_are_frozen_and_legacy_directory_grants_are_inert(tmp_path):
+    from custom_components.hapatchy.yaml_policy import load_yaml_policy
+
+    _write_config(
+        tmp_path,
+        "hapatchy:\n  allowed_files:\n    - scripts/a.py\n"
+        "  allowed_directories:\n    - scripts\n",
+    )
+    policy = load_yaml_policy(
+        tmp_path,
+        {"hapatchy": {"allowed_files": ["scripts/a.py"], "allowed_directories": ["scripts"]}},
+    )
+
+    assert policy.hapatchy_files == ("scripts/a.py",)
+    assert not hasattr(policy, "hapatchy_directories")
+
+
+def test_legacy_directory_grants_load_without_authorizing_files(tmp_path):
+    from custom_components.hapatchy.yaml_policy import load_yaml_policy
+
+    _write_config(tmp_path, "hapatchy:\n  allowed_directories:\n    - scripts\n")
+    policy = load_yaml_policy(tmp_path, {"hapatchy": {"allowed_directories": ["scripts"]}})
+
+    assert policy.hapatchy_files == ()
 
 
 def test_package_grant_denied_even_when_equal_to_main(tmp_path):
@@ -60,7 +86,7 @@ def test_implicit_ha_directory_is_not_an_explicit_grant(tmp_path):
 
     policy = load_yaml_policy(tmp_path, boot)
 
-    assert policy.hapatchy_directories == ("www",)
+    assert policy.hapatchy_files == ()
     assert policy.ha_explicit_directories == ()
 
 
@@ -97,7 +123,7 @@ def test_source_graph_change_denies_without_reloading_grants(tmp_path):
     with pytest.raises(PatchError, match="configuration_source_changed"):
         policy.check_current()
 
-    assert policy.hapatchy_directories == ("scripts",)
+    assert policy.hapatchy_files == ()
 
 
 def test_unrelated_included_source_change_preserves_frozen_grants(tmp_path):
@@ -117,7 +143,7 @@ def test_unrelated_included_source_change_preserves_frozen_grants(tmp_path):
     included.write_text("- platform: command_line\n")
 
     policy.check_current()
-    assert policy.hapatchy_directories == ("scripts",)
+    assert policy.hapatchy_files == ()
     assert policy.graph.protects("sensors.yaml")
 
 

@@ -39,9 +39,9 @@ task. For a first use:
 
 1. [Install HAPatchY](https://ryther.github.io/hapatchy/installation/) through
    HACS or manually, then add the integration in Home Assistant.
-2. [Authorize a directory](https://ryther.github.io/hapatchy/directory-permissions/)
-   in both YAML settings and restart Home Assistant. No folder is permitted by
-   default.
+2. [Authorize the exact file](https://ryther.github.io/hapatchy/directory-permissions/)
+   in HAPatchY and its containing folder in HA, then restart Home Assistant.
+   No target is permitted by default.
 3. [Make your first patch](https://ryther.github.io/hapatchy/first-patch/) on an
    unused text file. The tutorial checks the applied bytes, backup and Revert.
 
@@ -78,11 +78,11 @@ restarts HA for you.
 - A patch targets **one UTF-8 text file** under the HA configuration directory,
   not HA's installed core or arbitrary host paths. Matching requires exact,
   unique context; multi-file and fuzzy patches are not supported.
-- Both HA's `allowlist_external_dirs` and HAPatchY's
-  `hapatchy.allowed_directories` must permit the target. The file editor also
-  lets an HA administrator API caller read file contents in those directories.
-  Grant only folders whose future contents may be read and changed through that
-  API. [Directory permissions](https://ryther.github.io/hapatchy/directory-permissions/)
+- HA's `allowlist_external_dirs` must include the containing folder, and
+  `hapatchy.allowed_files` must name the exact target file. The file editor
+  lets an HA administrator API caller read authorized file contents. Grant only
+  files whose contents may be read and changed through that API.
+  [File permissions](https://ryther.github.io/hapatchy/directory-permissions/)
   explains the boundary.
 - The editor accepts nonempty UTF-8 LF text with a final newline, up to 512 KiB.
   It enables automatic Apply, startup checking and backup. Other input modes
@@ -91,6 +91,14 @@ restarts HA for you.
 - Keep an independent backup. Removing a rule or uninstalling HAPatchY does
   **not** restore a changed file. Follow the checked
   [Revert and removal procedure](https://ryther.github.io/hapatchy/troubleshooting/#remove-a-patch-or-uninstall-hapatchy).
+
+**Upgrading an existing installation:** replace HAPatchY's directory grants
+with exact `hapatchy.allowed_files` entries and restart HA. Old directory entries
+do not authorize patches. Existing HTTPS patch rules also need the SHA-256 of
+the **patch file** (not the target file) in their options. A rule without that
+hash is retained but cannot download or apply; HAPatchY raises a Repair with
+the migration step. See [file permissions](https://ryther.github.io/hapatchy/directory-permissions/)
+and the [source reference](https://ryther.github.io/hapatchy/reference/#local-files-and-https).
 
 ## Compatibility
 
@@ -111,7 +119,7 @@ HA updated within a version compatible with your other integrations.
 
 ## Compatibility contract
 
-The documented single-file patch format, directory grants, native Add patch
+The documented single-file patch format, exact file grants, native Add patch
 flow, administrator actions, statuses and retained backups are the supported
 user-facing interfaces. Incompatible changes to those interfaces require
 a new major release. Exact matching can still fail after upstream changes;

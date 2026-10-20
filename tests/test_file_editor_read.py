@@ -64,7 +64,7 @@ def test_refuses_unauthorized_target(tmp_path) -> None:
     (tmp_path / "scripts/example.txt").write_bytes(b"secret\n")
     policy = grant_directories(tmp_path, ("other",))
     patch_definition = definition()
-    with pytest.raises(PatchError, match="hapatchy_path_not_allowed"):
+    with pytest.raises(PatchError, match="hapatchy_file_not_allowed"):
         read_editable_target(tmp_path, patch_definition, policy)
 
 

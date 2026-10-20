@@ -53,15 +53,40 @@ def test_bad_yaml_grants_fail_closed(tmp_path, grant):
 def test_component_prefix_and_watch_scope(hass, tmp_path):
     from tests.test_sources import definition
 
-    gate = grant_directories(tmp_path, ("scripts/nested", "custom_components"), hass=hass)
+    gate = grant_directories(
+        tmp_path,
+        ("scripts/nested", "custom_components"),
+        hass=hass,
+        files=("scripts/nested/missing.py",),
+    )
     gate.check_path("scripts/nested/missing.py")
-    with pytest.raises(PatchError, match="hapatchy_path_not_allowed"):
+    with pytest.raises(PatchError, match="hapatchy_file_not_allowed"):
         gate.check_path("scripts_other/file.py")
     with pytest.raises(PatchError, match="protected_path"):
         gate.check_path("custom_components/hapatchy/config_flow.py")
     patch_definition = definition(target_path="scripts/nested/file.py", watch_root="scripts")
-    with pytest.raises(PatchError, match="hapatchy_path_not_allowed"):
+    with pytest.raises(PatchError, match="hapatchy_file_not_allowed"):
         gate.check_definition(patch_definition)
+
+
+def test_exact_file_grant_does_not_authorize_sibling_or_parent(hass, tmp_path):
+    from types import SimpleNamespace
+
+    from custom_components.hapatchy.path_policy import PathPolicy
+
+    grant = SimpleNamespace(
+        hapatchy_files=("scripts/allowed.py",),
+        ha_explicit_directories=(str(tmp_path / "scripts"),),
+        graph=SimpleNamespace(protects=lambda _: False),
+        check_current=lambda: None,
+    )
+    gate = PathPolicy(tmp_path, lambda _: True, grant)
+    gate.check_path("scripts/allowed.py")
+    gate.check_path("scripts", directory=True)
+    with pytest.raises(PatchError, match="hapatchy_file_not_allowed"):
+        gate.check_path("scripts/sibling.py")
+    with pytest.raises(PatchError, match="protected_path"):
+        gate.check_path("scripts", directory=False)
 
 
 @pytest.mark.parametrize("action", ["apply", "revert", "reconcile", "refresh_source"])

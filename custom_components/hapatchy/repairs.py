@@ -21,11 +21,13 @@ class IssueManager:
         self.hass = hass
 
     def update(self, definition: PatchDefinition, state: PatchRuntimeState) -> None:
-        if (
+        needs_source_hash = state.last_error == "source_hash_required"
+        if not needs_source_hash and (
             state.status not in _ERRORS
             and state.watcher_available
             and not state.watcher_recheck_required
-        ) or not definition.enabled:
+            or not definition.enabled
+        ):
             self.clear(definition.patch_id)
             return
         key = (
@@ -33,9 +35,11 @@ class IssueManager:
             if state.last_error == "durability_unconfirmed"
             else state.status.value
         )
-        if state.status not in _ERRORS:
+        if state.last_error in {"source_hash_required", "hapatchy_file_not_allowed"}:
+            key = state.last_error
+        if state.status not in _ERRORS and not needs_source_hash:
             key = "watch_rechecking" if state.watcher_available else "watch_unavailable"
-        if state.status == Status.SECURITY_ERROR:
+        if state.status == Status.SECURITY_ERROR or key == "source_hash_required":
             placeholders = {}
         elif key in {"watch_unavailable", "watch_rechecking"}:
             placeholders = {"target": definition.target_path}

@@ -1,6 +1,6 @@
 ---
 name: hapatchy-guide
-description: Use when helping a Home Assistant user install HAPatchY, authorize patch directories, create or edit a patch, apply or revert it, or troubleshoot its sensor and Repairs status.
+description: Use when helping a Home Assistant user install HAPatchY, authorize exact patch files, create or edit a patch, apply or revert it, or troubleshoot its sensor and Repairs status.
 ---
 
 # Guide a HAPatchY user
@@ -8,7 +8,7 @@ description: Use when helping a Home Assistant user install HAPatchY, authorize 
 HAPatchY is an entirely AI-generated Home Assistant custom
 integration. It applies an exact, single-file unified diff to a UTF-8 text file
 inside HA's configuration directory and can reapply it after that file changes.
-The 1.x compatibility contract covers the documented patch format, directory
+The 1.x compatibility contract covers the documented patch format, file
 grants, native Add patch flow, administrator actions, status values and retained
 backups. It does not guarantee that a patch will match changed upstream files or
 that automated tests have found every defect. Recommend independent backups and
@@ -38,9 +38,10 @@ patches are added inside it. Preserve an independent backup of the configuration
 and target before making changes.
 
 No destination is allowed by default. The operator must edit the existing
-`configuration.yaml` in the HA configuration folder and authorize each target
-subdirectory in **both** lists. For a folder named `hapatchy_ui_demo` in a system
-where HA sees its configuration at `/config`, the entries are:
+`configuration.yaml` in the HA configuration folder: HA allows the containing
+directory, while HAPatchY names **each exact target file**. For a target
+`hapatchy_ui_demo/settings.txt` where HA sees its configuration at `/config`,
+the entries are:
 
 ```yaml
 homeassistant:
@@ -48,20 +49,26 @@ homeassistant:
     - /config/hapatchy_ui_demo
 
 hapatchy:
-  allowed_directories:
-    - hapatchy_ui_demo
+  allowed_files:
+    - hapatchy_ui_demo/settings.txt
 ```
 
 Merge these into existing `homeassistant:` and `hapatchy:` mappings instead of
 creating duplicate keys. Use the installation's actual HA-side absolute path in
-HA's list; use a configuration-relative subdirectory in HAPatchY's list. Create
-the directory and target, save the YAML, then **restart HA**. Reloading only the
+HA's list; use a configuration-relative exact file path in HAPatchY's list.
+Create the directory and target, save the YAML, then **restart HA**. Reloading only the
 integration does not approve new grants. Do not grant `.`, the configuration
-root, protected folders, symlinks, or directories whose future contents the
-operator is unwilling to let the API agent read or change. The file editor
-shows the full contents to an HA administrator using the API; the form/API
-cannot add a grant. If the agent can edit `configuration.yaml`, this separation does not
-protect against that agent.
+root, protected folders, symlinks, or files whose contents the operator is
+unwilling to let the API agent read or change. The file editor shows the full
+contents to an HA administrator using the API; the form/API cannot add a grant.
+If the agent can edit `configuration.yaml`, this separation does not protect
+against that agent.
+
+For an existing installation, replace `hapatchy.allowed_directories` with exact
+`hapatchy.allowed_files` paths and restart HA. Old directory entries are accepted
+temporarily but grant nothing. Saved rules remain, and a denied rule raises a
+Repair requesting its exact file grant; HAPatchY will not infer one from a saved
+rule. Keep HA's `allowlist_external_dirs` entries as directories.
 
 ## Create a controlled first patch
 
@@ -131,14 +138,20 @@ and the target should still contain `interval = 30`; run Apply explicitly.
 An uploaded patch opens the same diff editor for review. Upload never replaces
 the target file and has a 2 MiB limit.
 
-For a real patch, require an existing regular target inside both grants, a
-complete UTF-8 unified diff whose old/new headers name that one target, and
+For a real patch, require an existing regular target named by the file grant
+and inside HA's directory allowlist. Require a complete UTF-8 unified diff
+whose old/new headers name that one target, and
 enough unchanged context for a unique match. Source limit is 2 MiB; target and
 result limit is 16 MiB. Multi-file, binary, create/delete, ambiguous or fuzzy
 patches are unsupported. Local patch files and direct HTTPS patch URLs are
 advanced sources; URLs must have a public hostname, no embedded credentials or
-redirects, and every DNS answer must be public. A source SHA-256 can detect
-changed bytes but does not establish trust.
+redirects, and every DNS answer must be public. HTTPS sources require the
+SHA-256 of the downloaded **patch bytes**, not the target file. Ask the user
+to obtain the digest from a trusted copy of the patch, then enter its 64
+hexadecimal characters in **Behavior and verification**. A source SHA-256
+detects changed bytes but does not establish trust. An older HTTPS rule without
+the hash is kept but will not fetch or apply; its Repair tells the user to
+reconfigure it with the patch hash.
 
 To help someone create a patch file without repository access, explain that a
 `.patch` file is plain UTF-8 text: they can copy the complete demo diff above
@@ -212,8 +225,8 @@ diagnostics. Interpret states as follows:
 | `unknown`, `disabled` | Wait or run a check; enable the rule before actions. |
 | `applicable`, `applied` | Forward change possible, or target matches patched bytes; inspect automatic setting or restart needs. |
 | `conflict`, `invalid_patch` | Context/header is wrong or ambiguous; compare the current upstream file and obtain a matching patch. Never force it. |
-| `missing_target`, `source_error` | Check target existence or patch source, encoding, HTTPS response and optional fingerprint. |
-| `security_error` | Check both YAML grants, restart, path safety and HTTPS destination; denied paths/hashes may be redacted. |
+| `missing_target`, `source_error` | Check target existence or patch source, encoding, HTTPS response and required HTTPS hash. `last_error: source_hash_required` means reconfigure the saved URL patch with its patch-file SHA-256. |
+| `security_error` | Check exact file grant, HA directory allowlist, restart, path safety and HTTPS destination. `last_error: hapatchy_file_not_allowed` means the target needs a file entry in YAML. Denied paths/hashes may be redacted. |
 | `apply_error` | Check backup, permissions, disk and Repairs. With `durability_unconfirmed`, bytes may already have changed. |
 
 Absolute/traversal paths, symlinks, hard links, special files, `.storage`,
