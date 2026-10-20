@@ -81,6 +81,8 @@ The other input modes still offer Behavior and verification settings.
 
 Local paths always use `/` separators and start inside the HA configuration
 folder. Absolute paths, `..`, symlinks, hard links and special files are rejected.
+Files directly in that configuration folder cannot be patch targets; an exact
+grant does not override this restriction. Files in authorized subfolders can be.
 `.storage`, `.hapatchy` and HAPatchY's own integration files are protected.
 
 A URL must be a direct **HTTPS** link to the patch text. A GitHub file-view page

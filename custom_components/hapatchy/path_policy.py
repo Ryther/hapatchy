@@ -39,7 +39,7 @@ class PathPolicy:
 
     def _check_path(self, path: str, *, directory: bool) -> None:
         parts = relative_parts(path)
-        if self.grants.graph.protects(path):
+        if (not directory and len(parts) == 1) or self.grants.graph.protects(path):
             raise PatchError("protected_path", Status.SECURITY_ERROR)
         if directory:
             authorized = any(

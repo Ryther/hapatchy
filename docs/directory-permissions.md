@@ -29,6 +29,8 @@ containing `configuration.yaml`, with no leading slash. Add one list item per
 file. The example authorizes only `settings.txt`, not another file in the same
 folder. Glob patterns, directory names, absolute paths, `..`, links, protected
 paths and files directly in the configuration root are not valid file grants.
+The backend also refuses a root-level target even if a stored definition or
+direct API request names it. Authorized files in subfolders remain eligible.
 An entry in `allowed_files` can name a file that is temporarily missing; it
 never authorizes a different file that later appears beside it.
 

@@ -85,7 +85,7 @@ def test_exact_file_grant_does_not_authorize_sibling_or_parent(hass, tmp_path):
     gate.check_path("scripts", directory=True)
     with pytest.raises(PatchError, match="hapatchy_file_not_allowed"):
         gate.check_path("scripts/sibling.py")
-    with pytest.raises(PatchError, match="hapatchy_file_not_allowed"):
+    with pytest.raises(PatchError, match="protected_path"):
         gate.check_path("scripts", directory=False)
 
 
