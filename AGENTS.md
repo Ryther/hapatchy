@@ -199,11 +199,15 @@ watcher reapplication, reconfiguration, Apply, Revert and Refresh source.
 - Redact secrets and raw contents from errors, logs and diagnostics. Never print
   credentials during discovery. Never copy local HA auth/state into public files.
 
-The current implementation requires operator-owned grants in `configuration.yaml`
-plus HA's explicit `allowlist_external_dirs`. Grant changes require an HA restart;
-changing a YAML source during a run denies further patch operations. Do not
-describe this directory boundary as review of an individual diff or a process
-sandbox. Keep security findings in private task evidence, not public user guides.
+The current implementation requires operator-owned exact target paths in
+`hapatchy.allowed_files` in `configuration.yaml` plus HA's explicit directory
+`allowlist_external_dirs`. Legacy `hapatchy.allowed_directories` is accepted
+temporarily but inert. HTTPS patch sources require the SHA-256 of the patch
+bytes; saved URL rules without it fail closed and report a migration Repair.
+Grant changes require an HA restart; changing a YAML source during a run
+denies further patch operations. Do not describe this file boundary as review
+of an individual diff or a process sandbox. Keep security findings in private
+task evidence, not public user guides.
 
 For meaningful safety changes, reproduce the negative case in temporary storage,
 then add a regression test proving refusal and unchanged target bytes. Also test

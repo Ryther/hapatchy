@@ -29,11 +29,11 @@ Use a plain-text UTF-8 editor, or download [settings.txt](examples/settings.txt)
 The configuration folder is the one containing `configuration.yaml`; the file
 picker selects files on **HA's server**, not your computer.
 
-Authorize the `hapatchy_ui_demo` folder in **both** YAML directory lists and
-restart HA as shown in the [directory-permissions guide](directory-permissions.md).
-The same grant also permits an HA administrator using this flow to **read the
-file's full contents**. Grant only folders whose contents may be read and patched
-through the administrator API. HAPatchY cannot approve a folder from its form.
+Allow the `hapatchy_ui_demo` folder in HA and name
+`hapatchy_ui_demo/settings.txt` in `hapatchy.allowed_files`; restart HA as shown
+in the [file-permissions guide](directory-permissions.md). An HA administrator
+using this flow can **read the authorized file's full contents**. HAPatchY
+cannot approve a file from its form.
 
 ## 2. Select the file
 
@@ -48,8 +48,9 @@ Open **Settings → Devices & services → HAPatchY → Add patch**.
 
 The picker lists only a bounded set of eligible files. If yours is absent,
 enter its configuration-relative path, such as `hapatchy_ui_demo/settings.txt`,
-and select **Add custom item**. The backend checks the path and both grants again.
-A brief loading screen can appear before the editor opens.
+and select **Add custom item**. The backend checks the exact file grant and HA
+directory permission again. A brief loading screen can appear before the editor
+opens.
 
 ## 3. Edit, save, and check the result
 

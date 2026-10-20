@@ -27,14 +27,15 @@ Unknown on an enabled rule, run Reconcile and inspect the status sensor. Open it
 Repairs for the reason; neither entity contains the diff. An administrator can
 read the current diff with
 **Developer tools → Actions → HAPatchY: View patch** using the status sensor's
-`patch_id`. A refused read can mean the directory grant changed, the source is
+`patch_id`. A refused read can mean the file grant changed, the source is
 unavailable, or the rule is disabled.
 
 ## The file editor will not open or save
 
-**Edit selected file** requires an existing regular target in a folder approved
-by both directory lists. The same grant allows an administrator using HA's API
-to read its full contents. The editor accepts nonempty UTF-8 LF text with a
+**Edit selected file** requires an existing regular target named in HAPatchY's
+file list and covered by HA's directory allowlist. The file grant lets an HA
+administrator using the API read its full contents. The editor accepts
+nonempty UTF-8 LF text with a
 final newline, at most 512 KiB before and after editing. It refuses symlinks,
 hard links, special files, binary text, CRLF and missing final newlines. For a
 supported target outside those editor-specific limits, use the paste/upload
@@ -117,7 +118,13 @@ hash-named files directly; use the editor after Revert.
 For a local source, confirm the file exists in the configuration folder and is
 readable by HA. Check spelling, capitalization, extension and UTF-8 encoding.
 For HTTPS, check that the URL returns patch text directly, without an HTML page,
-login or redirect. Check connectivity and the optional source fingerprint.
+login or redirect. Check connectivity and the required SHA-256 of the **patch
+file bytes**, not the target bytes. For an existing URL rule with
+`last_error: source_hash_required`, open its configuration and add the patch
+hash in **Behavior and verification**. HAPatchY keeps the rule but makes no
+request or write until the hash is supplied. Calculate the digest from a trusted
+copy of the patch; copying a hash from the same untrusted URL does not establish
+its authenticity.
 If a previously saved URL is now denied because its hostname or DNS answer is
 not public, source reconfiguration and Revert may also be refused: both check
 the old source. Inspect the target and retained backups first. Removing the old
@@ -146,8 +153,10 @@ its permissions and check for a symlink rather than repeatedly forcing actions.
 
 ## Security error
 
-Start with [both directory lists](directory-permissions.md): the operator must
-name the target and watch directory, then restart HA. A changed grant source
+Start with [the exact file grant and HA directory allowlist](directory-permissions.md):
+the operator must name the target file in HAPatchY and its containing folder
+in HA, then restart HA. Legacy `hapatchy.allowed_directories` entries do not
+grant access. A changed grant source
 (`configuration.yaml`, a `hapatchy` or HA allowlist/packages include), a changed
 include graph, or a missing or unreadable YAML source blocks operations until
 restart. An ordinary edit to an unrelated include such as `automations.yaml`

@@ -16,7 +16,7 @@ entry; you do not need a separate integration for each file.
 | Setting | Meaning | Default / limit |
 | --- | --- | --- |
 | Name | A label you will recognize in HA | Required |
-| File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file below both explicitly authorized directories |
+| File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file named in `hapatchy.allowed_files` and covered by HA’s directory allowlist |
 | Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
 | Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
 | Patch input | Edit selected file, write/paste a diff, upload, existing local file, or HTTPS URL | Edit selected file for new rules |
@@ -27,7 +27,7 @@ entry; you do not need a separate integration for each file.
 | Apply compatible patches automatically | Reconcile applies a patch when safe | On |
 | Check at Home Assistant startup | Check when HAPatchY starts or reloads | On |
 | Back up before applying | Keep original bytes before an apply | On; turning it off requires confirmation |
-| Expected source SHA-256 | Optional fingerprint of the exact patch bytes | Empty; otherwise 64 hexadecimal characters |
+| Patch SHA-256 | SHA-256 of the exact patch bytes; mandatory for HTTPS URLs, optional for other sources | 64 hexadecimal characters for HTTPS |
 | Wait after file events | Wait for an update to settle before checking it | 1.5 seconds; 0.1–60 allowed |
 
 A pattern can narrow event handling but never allows patching additional files.
@@ -56,18 +56,19 @@ entries and descending at most 16 directory levels. It skips hidden entries,
 protected paths, symbolic/hard links and files directly in the configuration root.
 It is a convenience list, not a complete filesystem browser. Enter an eligible
 relative path manually when it is absent; normal path and patch validation still
-applies, including [both YAML directory lists](directory-permissions.md). The
-upload chooser selects a patch on your computer; the target picker
-selects an existing file on the HA server.
+applies, including [the exact file grant and HA directory allowlist](directory-permissions.md).
+The upload chooser selects a patch on your computer; the target picker selects
+an existing file on the HA server.
 
 Only the final form submission saves a managed revision. **Edit selected file**
-reads the target through both directory grants and a guarded file handle, then
-generates a diff that must match the original and edited bytes in both Apply and
+reads the target through the exact file grant, HA’s directory allowlist and a
+guarded file handle. It then generates a diff that must match the original and
+edited bytes in both Apply and
 Revert directions. It refuses files and edits outside its text/size limits, an
 unchanged edit, stale target bytes, changed grants or ambiguous context. This
 new-rule mode always enables the rule, startup checking, automatic application
-and backup; those settings are not optional in its form. The same directory
-grant authorizes an HA administrator API caller to read the file in the editor.
+and backup; those settings are not optional in its form. The exact file grant
+authorizes an HA administrator API caller to read that file in the editor.
 
 Saving configuration reloads HAPatchY and requests immediate Apply for an
 editor-created rule. The native dialog reports **configuration saved**, not a
@@ -99,10 +100,27 @@ rule does not undo an applied change; see [recovery and removal](troubleshooting
 The policy limits where HAPatchY connects, not whether a public server or its
 patch contents are trustworthy.
 
-A SHA-256 fingerprint detects unexpected source changes; it does not establish
-that the author is trustworthy. When you deliberately update a pinned patch,
-review the new contents and update its fingerprint too. A failed source request
-or fingerprint check never reuses an old cached patch.
+An HTTPS source requires the SHA-256 of the **downloaded patch bytes**, not
+the file being patched. Obtain the digest from a trusted copy of the patch and
+enter its 64 hexadecimal characters in **Behavior and verification**. HAPatchY
+checks it on every fetch, before using the patch. A SHA-256 fingerprint detects
+unexpected source changes; it does not establish that the author is trustworthy.
+
+![An HTTPS patch requires the patch SHA-256 in the native Behavior and verification form](images/url-hash.png)
+
+This form was captured in Chromium on disposable HA 2026.10.1 using this
+repository revision. The native API smoke test confirmed the hash field is
+required; the source loader tests prove that an unpinned URL is refused before
+a network request.
+
+For a patch file you have already obtained and reviewed on Linux, run
+`sha256sum patch.diff` and copy only the 64-character digest. Calculate it from
+the exact bytes served by the URL; line-ending changes produce a different hash.
+When you deliberately update a pinned patch, review the new contents and update
+its fingerprint too. A failed source request
+or fingerprint check never reuses an old cached patch. An existing HTTPS rule
+without a hash reports a dedicated Repair and cannot download or apply until
+you reconfigure it with the patch hash.
 
 Editing an **external patch source** does not trigger the target watch. After editing it,
 use **Refresh source** to check it or **Reconcile** to check and, if enabled, apply.
@@ -122,7 +140,7 @@ may display friendly labels; the raw state values below are stable identifiers.
 | `missing_target` | The target does not exist | Check the path or wait for installation/update to finish |
 | `source_error` | The patch could not be read, downloaded or verified | Check source, connectivity and SHA-256 |
 | `invalid_patch` | The diff is malformed, unsupported or ambiguous | Regenerate it with correct headers and distinctive context |
-| `security_error` | A path, grant source, include graph, file safety or HTTPS destination check failed | Check both directory grants, grant-bearing YAML and the source hostname; restart HA after changing grants or include structure |
+| `security_error` | A path, grant source, include graph, file safety or HTTPS destination check failed | Check the exact HAPatchY file grant, HA directory allowlist, grant-bearing YAML and the source hostname; restart HA after changing grants or include structure |
 | `apply_error` | A backup, write or durability check failed | Read the Repair; do not assume no bytes changed |
 
 Useful attributes include:
@@ -138,6 +156,13 @@ Useful attributes include:
 After `security_error`, target paths and hashes are withheld from the sensor,
 diagnostics and Repair issue. Use your operator-owned YAML and local file editor
 to diagnose the denied path.
+
+For an older HTTPS rule missing `source_sha256`, the `source_error` state has
+`last_error: source_hash_required` and a dedicated Repair instructing you to
+reconfigure the rule. No URL request or file write occurs until a hash is
+provided. For an older directory-only grant, `security_error` has
+`last_error: hapatchy_file_not_allowed` and a Repair requesting the exact file
+path in `hapatchy.allowed_files`.
 
 A status describes the last completed check, not continuous proof of the current
 file contents. A missing watch root can produce a Repair even when a previous

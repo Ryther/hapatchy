@@ -13,17 +13,17 @@ an integration or executable configuration.
   then add the integration.
 - **[Make your first patch](first-patch.md):** Edit an unused file and check
   Apply, backup and Revert.
-- **[Authorize a folder](directory-permissions.md):** Configure both YAML
-  grants and restart HA.
+- **[Authorize a file](directory-permissions.md):** Name the exact target in
+  HAPatchY and its containing folder in HA, then restart HA.
 - **[Configure a patch or use an action](reference.md):** Look up exact fields,
   states, limits and administrator actions.
 - **[Fix a problem or remove a patch](troubleshooting.md):** Diagnose status
   and Repairs, then recover safely.
 
 HAPatchY changes files in your HA configuration. Keep an independent backup
-and authorize only directories whose contents may be read and changed through
+and authorize only files whose contents may be read and changed through
 the HA administrator API. Read the [product limits](https://github.com/Ryther/hapatchy#before-using-it)
-and [directory-grant rules](directory-permissions.md) before patching a real file.
+and [file-permission rules](directory-permissions.md) before patching a real file.
 
 ## Contribute or understand the design
 

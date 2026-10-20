@@ -19,7 +19,7 @@ nav:
   - Getting started:
       - Install HAPatchY: installation.md
       - Your first patch: first-patch.md
-      - Directory permissions: directory-permissions.md
+      - File permissions: directory-permissions.md
   - Using HAPatchY:
       - Settings, status and actions: reference.md
       - Troubleshooting and recovery: troubleshooting.md

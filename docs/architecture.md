@@ -47,7 +47,7 @@ after the flow returns, so the ordinary runtime reload schedules backed-up
 Apply asynchronously; the sensor and Repairs, rather than the save dialog,
 report its outcome.
 
-Native subentries own patch definitions. Operator YAML owns directory grants;
+Native subentries own patch definitions. Operator YAML owns exact file grants;
 HAPatchY does not write it. At startup the integration compares raw YAML and
 HA's loaded configuration and snapshots its bounded YAML source graph. It denies
 operations if a grant-bearing source or the include structure changes before the

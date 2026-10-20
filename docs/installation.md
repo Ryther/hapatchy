@@ -59,9 +59,10 @@ on a fresh HA OS installation have not been independently verified here.
    configuration. From the release ZIP, extract only the integration folder.
 5. Restart Home Assistant.
 
-Before creating a patch, add the target subdirectory to both YAML directory
-lists and restart again. Follow [Allow a directory for HAPatchY](directory-permissions.md)
-for a complete example. Installing the integration alone grants no patch targets.
+Before creating a patch, allow its containing folder in HA and name the exact
+target in `hapatchy.allowed_files`; then restart again. Follow
+[Authorize exact files](directory-permissions.md) for a complete example.
+Installing the integration alone grants no patch targets.
 
 HA installs the integration's declared Python dependencies using its own runtime.
 You do not need to install Python, run `pip`, or create a venv inside your HA
@@ -81,7 +82,7 @@ Create HAPatchY only once. Multiple patches live inside that one integration.
 No patch device or sensor appears until you add a patch. Each patch then has a
 status sensor and a **Patch health** binary sensor. The default Add patch
 path reads the selected file into a text field, so an administrator using the
-HA API can read the full contents of files in authorized folders. Continue with
+HA API can read the full contents of authorized files. Continue with
 [Your first patch](first-patch.md) before configuring an important file.
 
 If HAPatchY is missing from the search, check the folder layout, restart HA and
@@ -94,3 +95,12 @@ import or dependency error needs investigation. See
 Keep a full HA backup before updating. After an update, restart HA and inspect
 the patch status sensors and Repairs. A changed Python file may require an HA
 restart even after HAPatchY reports its bytes as applied.
+
+When updating from a version with `hapatchy.allowed_directories`, replace those
+entries with exact paths in `hapatchy.allowed_files`, keeping HA's directory
+allowlist. Restart HA after the YAML edit. Existing HTTPS patch rules without
+`source_sha256` need the SHA-256 of the downloaded **patch file** added in their
+Behavior and verification options. Until then they remain saved but cannot fetch
+or apply; Repairs explains the missing hash. See
+[file permissions](directory-permissions.md) and
+[HTTPS sources](reference.md#local-files-and-https).

@@ -95,8 +95,9 @@
 !/docs/index.md
 !/docs/releasing.md
 !/docs/images/
-!/docs/images/yaml-directory-authorization.png
 !/docs/images/file-editor-form.png
+!/docs/images/file-permissions.png
+!/docs/images/url-hash.png
 !/docs/images/file-editor-applied.png
 !/docs/images/patch-device.png
 !/docs/images/patch-health-unknown.png
