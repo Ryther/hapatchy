@@ -6,22 +6,20 @@ from .const import DOMAIN
 from .schema_compat import vol
 
 
-def _grant_list(value):
+def _grant_section(value):
     """Keep HA's YAML schema strict without loading files on the event loop."""
-    from .yaml_policy import validate_hapatchy_directories
+    from .yaml_policy import validate_hapatchy_grants
 
     try:
-        return list(validate_hapatchy_directories({"allowed_directories": value}))
+        validate_hapatchy_grants(value)
     except ValueError as error:
-        raise vol.Invalid("invalid_allowed_directories") from error
+        raise vol.Invalid("invalid_hapatchy_grants") from error
+    return value
 
 
 CONFIG_SCHEMA = vol.Schema(
     {
-        vol.Optional(DOMAIN): vol.Schema(
-            {vol.Required("allowed_directories"): _grant_list},
-            extra=vol.PREVENT_EXTRA,
-        )
+        vol.Optional(DOMAIN): _grant_section
     },
     extra=vol.ALLOW_EXTRA,
 )

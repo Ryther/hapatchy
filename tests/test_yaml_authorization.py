@@ -16,7 +16,7 @@ def _policy(root, *, ha_dirs=(), protected=(), changed=False):
             raise PatchError("configuration_source_changed", Status.SECURITY_ERROR)
 
     return SimpleNamespace(
-        hapatchy_directories=("scripts",),
+        hapatchy_files=("scripts/a.py",),
         ha_explicit_directories=ha_dirs,
         graph=SimpleNamespace(protects=lambda path: path in protected),
         check_current=current,

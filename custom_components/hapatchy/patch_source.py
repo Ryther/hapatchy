@@ -59,6 +59,8 @@ class PatchSourceClient:
                     partial(ManagedPatchStore(self.root).load, definition.source)
                 )
             else:
+                if definition.source_sha256 is None:
+                    raise PatchError("source_hash_required", Status.SOURCE_ERROR)
                 async with asyncio.timeout(HTTPS_TIMEOUT_SECONDS):
                     url = checked_url(definition.source)
                     resolver = PublicDNSResolver()

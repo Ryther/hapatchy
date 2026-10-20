@@ -77,6 +77,18 @@ class PatchManagerRuntime:
         restart = self.hass.data[DOMAIN]["restart_required"]
         for key, state in self.states.items():
             state.restart_may_be_required = key in restart
+            definition = self.definitions[key]
+            if (
+                definition.source_type == "url"
+                and not definition.source_sha256
+                and state.last_error not in {"durability_unconfirmed", "revert_metadata_unavailable"}
+            ):
+                if definition.enabled:
+                    state.status = Status.SOURCE_ERROR
+                state.last_error = "source_hash_required"
+                state.patch_sha256 = None
+                self.issues.update(definition, state)
+                continue
             if (
                 state.last_error
                 in (

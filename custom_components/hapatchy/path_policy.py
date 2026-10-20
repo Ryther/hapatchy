@@ -13,7 +13,7 @@ class SourceGraph(Protocol):
 
 
 class LoadedGrants(Protocol):
-    hapatchy_directories: tuple[str, ...]
+    hapatchy_files: tuple[str, ...]
     ha_explicit_directories: tuple[str, ...]
     graph: SourceGraph
 
@@ -41,11 +41,15 @@ class PathPolicy:
         parts = relative_parts(path)
         if self.grants.graph.protects(path):
             raise PatchError("protected_path", Status.SECURITY_ERROR)
-        if not any(
-            self._contained(parts, tuple(grant.split("/")), equal=directory)
-            for grant in self.grants.hapatchy_directories
-        ):
-            raise PatchError("hapatchy_path_not_allowed", Status.SECURITY_ERROR)
+        if directory:
+            authorized = any(
+                self._contained(tuple(file.split("/")), parts, equal=False)
+                for file in self.grants.hapatchy_files
+            )
+        else:
+            authorized = path in self.grants.hapatchy_files
+        if not authorized:
+            raise PatchError("hapatchy_file_not_allowed", Status.SECURITY_ERROR)
 
         absolute = self.root.joinpath(*parts)
         if not any(
@@ -83,6 +87,6 @@ class PathPolicy:
         self._check_path(definition.watch_root, directory=True)
 
     def load_directories(self) -> tuple[str, ...]:
-        """Return frozen roots for bounded target suggestions after source verification."""
+        """Return parents of exact grants for bounded target suggestions."""
         self.grants.check_current()
-        return self.grants.hapatchy_directories
+        return tuple(sorted({file.rpartition("/")[0] for file in self.grants.hapatchy_files}))

@@ -277,7 +277,12 @@ async def test_two_roots_reload_and_reconcile_independently(hass, tmp_path):
     watcher(old)
     from tests.policy_helpers import grant_directories
 
-    grant_directories(tmp_path, ("scripts", "other"), hass=hass)
+    grant_directories(
+        tmp_path,
+        ("scripts", "other"),
+        hass=hass,
+        files=("scripts/a.py", "other/b.py"),
+    )
     (tmp_path / "other").mkdir()
     (tmp_path / "other/b.py").write_bytes(b"context\nold\n")
     (tmp_path / "patches/b.patch").write_bytes(DIFF.replace(b"scripts/a.py", b"other/b.py"))

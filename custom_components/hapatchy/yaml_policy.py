@@ -19,6 +19,8 @@ from .yaml_source_graph import SourceGraph, scan_source_graph
 _MISSING = object()
 _MAX_DIRECTORIES = 128
 _MAX_DIRECTORY_LENGTH = 1024
+_MAX_FILES = 128
+_MAX_FILE_LENGTH = 1024
 _MAX_SOURCE_BYTES = 512 * 1024
 _YAML_STR = "tag:yaml.org,2002:str"
 
@@ -28,7 +30,7 @@ class YamlPolicy:
     """Frozen startup grants and the configuration graph that produced them."""
 
     root: Path
-    hapatchy_directories: tuple[str, ...]
+    hapatchy_files: tuple[str, ...]
     ha_explicit_directories: tuple[str, ...]
     graph: SourceGraph
 
@@ -47,7 +49,7 @@ class DeniedYamlPolicy:
     """Deny-all policy published after a post-schema setup failure."""
 
     reason: str
-    hapatchy_directories: tuple[str, ...] = ()
+    hapatchy_files: tuple[str, ...] = ()
     ha_explicit_directories: tuple[str, ...] = ()
 
     def check_current(self) -> None:
@@ -95,8 +97,8 @@ def load_yaml_policy(root: Path, boot_config: dict[str, Any]) -> YamlPolicy:
     boot_value = boot_config.get("hapatchy", _MISSING)
     if main_present != (raw_value is not _MISSING) or main_present != (boot_value is not _MISSING):
         _deny("configuration_mismatch")
-    raw_grants = validate_hapatchy_directories(raw_value) if main_present else ()
-    boot_grants = validate_hapatchy_directories(boot_value) if main_present else ()
+    raw_grants = validate_hapatchy_grants(raw_value) if main_present else ((), ())
+    boot_grants = validate_hapatchy_grants(boot_value) if main_present else ((), ())
     if raw_grants != boot_grants:
         _deny("configuration_mismatch")
 
@@ -111,7 +113,7 @@ def load_yaml_policy(root: Path, boot_config: dict[str, Any]) -> YamlPolicy:
         raise PatchError("configuration_source_unavailable", Status.SECURITY_ERROR) from None
     if second_graph != first_graph:
         raise PatchError("configuration_source_changed", Status.SECURITY_ERROR)
-    return YamlPolicy(root, raw_grants, raw_allowlist, first_graph)
+    return YamlPolicy(root, raw_grants[0], raw_allowlist, first_graph)
 
 
 def _validate_main_root(root: Path) -> bool:
@@ -166,18 +168,53 @@ def _plain_key(node: Node) -> str | None:
 def _validate_section_node(node: Node) -> None:
     if not isinstance(node, MappingNode):
         _deny("hapatchy_yaml_invalid")
-    if len(node.value) != 1 or _plain_key(node.value[0][0]) != "allowed_directories":
+    keys = [_plain_key(key) for key, _ in node.value]
+    if not keys or len(keys) != len(set(keys)) or not set(keys) <= {
+        "allowed_files",
+        "allowed_directories",
+    }:
         _deny("hapatchy_yaml_invalid")
-    directories = node.value[0][1]
-    if not isinstance(directories, SequenceNode) or directories.tag != "tag:yaml.org,2002:seq":
-        _deny("hapatchy_yaml_invalid")
-    for directory in directories.value:
-        if not isinstance(directory, ScalarNode) or directory.tag != _YAML_STR:
+    for _, entries in node.value:
+        if not isinstance(entries, SequenceNode) or entries.tag != "tag:yaml.org,2002:seq":
             _deny("hapatchy_yaml_invalid")
+        for entry in entries.value:
+            if not isinstance(entry, ScalarNode) or entry.tag != _YAML_STR:
+                _deny("hapatchy_yaml_invalid")
+
+
+def validate_hapatchy_grants(value: object) -> tuple[tuple[str, ...], tuple[str, ...]]:
+    """Return exact file authority and validated, inert legacy directory entries."""
+    if not isinstance(value, dict) or not value or not set(value) <= {
+        "allowed_files",
+        "allowed_directories",
+    }:
+        _deny("hapatchy_yaml_invalid")
+    files = value.get("allowed_files", [])
+    if not isinstance(files, list) or len(files) > _MAX_FILES:
+        _deny("hapatchy_yaml_invalid")
+    checked: list[str] = []
+    for file in files:
+        if not isinstance(file, str) or len(file) > _MAX_FILE_LENGTH:
+            _deny("hapatchy_yaml_invalid")
+        try:
+            parts = relative_parts(file)
+        except PatchError:
+            _deny("hapatchy_yaml_invalid")
+        if len(parts) < 2 or any(character in file for character in "*?[]"):
+            _deny("hapatchy_yaml_invalid")
+        checked.append(file)
+    if len(set(checked)) != len(checked):
+        _deny("hapatchy_yaml_invalid")
+    legacy = (
+        validate_hapatchy_directories({"allowed_directories": value["allowed_directories"]})
+        if "allowed_directories" in value
+        else ()
+    )
+    return tuple(checked), legacy
 
 
 def validate_hapatchy_directories(value: object) -> tuple[str, ...]:
-    """Strict HA-schema validator for the optional top-level HAPatchY section."""
+    """Validate migration-era directory entries without granting authority."""
     if not isinstance(value, dict) or set(value) != {"allowed_directories"}:
         _deny("hapatchy_yaml_invalid")
     directories = value["allowed_directories"]

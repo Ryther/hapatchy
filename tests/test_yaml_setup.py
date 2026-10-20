@@ -32,6 +32,14 @@ def test_config_schema_accepts_literal_yaml_grants():
     }
 
 
+def test_config_schema_accepts_exact_file_grants():
+    from custom_components.hapatchy import CONFIG_SCHEMA
+
+    assert CONFIG_SCHEMA({"hapatchy": {"allowed_files": ["scripts/a.py"]}})[DOMAIN] == {
+        "allowed_files": ["scripts/a.py"]
+    }
+
+
 @pytest.mark.parametrize("section", [None, {}, {"allowed_directories": "scripts"}, {"allowed_directories": ["scripts"], "bypass": True}])
 def test_config_schema_rejects_invalid_present_section(section):
     from custom_components.hapatchy import CONFIG_SCHEMA
@@ -55,7 +63,7 @@ async def test_async_setup_loads_yaml_grants_once(hass, tmp_path):
     }
 
     assert await async_setup(hass, boot)
-    assert hass.data[DOMAIN]["yaml_policy"].hapatchy_directories == ("scripts",)
+    assert hass.data[DOMAIN]["yaml_policy"].hapatchy_files == ()
 
 
 async def test_async_setup_without_yaml_grants_denies_all(hass, tmp_path):
@@ -65,7 +73,7 @@ async def test_async_setup_without_yaml_grants_denies_all(hass, tmp_path):
     (tmp_path / "configuration.yaml").write_text("homeassistant: {}\n")
 
     assert await async_setup(hass, {"homeassistant": {}})
-    assert hass.data[DOMAIN]["yaml_policy"].hapatchy_directories == ()
+    assert hass.data[DOMAIN]["yaml_policy"].hapatchy_files == ()
 
 
 async def test_post_schema_mismatch_publishes_deny_all(hass, tmp_path):
@@ -78,6 +86,6 @@ async def test_post_schema_mismatch_publishes_deny_all(hass, tmp_path):
     )
     assert await async_setup(hass, {"hapatchy": {"allowed_directories": ["www"]}})
     grants = hass.data[DOMAIN]["yaml_policy"]
-    assert grants.hapatchy_directories == ()
+    assert grants.hapatchy_files == ()
     with pytest.raises(PatchError, match="configuration_mismatch"):
         grants.check_current()
