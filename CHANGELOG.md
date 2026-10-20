@@ -1,5 +1,16 @@
 # Changelog
 
+## [3.0.0](https://github.com/Ryther/hapatchy/compare/v2.0.4...v3.0.0) (2026-10-20)
+
+
+### ⚠ BREAKING CHANGES
+
+* HAPatchY directory grants no longer authorize targets. Operators must name each target in hapatchy.allowed_files and add the SHA-256 of existing HTTPS patch sources.
+
+### Features
+
+* require exact file grants and HTTPS patch hashes ([#105](https://github.com/Ryther/hapatchy/issues/105)) ([1011940](https://github.com/Ryther/hapatchy/commit/1011940e1ab4b582916526609d5b62bcc5c37caa))
+
 ## [2.0.4](https://github.com/Ryther/hapatchy/compare/v2.0.3...v2.0.4) (2026-10-11)
 
 
