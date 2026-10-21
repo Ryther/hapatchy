@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.1](https://github.com/Ryther/hapatchy/compare/v3.0.0...v3.0.1) (2026-10-21)
+
+
+### Bug Fixes
+
+* **compat:** validate Home Assistant 2026.10.2 ([#104](https://github.com/Ryther/hapatchy/issues/104)) ([05c0f3b](https://github.com/Ryther/hapatchy/commit/05c0f3bd62bd76ced6869ccd08820452d9f2a431))
+
 ## [3.0.0](https://github.com/Ryther/hapatchy/compare/v2.0.4...v3.0.0) (2026-10-20)
 
 
