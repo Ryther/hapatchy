@@ -2,10 +2,12 @@
 
 ![HAPatchY — Home Assistant Patch Manager](images/hapatchy-banner.png)
 
-HAPatchY keeps a deliberate change to one Home Assistant configuration file
-when an update replaces that file. It applies a patch only when the surrounding
+HAPatchY keeps a deliberate change to one authorized text or code file in an
+eligible subfolder of Home Assistant's configuration directory, for example
+`custom_components/huawei_solar/const.py`. It applies a patch only when the surrounding
 text still matches unambiguously. Start with an unused text file before changing
-an integration or executable configuration.
+an integration. Files directly in the configuration root and HA's YAML
+configuration sources remain protected even when a grant names them.
 
 ## What do you want to do?
 
@@ -19,6 +21,12 @@ an integration or executable configuration.
   states, limits and administrator actions.
 - **[Fix a problem or remove a patch](troubleshooting.md):** Diagnose status
   and Repairs, then recover safely.
+- **[Change a saved diff](reference.md#change-a-saved-managed-patch):** Revert,
+  edit and update its inherited hash before applying the replacement.
+- **[Restore a missing managed patch](troubleshooting.md#restore-a-missing-managed-patch):**
+  Recover the exact source before attempting Revert.
+- **[Revoke file access](directory-permissions.md#revoke-a-files-access):**
+  Remove one grant while retaining other authorized targets.
 
 HAPatchY changes files in your HA configuration. Keep an independent backup
 and authorize only files whose contents may be read and changed through

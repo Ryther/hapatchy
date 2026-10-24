@@ -98,9 +98,11 @@
 !/docs/images/file-editor-form.png
 !/docs/images/file-permissions.png
 !/docs/images/url-hash.png
-!/docs/images/file-editor-applied.png
+!/docs/images/managed-patch-options.png
+!/docs/images/managed-source-restoration.png
+!/docs/images/hacs-custom-repository.png
+!/docs/images/hacs-update.png
 !/docs/images/patch-device.png
-!/docs/images/patch-health-unknown.png
 !/docs/images/view-patch-response.png
 !/docs/images/hapatchy-banner.png
 !/script/

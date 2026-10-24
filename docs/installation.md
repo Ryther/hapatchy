@@ -22,19 +22,37 @@ HAPatchY paths are relative to this folder. If a file is
 
 ## HACS availability
 
-Use the [HACS custom-repository button](https://github.com/Ryther/hapatchy#readme) if HACS is already
-installed, or add `Ryther/hapatchy` as a custom **Integration** repository in
-HACS. Install the available release and restart HA. The file-editor procedure
-in this documentation was checked against this repository revision in disposable
-HA; a published HACS version includes it only after a release containing this
-revision. Check that version's release notes if its Add patch form differs.
+HACS must already be installed and configured in your HA instance. If it is not,
+follow [HACS setup](https://www.hacs.dev/docs/use/) first. HAPatchY can be added
+as a custom repository; the README button does not imply default-catalog inclusion.
+
+1. Open **HACS** in HA's sidebar. Use the top-right **⋮ → Custom repositories**.
+2. Enter `https://github.com/Ryther/hapatchy`, choose **Integration** as the type,
+   and select **Add**. If it is already listed, continue to the repository page.
+3. Search for **HAPatchY**, open its details and review the README and selected
+   release. Choose **Download** and confirm the version you intend to install.
+4. Restart Home Assistant. Check that the integration's `manifest.json` is under
+   `custom_components/hapatchy`, then continue with [Add the integration](#add-the-integration).
+
+![Add the HAPatchY repository with the Integration type in HACS](images/hacs-custom-repository.png)
+
+The [README's HACS button](https://github.com/Ryther/hapatchy#readme) is a shortcut
+to opening this repository in your configured HA instance. Confirm the instance
+URL before following a My Home Assistant link. The manual steps above also work
+when that shortcut is not configured.
+
+HACS's [custom-repository](https://www.hacs.dev/docs/faq/custom_repositories/)
+and [dashboard instructions](https://www.hacs.dev/docs/use/repositories/dashboard/)
+own these download controls. Downloading files and adding HAPatchY in HA are
+separate steps. These guides track repository `main`; compare release notes with
+your installed version when a field differs.
 
 ## Manual installation
 
 Manual installation copies the integration folder from a published release.
 Use the archive for the version you intend to run; the repository's current
 guides may describe changes made after an older release. Dependency downloads
-on a fresh HA OS installation have not been independently verified here.
+use HA's own runtime and may require internet access.
 
 1. Download [the latest release](https://github.com/Ryther/hapatchy/releases/latest)
    from GitHub Releases. The repository source is also available for development
@@ -92,11 +110,32 @@ import or dependency error needs investigation. See
 
 ## Updates
 
-Keep a full HA backup before updating. After an update, restart HA and inspect
-the patch status sensors and Repairs. A changed Python file may require an HA
-restart even after HAPatchY reports its bytes as applied.
+Keep a full HA backup on another device before updating and read the release's
+migration notes. In **Settings → Updates**, open HAPatchY and confirm the
+update. In HA 2026.7.4 the dialog action is **Update**. Alternatively, open its
+HACS repository menu and use
+**Redownload** to choose the intended version. Restart HA after the download;
+then inspect the installed version, patch statuses and Repairs. Downloading a
+release does not replace Python modules that HA already imported.
 
-When updating from a version with `hapatchy.allowed_directories`, replace those
+![The native HA update dialog shows installed and available HAPatchY versions, migration notes and the Update action](images/hacs-update.png)
+
+These HACS controls were captured with HACS 2.0.5 on HA 2026.7.4. Menu placement
+can differ in other versions; confirm the selected release before downloading.
+
+If GitHub has a release that HACS does not show, open HAPatchY's repository
+menu in HACS and choose **Update information**. This refreshes metadata; it does
+not install the release. Install or redownload it separately, then restart HA.
+Custom repositories and default-catalog repositories have different refresh
+paths, so do not assume a just-published release will appear immediately. See
+[HACS data refresh](https://www.hacs.dev/docs/faq/data_sources/).
+
+To uninstall, use the [removal sequence](troubleshooting.md#remove-a-patch-or-uninstall-hapatchy)
+so you can Revert before removing the rule, grants or downloaded files.
+
+### Upgrade from 2.x to 3.x
+
+When updating from 2.x with `hapatchy.allowed_directories`, replace those
 entries with exact paths in `hapatchy.allowed_files`, keeping HA's directory
 allowlist. Restart HA after the YAML edit. Existing HTTPS patch rules without
 `source_sha256` need the SHA-256 of the downloaded **patch file** added in their

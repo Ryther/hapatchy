@@ -24,7 +24,10 @@ The HACS button opens HAPatchY as a **custom repository** in an existing HACS
 installation. It does not indicate inclusion in HACS's default catalog.
 
 HAPatchY is a Home Assistant custom integration that keeps a deliberate edit to
-**one configuration file** when an update replaces it. You can edit an authorized
+**one authorized text or code file** when an update replaces it, for example
+`custom_components/huawei_solar/const.py`. Targets live in eligible subfolders
+of HA's configuration directory. Files directly in that directory, HA's YAML
+configuration sources and HAPatchY's own code are protected. You can edit an authorized
 file in Home Assistant's native form and let HAPatchY generate a unified diff,
 or supply a `.patch`/`.diff` yourself. When automatic application is enabled
 and the file changes, HAPatchY checks the diff against its contents and applies
@@ -92,7 +95,7 @@ restarts HA for you.
   **not** restore a changed file. Follow the checked
   [Revert and removal procedure](https://ryther.github.io/hapatchy/troubleshooting/#remove-a-patch-or-uninstall-hapatchy).
 
-**Upgrading an existing installation:** replace HAPatchY's directory grants
+**Upgrading from 2.x to 3.x:** replace HAPatchY's directory grants
 with exact `hapatchy.allowed_files` entries and restart HA. Old directory entries
 do not authorize patches. Existing HTTPS patch rules also need the SHA-256 of
 the **patch file** (not the target file) in their options. A rule without that
@@ -135,10 +138,17 @@ before sharing them.
 
 AI assistants can use the self-contained
 [HAPatchY user guide skill](https://github.com/Ryther/hapatchy/blob/main/.agents/skills/hapatchy-guide/SKILL.md) for
-installation, patch actions and recovery. Codex and OpenCode find it in
-`.agents/skills/`, and Claude Code through `.claude/skills/`. ChatGPT users with
-Skills support can upload that skill folder. The skill gives guidance, not HA
-access or approval for a patch destination.
+installation, patch actions and recovery. It works without repository access.
+Codex and OpenCode find it in `.agents/skills/`, and Claude Code through
+`.claude/skills/`. For a web assistant, save the
+[raw SKILL.md](https://raw.githubusercontent.com/Ryther/hapatchy/main/.agents/skills/hapatchy-guide/SKILL.md)
+inside a folder named `hapatchy-guide`. Claude supports uploading that folder
+as a ZIP and enabling it in [Customize → Skills](https://support.claude.com/en/articles/12512180-use-skills-in-claude).
+For ChatGPT, use the skill-upload interface if your workspace provides it;
+[availability and sharing depend on the product surface](https://learn.chatgpt.com/docs/enterprise/skills).
+You can also attach the Markdown to an ordinary conversation and ask the
+assistant to follow it; that supplies instructions for that conversation and
+does not install a skill. The guide grants neither HA access nor file permission.
 
 Contributors should read [CONTRIBUTING.md](https://github.com/Ryther/hapatchy/blob/main/CONTRIBUTING.md), the
 [architecture](https://ryther.github.io/hapatchy/architecture/),

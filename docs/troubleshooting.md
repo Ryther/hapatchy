@@ -10,7 +10,10 @@
 2. Open **Settings → System → Repairs** for a HAPatchY issue. On some HA versions,
    Repairs is reached from the Settings notification/menu instead.
 3. If you need to inspect files without automatic reapplication, reconfigure the
-   patch and turn **Apply compatible patches automatically** off.
+   patch and turn **Apply compatible patches automatically** off. If an
+   unreadable source prevents saving those settings, preserve the target and
+   recovery material, then remove the rule to stop its watcher. Removal does
+   not undo the change; see [removal](#remove-a-patch-or-uninstall-hapatchy).
 4. Use **Refresh source** for a read-only check. **Reconcile can write** when
    automatic application is enabled.
 
@@ -112,8 +115,8 @@ blindly. For a controlled example of valid context, revisit
 ## Source error
 
 For a managed source, keep `.hapatchy/patches/` in your HA backup. If a revision
-is missing, Reconfigure can restore its exact original contents. Do not edit
-hash-named files directly; use the editor after Revert.
+is missing, use [exact-source restoration](#restore-a-missing-managed-patch)
+before attempting Revert. Do not edit hash-named files directly.
 
 For a local source, confirm the file exists in the configuration folder and is
 readable by HA. Check spelling, capitalization, extension and UTF-8 encoding.
@@ -134,6 +137,37 @@ manually with the exact original bytes before applying a replacement.
 
 Patch sources larger than 2 MiB are rejected. Download failures never trigger an
 application using stale cached data. Fix the source, then run Refresh source.
+
+## Restore a missing managed patch
+
+`managed_source_unavailable` means the saved patch revision cannot be read.
+Revert needs that source too, so **do not require a successful Revert before
+restoring the original patch bytes**.
+
+1. Obtain the exact original diff from an independent backup or trusted copy.
+   A newly generated similar diff is not the same revision.
+2. Open the patch's **Reconfigure patch** form, keep its target and choose
+   **Write or paste patch contents**. The editor reports the missing source.
+3. Paste the exact original diff. Keep the existing SHA-256 if present and turn
+   automatic application off in **Behavior and verification**, then save.
+   Restoring that same revision does not require reversing the already applied
+   target and does not itself change target bytes.
+4. Run **Refresh source** and inspect the target. If you want to undo the change,
+   run **Revert** now and verify both the target and retained backup.
+
+![The native editor reports a missing managed source while its exact original diff is restored](images/managed-source-restoration.png)
+
+If the exact diff is unavailable, preserve the current target and backups and
+remove the rule to stop further automatic actions. HAPatchY cannot infer the
+lost patch from a digest. Compare retained bytes with the correct upstream
+version before choosing a manual recovery; do not overwrite newer code with
+an old whole-file backup. Do not edit `.storage` to replace the source reference.
+
+For an intentional change to an available diff, use
+[Change a saved managed patch](reference.md#change-a-saved-managed-patch) instead.
+An unchanged old optional hash is a common cause of `source_hash_mismatch`
+after editing a managed diff; replace it with the new diff's hash. A blank
+form field can reuse the old default. HTTPS hashes are always required.
 
 ## Missing target or unavailable watcher
 
@@ -196,15 +230,26 @@ review the intended edits; the backup is evidence, not an unconditional rollback
 
 1. If you want to undo its change, run **Revert** first and verify the target.
    If Revert fails, resolve that separately before assuming the change is gone.
-2. Remove the individual patch from its menu on the HAPatchY integration page.
+2. On the HAPatchY integration page, open that patch's **⋮ → Delete** and confirm.
 3. To stop using HAPatchY entirely, remove its integration entry from
-   **Settings → Devices & services**.
-4. For a manual installation, delete `custom_components/hapatchy`, then restart
-   HA. HACS removal is outside the verified procedure.
+   **Settings → Devices & services**, using the integration entry's **⋮ → Delete**.
+4. Remove the `hapatchy:` mapping from `configuration.yaml` or its include.
+   Preserve other YAML sections. Remove an HA allowlist entry only if no other
+   integration or target needs it.
+5. If installed with HACS, open its HAPatchY repository, use the repository
+   menu's **Remove** action and confirm. For a manual installation, delete only
+   `custom_components/hapatchy`. Restart HA after removing the integration files.
 
 Removing rules or integration files does **not** restore targets or erase backups.
 Your patch source files also remain. Keep them until you no longer need recovery;
 remove them manually only when you are sure.
+
+To revoke just one target while keeping HAPatchY, follow
+[Revoke a file's access](directory-permissions.md#revoke-a-files-access).
+HACS's controls manage downloaded files; removing the HA entry and reverting
+target changes are separate operations. See the
+[HACS repository documentation](https://www.hacs.dev/docs/use/repositories/dashboard/)
+for controls in your installed HACS version.
 
 
 ## Report a problem
