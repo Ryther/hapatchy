@@ -41,7 +41,7 @@ packages into the running container's managed virtual environments.
 | pytest **9.0.3** and HA pytest plugin **0.13.373** | Isolated integration/unit tests |
 | Ruff **0.16.8** | Python linting and formatting |
 | mypy **2.3.1** | Type checking |
-| uv **0.12.5** | Resolve the two complete recent HA locks from tracked inputs |
+| uv (exact version in the tool lock) | Resolve the two complete recent HA locks from tracked inputs |
 | Supervisor **4.3.0** | Manage the separate browser HA process |
 | Python standard library | Version validation and release ZIP/checksum generation |
 
@@ -51,6 +51,10 @@ installation is needed. Its complete resolved dependencies are pinned in
 GitHub Action; it does not need a local daemon. The publishing helper uses the
 GitHub CLI on GitHub's runner; local development checks never require publication
 credentials or the `gh` executable.
+
+The lock is authoritative for exact versions. Inspect the installed environment
+with `.venv/bin/python -m pip show uv pytest-homeassistant-custom-component`
+and compare it with the lock before diagnosing a version mismatch.
 
 The editor/Dev Containers CLI remote PATH starts with `.venv/bin`. Run `cz version`
 or `.venv/bin/cz version` to inspect the installed version. Explicit `.venv/bin/`
@@ -89,9 +93,18 @@ that the tracked locks reproduce exactly. HA-owned roots, including `uv` and the
 optional integrations exercised by the boot smoke, get their exact versions from
 the candidate HA wheel on PyPI. The resolver checks the wheel's published size
 and SHA-256 and stops if any required pin is missing or inconsistent. HAPatchY's
-own requirements and independent tools remain pinned in the inputs. For an approved HA/plugin pair, run
-the resolver with `--ha` and `--plugin`; it writes to the ignored `_tmp/resolved-ha-locks` directory. Use a disposable
-output directory first. The scheduled updater uses the same resolver and changes
+own requirements and independent tools remain pinned in the inputs. For an
+approved matching pair, set `CANDIDATE_HA` and `CANDIDATE_PLUGIN` to the verified
+versions, then run:
+
+```bash
+.venv/bin/python -m script.resolve_ha_locks \
+  --ha "$CANDIDATE_HA" --plugin "$CANDIDATE_PLUGIN"
+```
+
+This writes candidate locks to ignored `_tmp/resolved-ha-locks`; it does not
+replace the tracked locks. Review that output before accepting it. The scheduled
+updater uses the same resolver and changes
 only the recent lane. Rebuild the container after merging a lock update; do not
 upgrade packages inside a running managed environment.
 

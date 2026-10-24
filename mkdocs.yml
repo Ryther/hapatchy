@@ -14,6 +14,9 @@ theme:
     - search.highlight
 plugins:
   - search
+validation:
+  links:
+    anchors: warn
 nav:
   - Home: index.md
   - Getting started:
