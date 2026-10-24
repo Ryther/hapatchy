@@ -2,10 +2,10 @@
 # existing complete lock and updates the HA/plugin graph together.
 commitizen==4.19.0
 homeassistant=={ha_version}
-mypy==2.3.1
+mypy==2.4.0
 patch-ng==1.19.1
 pytest-homeassistant-custom-component=={plugin_version}
-ruff==0.16.8
+ruff==0.16.10
 supervisor==4.3.0
 # HA owns uv; its exact pin comes from the verified candidate wheel.
 uv

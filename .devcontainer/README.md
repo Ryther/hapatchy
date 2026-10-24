@@ -39,8 +39,8 @@ packages into the running container's managed virtual environments.
 | Git, Bash and native build dependencies | Source control, scripts and Python package installation |
 | Python Commitizen **4.19.0** (`cz`) | Guided Conventional Commits and message validation; same version as commit-message CI |
 | pytest **9.0.3** and HA pytest plugin **0.13.373** | Isolated integration/unit tests |
-| Ruff **0.16.8** | Python linting and formatting |
-| mypy **2.3.1** | Type checking |
+| Ruff **0.16.10** | Python linting and formatting |
+| mypy **2.4.0** | Type checking |
 | uv (exact version in the tool lock) | Resolve the two complete recent HA locks from tracked inputs |
 | Supervisor **4.3.0** | Manage the separate browser HA process |
 | Python standard library | Version validation and release ZIP/checksum generation |
