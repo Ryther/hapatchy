@@ -45,12 +45,32 @@ check also applies.
 
 ![The Add patch form names the exact HAPatchY file grant and HA directory allowlist](images/file-permissions.png)
 
-This Add patch form was captured in Chromium on disposable HA 2026.10.1 using
+This Add patch form was captured in Chromium on disposable HA 2026.7.4 using
 this repository revision. The native API smoke test also verified that an
 unlisted sibling in the same HA-allowed folder is refused without changing its
 bytes; the screenshot alone does not prove that backend check.
 
-## Existing installations
+## Eligible and protected targets
+
+An exact file grant is necessary but cannot override a protected path. HAPatchY
+refuses files directly beside `configuration.yaml`, its own
+`custom_components/hapatchy` directory, `.storage`, and `.hapatchy`.
+
+HA's YAML configuration sources are protected too: a file loaded through
+`configuration.yaml` and its includes, discovered secret files, and the whole
+subtree of a configuration include-directory scope cannot be patch targets.
+For example, granting `packages/example.yaml` does not permit a patch if HA
+loads that path through an include-directory directive. Editing an unrelated
+include manually may leave grants valid; that does not make it patchable.
+
+Eligible files in other subfolders can be authorized individually, including
+code in another custom integration. There is no blanket extension-based YAML
+ban: the path/source rules above determine eligibility. Authorizing executable
+code does not sandbox what HA may later execute.
+
+<span id="existing-installations"></span>
+
+## Upgrade directory grants from 2.x to 3.x
 
 Replace each old `hapatchy.allowed_directories` entry with exact target paths in
 `hapatchy.allowed_files`, then restart HA. Existing patch definitions are kept,
@@ -86,3 +106,19 @@ until a completed check succeeds. Reapplication still requires a unique exact
 match; if upstream changed incompatibly, the patch reports a conflict and
 leaves the target unchanged. A changed Python file needs an HA restart before
 the running integration uses its new code.
+
+## Revoke a file's access
+
+If you want to undo the patch, first run **Revert** while its file grant and
+source are still available, then verify the target bytes. Removing permission
+does not undo an applied change.
+
+Remove that exact path from `hapatchy.allowed_files` and restart HA. A saved
+rule for that file now reports a permission error and cannot read, Apply,
+Revert or Refresh source. You can remove the rule as well; its retained patch
+revisions and backups remain. Leave grants for other targets intact.
+
+An HA directory entry may be used by other integrations or other HAPatchY
+files. Remove it from `homeassistant.allowlist_external_dirs` only when it is
+no longer needed by any of them. For complete removal, follow
+[uninstall HAPatchY](troubleshooting.md#remove-a-patch-or-uninstall-hapatchy).

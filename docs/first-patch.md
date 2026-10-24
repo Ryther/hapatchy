@@ -8,13 +8,6 @@ integration changes. The default Add patch flow shows the file in a text editor,
 creates a unified diff for you, then requests Apply with a backup. You do not
 need to write a `.patch` file.
 
-The editor flow was performed in Chromium on disposable HA **2026.9.0** on
-25 September 2026 using the development source. The browser captures used
-`scripts/interval.txt` with the same text below; the applied target and retained
-backup were checked byte for byte. The same native API flow also passed the HA
-boot smoke test, including a failed-write status check. This does not certify a
-published HACS release or a change to another integration.
-
 ## 1. Prepare and authorize the target
 
 In your HA configuration folder, create `hapatchy_ui_demo/settings.txt` with
@@ -82,16 +75,19 @@ its first completed check, **Problem** for these errors and **OK** after a
 successful check. A disabled rule also displays Unknown. Its raw states after
 a check are `on` and `off` for automations; it does not contain the patch text.
 
-![A patch device groups Status and Patch health sensors in disposable HA 2026.9.0](images/patch-device.png)
+![The UI interval patch device groups Status and Patch health](images/patch-device.png)
 
 To inspect the exact current diff, copy `patch_id` from **Developer tools →
 States**, then open **Developer tools → Actions → HAPatchY: View patch**. Enter
 that ID and perform the action. The response contains the unified diff; this
 read leaves the target file unchanged. Review its contents before sharing it.
 
-![The administrator action returns the generated diff in disposable HA 2026.9.0](images/view-patch-response.png)
+![The administrator action returns the generated UI interval diff](images/view-patch-response.png)
 
-![The demo sensor reports applied after the target and backup were checked](images/file-editor-applied.png)
+The screenshots show HAPatchY 3.0.0 in disposable HA 2026.7.4 with this demo
+name and target. The target and retained backup bytes were checked separately
+from the native dialog's success message. Other HA versions can arrange controls
+differently.
 
 The demo target should now contain `interval = 5`. A recovery copy of its
 **original** bytes is retained under `.hapatchy/backups/<patch_id>/` inside the
@@ -171,8 +167,15 @@ can cause a conflict; HAPatchY will not force an ambiguous match.
 **Edit selected file** creates a new rule. To change a saved managed diff, use
 **Reconfigure patch** and **Write or paste patch contents**. If that diff is
 already applied, first run Revert and verify the target; the old revision stays
-available for exact reversal. HAPatchY retains previous managed revisions when
-you save an edit.
+available for exact reversal. Follow
+[Change a saved managed patch](reference.md#change-a-saved-managed-patch): the
+old optional **Patch SHA-256** must be replaced with the new diff's hash when
+the diff changes; a blank form field may reuse the old default.
+Revert leaves automatic application off, so check and Apply the replacement
+explicitly before enabling it again. HAPatchY retains previous managed revisions
+when you save an edit. If the original source is missing, first
+[restore that exact revision](troubleshooting.md#restore-a-missing-managed-patch)
+instead of attempting Revert without it.
 
 With automatic application enabled, replacing a target with its exact original
 bytes should cause HAPatchY to reapply a matching diff after the watcher settles.

@@ -2,10 +2,6 @@
 
 [← Documentation home](index.md) · [First-patch tutorial](first-patch.md)
 
-The current Add patch form, file editor, automatic Apply, status and retained
-backup were exercised on disposable HA 2026.9.0; the smoke test also checks
-the native API flow and a failed Apply. Other behavior below is covered by tests.
-
 ## Patch settings
 
 Each item added with **Add patch** is an independent rule shown as a device with
@@ -13,22 +9,43 @@ its own status sensor and **Patch health** binary sensor.
 Use its settings/menu to reconfigure or remove it. Keep one HAPatchY integration
 entry; you do not need a separate integration for each file.
 
-| Setting | Meaning | Default / limit |
-| --- | --- | --- |
-| Name | A label you will recognize in HA | Required |
-| File to patch | Select a file on the HA server or enter its configuration-relative path | One regular text file named in `hapatchy.allowed_files` and covered by HA’s directory allowlist |
-| Watch directory | Directory containing the target; monitored recursively | Empty uses the target’s parent; never the configuration root |
-| Watch pattern | A Watchdog glob pattern relative to the watch directory | Empty selects the target's relative path |
-| Patch input | Edit selected file, write/paste a diff, upload, existing local file, or HTTPS URL | Edit selected file for new rules |
-| File contents | Prefilled target text in HA's plain multiline text area; a managed diff is generated on submission | Nonempty UTF-8 LF text with final newline; original and edit at most 512 KiB; no syntax highlighting, line numbers, or live diff |
-| Patch contents | Complete unified diff, typed or prefilled from an upload | UTF-8, maximum 2 MiB |
-| External source | Existing local patch path or direct HTTPS URL, requested on the next screen | Only for advanced local/HTTPS input |
-| Enabled | Allows checks, watching and actions for this rule | On |
-| Apply compatible patches automatically | Reconcile applies a patch when safe | On |
-| Check at Home Assistant startup | Check when HAPatchY starts or reloads | On |
-| Back up before applying | Keep original bytes before an apply | On; turning it off requires confirmation |
-| Patch SHA-256 | SHA-256 of the exact patch bytes; mandatory for HTTPS URLs, optional for other sources | 64 hexadecimal characters for HTTPS |
-| Wait after file events | Wait for an update to settle before checking it | 1.5 seconds; 0.1–60 allowed |
+### Target and watch
+
+- **Name:** required label for the patch device.
+- **File to patch:** one regular text target on the HA server, selected or
+  entered as a configuration-relative path. It must have an exact
+  `hapatchy.allowed_files` grant and HA directory permission.
+  The file editor requires it to exist; other inputs can save a missing target
+  only after confirming the warning.
+- **Watch directory:** containing subdirectory to monitor recursively. Empty
+  uses the target's parent; the configuration root is never a watch directory.
+- **Watch pattern:** Watchdog glob relative to that directory. Empty uses the
+  target's relative path.
+
+### Source and editor
+
+- **Patch input:** Edit selected file (the new-rule default), write/paste a diff,
+  upload, existing local file, or HTTPS URL.
+- **File contents:** the complete target text in a plain multiline editor.
+  Original and edited text must be nonempty UTF-8 LF text with a final newline,
+  at most 512 KiB each. There are no line numbers, highlighting or live diff.
+- **Patch contents:** a complete UTF-8 single-file unified diff, at most 2 MiB.
+  An upload prefills this same editor.
+- **External source:** a configuration-relative local patch path or direct HTTPS
+  URL, requested on the next screen for those two input modes.
+- **Patch SHA-256:** fingerprint of the exact patch bytes, mandatory for HTTPS
+  and optional for other sources. It is 64 hexadecimal characters. See
+  [HTTPS hashes](#patch-sha-256-for-https) and
+  [changing a managed patch](#change-a-saved-managed-patch).
+
+### Behavior and retention
+
+- **Enabled:** on by default; permits checks, watching and actions.
+- **Apply compatible patches automatically:** on by default; Reconcile can
+  write a uniquely applicable change.
+- **Check at Home Assistant startup:** on by default; also checks on reload.
+- **Back up before applying:** on by default. Turning it off requires confirmation.
+- **Wait after file events:** debounce delay, default 1.5 seconds, range 0.1–60.
 
 A pattern can narrow event handling but never allows patching additional files.
 Even if the pattern is `*.py`, the rule changes only its configured target.
@@ -77,6 +94,34 @@ the target bytes. Cancel before saving to discard edits. An interrupted save can
 leave an unreferenced revision; old revisions are not automatically deleted.
 The other input modes still offer Behavior and verification settings.
 
+## Change a saved managed patch
+
+Use this sequence to change the diff, rather than to restore a missing original
+revision. [Missing-source recovery](troubleshooting.md#restore-a-missing-managed-patch)
+has a different order.
+
+1. If the change is applied, run **Revert** and check the target bytes. Revert
+   turns automatic application off; saving another diff does not turn it back on.
+2. On the integration page, select the patch's **Reconfigure patch** control.
+   Keep the intended target and select **Write or paste patch contents**.
+3. Edit the saved diff. Both headers must still name the selected target.
+4. In **Behavior and verification**, check **Patch SHA-256**. An editor-created
+   rule has the old digest filled in. For a changed managed diff, replace it
+   with the SHA-256 of the new exact diff bytes. Save a trusted copy as
+   `replacement.patch`, run `sha256sum replacement.patch` on Linux and copy the
+   64-character digest. Keeping the old value produces `source_hash_mismatch`.
+   A blank field can reuse the form's previous default, so do not rely on
+   clearing it to remove an inherited hash.
+5. Keep automatic application off for a controlled check, submit and finish.
+   Run **Refresh source**, inspect the status, then **Apply** explicitly. Check
+   the target and retained backups before enabling automatic application again.
+
+New managed rules may omit the additional optional hash; managed revisions
+always have digest-addressed integrity checking. **HTTPS hashes remain
+mandatory.** Previous managed revisions are retained.
+
+![Replacing the inherited hash after a mismatch, with automatic application still off](images/managed-patch-options.png)
+
 ## Local files and HTTPS
 
 Local paths always use `/` separators and start inside the HA configuration
@@ -84,6 +129,8 @@ folder. Absolute paths, `..`, symlinks, hard links and special files are rejecte
 Files directly in that configuration folder cannot be patch targets; an exact
 grant does not override this restriction. Files in authorized subfolders can be.
 `.storage`, `.hapatchy` and HAPatchY's own integration files are protected.
+HA configuration sources and included-directory scopes are also protected;
+see [eligible targets](directory-permissions.md#eligible-and-protected-targets).
 
 A URL must be a direct **HTTPS** link to the patch text. A GitHub file-view page
 is HTML, not a patch download. Redirects are rejected; resolve them to a direct
@@ -102,6 +149,8 @@ rule does not undo an applied change; see [recovery and removal](troubleshooting
 The policy limits where HAPatchY connects, not whether a public server or its
 patch contents are trustworthy.
 
+### Patch SHA-256 for HTTPS
+
 An HTTPS source requires the SHA-256 of the **downloaded patch bytes**, not
 the file being patched. Obtain the digest from a trusted copy of the patch and
 enter its 64 hexadecimal characters in **Behavior and verification**. HAPatchY
@@ -110,7 +159,7 @@ unexpected source changes; it does not establish that the author is trustworthy.
 
 ![An HTTPS patch requires the patch SHA-256 in the native Behavior and verification form](images/url-hash.png)
 
-This form was captured in Chromium on disposable HA 2026.10.1 using this
+This form was captured in Chromium on disposable HA 2026.7.4 using this
 repository revision. The native API smoke test confirmed the hash field is
 required; the source loader tests prove that an unpinned URL is refused before
 a network request.
@@ -185,8 +234,6 @@ automations. An OK state describes the last check, not continuous proof of the
 target file's contents. It contains no file or patch text. The status sensor's
 stable unique ID is retained when an existing patch gains a device; an entity
 ID previously customized in HA is not deliberately renamed.
-
-![A disabled patch shows Patch health Unknown and Status Disabled in disposable HA 2026.9.0](images/patch-health-unknown.png)
 
 ## Administrator actions
 

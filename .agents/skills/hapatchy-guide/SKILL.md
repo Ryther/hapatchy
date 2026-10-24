@@ -8,7 +8,8 @@ description: Use when helping a Home Assistant user install HAPatchY, authorize 
 HAPatchY is an entirely AI-generated Home Assistant custom
 integration. It applies an exact, single-file unified diff to a UTF-8 text file
 inside HA's configuration directory and can reapply it after that file changes.
-The 1.x compatibility contract covers the documented patch format, file
+This guide describes the 3.x contract: exact file grants and mandatory HTTPS
+patch hashes. The compatibility contract covers the documented patch format, file
 grants, native Add patch flow, administrator actions, status values and retained
 backups. It does not guarantee that a patch will match changed upstream files or
 that automated tests have found every defect. Recommend independent backups and
@@ -20,11 +21,31 @@ HA version, intended target and current status before giving case-specific steps
 
 ## Install and authorize
 
-HAPatchY supports HA 2026.7.4 or newer; the tested endpoints are 2026.7.4 and
-2026.9.4. HA supplies Python 3.14.2 or newer and installs declared dependencies.
+HAPatchY supports HA 2026.7.4 or newer. HA supplies Python 3.14.2 or newer and
+installs declared dependencies. Current CI baselines can change independently
+of the installed HAPatchY release; ask for both installed versions.
 HAPatchY does not create a Python environment. A published HACS release may lag
 behind this skill; ask what Add patch options the user actually sees before
 giving UI steps.
+
+For HACS installation, HACS must already be configured. Open HACS in HA's
+sidebar, then its top-right **⋮ → Custom repositories**. Enter
+`https://github.com/Ryther/hapatchy`, choose **Integration**, and select **Add**.
+Find HAPatchY, open its details, review the selected release and choose
+**Download**. Restart HA, then add HAPatchY under **Settings → Devices & services
+→ Add integration**. A repository download does not create the HA integration
+entry. If the repository is already listed, open it rather than adding it again.
+The HACS route does not require a local checkout.
+
+To update, keep an independent HA backup, read migration notes and use the
+HAPatchY update entity under **Settings → Updates** and confirm its update
+action (**Update** in HA 2026.7.4), or use the repository menu's **Redownload**
+control in HACS. Restart HA and check its installed version
+and patch statuses. **Update information** in HACS refreshes release metadata;
+it does not download an update. Custom repositories may not show a just-published
+release immediately. If menu wording differs, consult the user's installed HACS
+version rather than inventing controls. HACS's upstream instructions are at
+`https://www.hacs.dev/docs/use/repositories/dashboard/`.
 
 For manual installation, get the current archive from
 `https://github.com/Ryther/hapatchy/releases/latest`. Copy the entire
@@ -64,7 +85,13 @@ contents to an HA administrator using the API; the form/API cannot add a grant.
 If the agent can edit `configuration.yaml`, this separation does not protect
 against that agent.
 
-For an existing installation, replace `hapatchy.allowed_directories` with exact
+Files directly in the configuration root cannot be patch targets. HAPatchY's
+own code, `.storage`, `.hapatchy`, HA YAML source files, discovered secrets and
+configuration include-directory subtrees are protected even if a grant names
+them. Another integration's eligible code/text file may be authorized exactly;
+do not claim all nested `.yaml`/`.yml` files are banned by extension.
+
+When upgrading from 2.x to 3.x, replace `hapatchy.allowed_directories` with exact
 `hapatchy.allowed_files` paths and restart HA. Old directory entries are accepted
 temporarily but grant nothing. Saved rules remain, and a denied rule raises a
 Repair requesting its exact file grant; HAPatchY will not infer one from a saved
@@ -210,8 +237,50 @@ not revoke grants; missing or unsafe YAML sources still deny patch operations.
 **Refresh source** checks the source/target without writing. **Reconcile** may
 write if automatic application is enabled. A disabled rule rejects actions;
 automatic application off still allows explicit Apply. To edit a saved managed
-patch, use **Reconfigure patch**; if it is applied, Revert first. Managed source
-revisions and backups are retained when a rule is removed.
+patch, use **Reconfigure patch** and **Write or paste patch contents**; if it is
+applied, Revert first and verify the original target. In **Behavior and
+verification**, replace the optional **Patch SHA-256** after changing
+the managed diff. A rule created by Edit selected file carries its previous
+digest into this form; leaving it unchanged produces `source_hash_mismatch`.
+Calculate the new exact diff's digest with `sha256sum replacement.patch` on
+Linux and enter the 64 hexadecimal characters. A blank form field may reuse
+the old default, so do not promise that clearing it removes an inherited pin.
+Managed revisions always retain their digest-addressed integrity checks.
+HTTPS hashes remain mandatory. Revert leaves
+automatic application off: keep it off to check and Apply the replacement
+explicitly before enabling it again. Managed revisions and backups are retained
+when a rule is removed.
+
+## Recover a missing source, revoke access or remove HAPatchY
+
+If a managed revision is missing, Revert cannot load it either. Obtain the exact
+original diff from an independent backup/trusted copy. In **Reconfigure patch**,
+keep the original target and select **Write or paste patch contents**. Paste the
+exact original bytes, keep its hash if present, turn automatic application off
+and save. Restoring the same digest does not require Revert first and leaves
+target bytes unchanged. Then run Refresh source and, if wanted, Revert. A new
+similar diff is not the same revision.
+
+If the exact original patch is unavailable, preserve the current target and
+retained backups and remove the rule to stop its watcher. Compare the correct
+upstream version before a manual recovery. A digest cannot reconstruct a patch;
+do not edit `.storage`, alter hash-named revisions or blindly restore an old
+whole file. An unavailable external source may also block reconfiguration;
+removing the rule stops it without pretending the target was reverted.
+
+To revoke one target, Revert first if an undo is wanted and still possible,
+remove its exact `hapatchy.allowed_files` entry and restart HA. Saved rules then
+fail permission checks; other granted files can remain usable. Removing a grant
+or rule never undoes an applied patch. Preserve HA directory allowlist entries
+used by other targets/integrations.
+
+To uninstall, first Revert wanted changes and remove patch rules, then remove
+the HAPatchY integration entry from Devices & services. Remove its `hapatchy:`
+YAML mapping while preserving other settings. In HACS use HAPatchY's repository
+menu → **Remove**; for a manual install delete only `custom_components/hapatchy`.
+Restart HA. Retained `.hapatchy` patches/backups and modified target files are
+not removed or restored by uninstalling; keep recovery material until no longer
+needed.
 
 ## Diagnose without guessing
 
