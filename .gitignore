@@ -78,8 +78,8 @@
 !/.devcontainer/supervisord.conf
 !/.devcontainer/requirements-ha.txt
 !/.devcontainer/requirements-tools.txt
-!/.devcontainer/requirements-ha.in
-!/.devcontainer/requirements-tools.in
+!/.devcontainer/requirements-ha.in.template
+!/.devcontainer/requirements-tools.in.template
 !/.devcontainer/README.md
 !/.devcontainer/scripts/
 !/.devcontainer/scripts/*.sh

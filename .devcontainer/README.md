@@ -87,9 +87,12 @@ the recent baseline, **HA 2026.10.2 / Python 3.14.7**. CI also tests
 checks is not proof that a minimum-lane-specific failure is fixed.
 
 The recent tool and runtime locks are generated together from
-[`requirements-tools.in`](requirements-tools.in) and
-[`requirements-ha.in`](requirements-ha.in). The `--check` command above verifies
-that the tracked locks reproduce exactly. HA-owned roots, including `uv` and the
+[`requirements-tools.in.template`](requirements-tools.in.template) and
+[`requirements-ha.in.template`](requirements-ha.in.template). The `.template` suffix keeps
+Dependabot from parsing their unresolved version placeholders as pip requirements;
+the resolver renders valid temporary `.in` files before compiling. The `--check`
+command above verifies that the tracked locks reproduce exactly. HA-owned roots,
+including `uv` and the
 optional integrations exercised by the boot smoke, get their exact versions from
 the candidate HA wheel on PyPI. The resolver checks the wheel's published size
 and SHA-256 and stops if any required pin is missing or inconsistent. HAPatchY's

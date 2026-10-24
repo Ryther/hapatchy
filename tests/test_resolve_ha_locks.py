@@ -38,7 +38,7 @@ def test_render_keeps_existing_pair_when_second_resolution_fails(tmp_path, monke
     source.mkdir()
     target.mkdir()
     for name in ("requirements-tools", "requirements-ha"):
-        (source / f"{name}.in").write_text("homeassistant=={ha_version}\n")
+        (source / f"{name}.in.template").write_text("homeassistant=={ha_version}\n")
         (source / f"{name}.txt").write_text("homeassistant==2026.9.0\n")
         (target / f"{name}.txt").write_text("previous result\n")
     monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
@@ -65,11 +65,14 @@ def test_successful_resolution_publishes_both_complete_locks(tmp_path, monkeypat
     output = tmp_path / "output"
     source.mkdir()
     for name in ("requirements-tools", "requirements-ha"):
-        (source / f"{name}.in").write_text("homeassistant=={ha_version}\n")
+        (source / f"{name}.in.template").write_text("homeassistant=={ha_version}\n")
         (source / f"{name}.txt").write_text("homeassistant==2026.9.0\n")
     monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
 
     def compile_once(command, **kwargs):
+        rendered = Path(command[command.index("compile") + 1]).read_text()
+        assert "{ha_version}" not in rendered
+        assert "homeassistant==2026.9.4" in rendered
         path = Path(command[command.index("--output-file") + 1])
         pins = "homeassistant==2026.9.4\n"
         if path.name == "requirements-tools.txt":
@@ -89,7 +92,7 @@ def test_render_uses_candidate_wheel_constraints_for_unpinned_ha_roots(tmp_path,
     output = tmp_path / "output"
     source.mkdir()
     for name in ("requirements-tools", "requirements-ha"):
-        (source / f"{name}.in").write_text(
+        (source / f"{name}.in.template").write_text(
             "homeassistant=={ha_version}\nuv\n"
             + ("pytest-homeassistant-custom-component=={plugin_version}\n" if name == "requirements-tools" else "")
         )
