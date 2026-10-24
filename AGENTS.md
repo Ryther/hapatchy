@@ -247,6 +247,15 @@ If a new public contract or architectural responsibility does not fit these
 categories, extend this policy in the same change. Do not replace this semantic
 review with a brittle module-name-to-document matrix.
 
+Exact tool versions belong to lock files. When prose repeats a version, compare
+it with that owner in the same change; a baseline updater does not automatically
+maintain every guide or standalone skill. The user skill must retain a clear
+supported minimum and product contract without implying that its instructions
+were exercised on every current CI baseline. Documentation procedures for
+managed-diff changes must replace inherited hashes when a blank native field
+reuses its old default; exact-source
+restoration is distinct from editing an applied patch.
+
 Review documentation as a user journey as well as a set of facts. From
 `docs/index.md`, a reader should be able to reach installation, a first patch,
 settings and troubleshooting without knowing repository paths. Give procedures

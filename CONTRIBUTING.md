@@ -145,7 +145,7 @@ base and proposed revisions without a persistent credential. This fallback
 checks introduced findings but is not a SonarQube Cloud PR quality gate. Both
 scanners use settings from the PR base revision once this workflow is on `main`,
 so a PR cannot relax its own source scope or rule exclusions; scanner-setting
-changes take effect after merge. This initial setup PR uses its new settings.
+changes take effect after merge.
 
 Each scan publishes complete JSON findings and a readable report as a GitHub
 Actions artifact linked from the PR's checks. Artifacts expire after 90 days.
@@ -157,5 +157,6 @@ proof of safety.
 The Cloud project uses CI-based analysis. Keep automatic analysis disabled under
 SonarQube Cloud **Administration → Analysis Method**; the two methods cannot
 run against the same project at once. When setting up the workflow, scan `main`
-first so PRs have a baseline. Only require the new check in branch protection
-after the first complete run and a real fork PR check.
+first so PRs have a baseline. Keep **Sonar required** in branch protection;
+when changing the workflow, verify both a normal PR and the external-PR path
+before relying on the replacement check.

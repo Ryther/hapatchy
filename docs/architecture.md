@@ -66,9 +66,9 @@ lock and rechecks the target's frozen and live grants before returning text;
 it does not store source text in HA state.
 
 Tests cover decisions independently and exercise native flows, sensors, service
-permissions, watcher threads and filesystem failures. The editor and its
-asynchronous Apply were also checked in disposable HA and Chromium; a future
-published release is a separate verification boundary.
+permissions, watcher threads and filesystem failures. Browser procedures check
+native UI behavior; release validation separately checks the exact candidate and
+published archive. Neither establishes the effect of a patch on another integration.
 
 ## Working on the project
 
