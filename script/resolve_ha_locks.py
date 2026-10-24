@@ -97,7 +97,7 @@ def render(
         staging = Path(temporary)
         inputs = {
             name: render_input(
-                (INPUT_DIR / f"{name}.in").read_text(encoding="utf-8"),
+                (INPUT_DIR / f"{name}.in.template").read_text(encoding="utf-8"),
                 ha_version,
                 plugin_version,
             )
