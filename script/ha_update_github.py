@@ -195,7 +195,8 @@ def version_only_release(
     line = re.escape(f"validate Home Assistant {ha_version}")
     sha = re.escape(update_sha)
     issue = rf"(?: \(\[#\d+\]\(https://github.com/{REPOSITORY}/issues/\d+\)\))?"
-    pattern = rf"{heading} \(\d{{4}}-\d{{2}}-\d{{2}}\)\n+### Bug Fixes\n+\* {line}{issue} \(\[{sha[:7]}\]\(https://github.com/{REPOSITORY}/commit/{sha}\)\)\n+"
+    scope = r"(?:\*\*compat:\*\* )?"
+    pattern = rf"{heading} \(\d{{4}}-\d{{2}}-\d{{2}}\)\n+### Bug Fixes\n+\* {scope}{line}{issue} \(\[{sha[:7]}\]\(https://github.com/{REPOSITORY}/commit/{sha}\)\)\n+"
     return re.fullmatch(pattern, section) is not None
 
 
