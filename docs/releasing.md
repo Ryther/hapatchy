@@ -103,7 +103,7 @@ pins and resolves both recent locks together from the tracked inputs. Missing or
 conflicting required pins stop the proposal. HAPatchY and independent-tool pins
 remain explicit; the minimum lane is unchanged.
 
-The current recent baseline is **HA 2026.10.2**. Read the matching pytest plugin
+The current recent baseline is **HA 2026.10.4**. Read the matching pytest plugin
 and resolver versions from `.devcontainer/requirements-tools.txt`, rather than
 copying them from prose. The minimum lane's inputs and test/runtime locks are in
 `tests/requirements-ha-min*`. Optional boot-smoke additions must match that HA
