@@ -41,6 +41,24 @@ def test_version_only_release_accepts_one_exact_update():
     assert version_only_release(base, head, "1.0.3", "1.0.4", "2026.9.4", sha)
 
 
+@pytest.mark.parametrize("issue", ["", " ([#119](https://github.com/Ryther/hapatchy/issues/119))"])
+def test_version_only_release_accepts_release_please_compat_scope(issue):
+    base, head, sha = _release_files()
+    head["CHANGELOG.md"] = head["CHANGELOG.md"].replace(
+        b"* validate Home Assistant", b"* **compat:** validate Home Assistant", 1
+    ).replace(b" ([aaaaaaa]", issue.encode() + b" ([aaaaaaa]", 1)
+    assert version_only_release(base, head, "1.0.3", "1.0.4", "2026.9.4", sha)
+
+
+@pytest.mark.parametrize("scope", [b"**other:** ", b"**compat:** unrelated "])
+def test_version_only_release_rejects_other_scope_or_text(scope):
+    base, head, sha = _release_files()
+    head["CHANGELOG.md"] = head["CHANGELOG.md"].replace(
+        b"* validate Home Assistant", b"* " + scope + b"validate Home Assistant", 1
+    )
+    assert not version_only_release(base, head, "1.0.3", "1.0.4", "2026.9.4", sha)
+
+
 def test_version_only_release_rejects_hidden_manifest_change():
     base, head, sha = _release_files()
     manifest = json.loads(head["custom_components/hapatchy/manifest.json"])
