@@ -27,7 +27,7 @@ jobs:
         with:
           python-version: '3.14.7'
       - name: Install pinned metadata and resolver tools
-        run: python -m pip install --only-binary ':all:' 'packaging==26.3' 'uv==0.12.5'
+        run: python -m pip install --only-binary ':all:' 'packaging==26.3' 'uv==0.13.5'
       - name: Resolve newest stable HA candidate
         id: candidate
         env:
