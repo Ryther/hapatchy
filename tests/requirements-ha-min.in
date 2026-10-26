@@ -7,3 +7,7 @@ watchdog==6.0.0
 mypy==2.4.0
 ruff==0.17.2
 supervisor==4.3.0
+
+# Compatible TLS helpers for the disposable HA environments.
+certifi==2026.10.19
+anyio==4.15.1
