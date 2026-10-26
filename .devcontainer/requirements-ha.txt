@@ -11,7 +11,7 @@ aiooui==0.1.9
 aiosignal==1.4.0
 aiozoneinfo==0.2.3
 annotatedyaml==1.0.2
-anyio==4.13.0
+anyio==4.15.1
 astral==2.2
 async-interrupt==1.2.2
 async-timeout==4.0.3
@@ -30,7 +30,7 @@ bluetooth-data-tools==1.29.24
 boto3==1.42.97
 botocore==1.42.97
 btsocket==0.3.0
-certifi==2026.7.22
+certifi==2026.10.19
 cffi==2.0.0
 charset-normalizer==3.4.3
 ciso8601==2.3.3

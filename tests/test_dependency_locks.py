@@ -49,3 +49,20 @@ def test_minimum_ha_baseline_uses_patched_https_client():
     assert all(pins[name] == version for name, version in direct_pins.items())
     assert Version(pins["aiohttp"]) >= Version("3.14.3")
     assert project["requires-python"] == ">=3.14.2"
+
+
+def test_ha_environment_locks_use_updated_certificate_and_tls_helpers():
+    for name in LOCKS:
+        pins = {}
+        if name.endswith("requirements-ha-min-runtime.txt"):
+            sources = (ROOT / "tests/requirements-ha-min.txt", ROOT / name)
+        else:
+            sources = (ROOT / name,)
+        for source in sources:
+            pins.update(
+                line.split("==", 1)
+                for line in source.read_text().splitlines()
+                if "==" in line and not line.startswith("#")
+            )
+        assert Version(pins["certifi"]) >= Version("2026.10.19"), name
+        assert Version(pins["anyio"]) >= Version("4.14.2"), name

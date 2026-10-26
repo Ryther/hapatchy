@@ -10,3 +10,7 @@ supervisor==4.3.0
 # HA owns uv; its exact pin comes from the verified candidate wheel.
 uv
 watchdog==6.0.0
+
+# Compatible TLS helpers for the disposable HA environments.
+certifi==2026.10.19
+anyio==4.15.1
