@@ -15,7 +15,7 @@ pymicro-vad
 pyspeex-noise
 PyTurboJPEG
 rf-protocols
-watchdog==6.0.0
+watchdog
 
 # Compatible TLS helpers for the disposable HA environments.
 certifi==2026.10.19

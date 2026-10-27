@@ -1,7 +1,9 @@
 """The advisory gate covers HAPatchY-owned dependencies, not HA's lock graph."""
 
+import json
 import sys
 from importlib.metadata import requires, version
+from importlib.resources import files
 from urllib.error import HTTPError
 
 import pytest
@@ -74,9 +76,9 @@ def test_shared_dependency_is_still_hapatchy_owned(tmp_path):
 
 def test_product_requirements_have_no_unscanned_mandatory_transitives():
     paths = audit.LOCK_PATHS
-    owned = audit._owned_pins(paths, audit.MANIFEST_PATH)
-    for name, pin in owned.items():
-        assert version(name) == pin
+    owned = audit._owned_versions(paths, audit.MANIFEST_PATH)
+    for name, pins in owned.items():
+        assert version(name) in pins
         for dependency in requires(name) or []:
             requirement = Requirement(dependency)
             if requirement.marker is None or requirement.marker.evaluate({"extra": ""}):
@@ -177,3 +179,79 @@ def test_command_reports_owned_advisory(monkeypatch, capsys, tmp_path):
     monkeypatch.setattr(audit, "github_advisories", lambda pairs, token: [_advisory()])
     assert audit.main() == 1
     assert "patch-ng==1.19.1" in capsys.readouterr().out
+
+
+def test_shared_minimum_scans_each_tested_version_including_minimum_lane(tmp_path):
+    paths, manifest = _candidate(
+        tmp_path,
+        tools="homeassistant==2026.9.4\npatch-ng==1.19.1\nwatchdog==7.0.0\n",
+        runtime="homeassistant==2026.9.4\npatch-ng==1.19.1\nwatchdog==7.0.0\n",
+        requirements='["patch-ng==1.19.1", "watchdog>=6.0.0"]',
+    )
+    minimum = tmp_path / "minimum.txt"
+    minimum.write_text("homeassistant==2026.7.4\npatch-ng==1.19.1\nwatchdog==6.0.0\n")
+    seen = []
+
+    def client(pairs):
+        assert len(pairs) == 1
+        seen.extend(pairs)
+        return [_advisory("watchdog")] if pairs == [("watchdog", "6.0.0")] else []
+
+    result = audit.audit((*paths, minimum), manifest, client)
+    assert seen == [("patch-ng", "1.19.1"), ("watchdog", "6.0.0"), ("watchdog", "7.0.0")]
+    assert result.package_count == 2
+    assert result.findings == (audit.Finding("watchdog", "6.0.0", "GHSA-aaaa-bbbb-cccc", "high"),)
+
+
+@pytest.mark.parametrize("pin", [None, "5.0.0"])
+def test_shared_minimum_rejects_missing_or_below_floor_version(tmp_path, pin):
+    runtime = "homeassistant==2026.9.4\npatch-ng==1.19.1\n"
+    if pin is not None:
+        runtime += f"watchdog=={pin}\n"
+    paths, manifest = _candidate(
+        tmp_path, runtime=runtime, requirements='["patch-ng==1.19.1", "watchdog>=6.0.0"]'
+    )
+    with pytest.raises(ValueError, match="watchdog"):
+        audit.audit(paths, manifest, lambda pairs: pytest.fail("Incomplete pins must not reach API"))
+
+
+@pytest.mark.parametrize("requirement", [
+    "watchdog", "watchdog>6.0.0", "watchdog>=5.0.0", "watchdog>=6.0.1",
+    "watchdog>=7.0.0", "watchdog>=6.0.0,<8", "watchdog>=6.0.0rc1",
+    "watchdog[extra]>=6.0.0", "watchdog>=6.0.0; python_version>'3'",
+])
+def test_unsupported_shared_requirement_fails_closed(tmp_path, requirement):
+    paths, manifest = _candidate(tmp_path, requirements=json.dumps([requirement]))
+    with pytest.raises(ValueError, match="requirements"):
+        audit.audit(paths, manifest, lambda pairs: [])
+
+
+def test_default_gate_covers_minimum_ha_lock():
+    assert audit.ROOT / "tests/requirements-ha-min.txt" in {
+        path if path.is_absolute() else audit.ROOT / path for path in audit.LOCK_PATHS
+    }
+
+
+def test_shared_watchdog_matches_home_assistant_folder_watcher():
+    metadata = json.loads(files("homeassistant").joinpath("components/folder_watcher/manifest.json").read_text())
+    shared = next(
+        Requirement(raw) for raw in metadata["requirements"]
+        if canonicalize_name(Requirement(raw).name) == "watchdog"
+    )
+    assert str(shared.specifier).startswith("==")
+    assert shared.specifier.contains(version("watchdog"))
+
+
+def test_product_requirement_cannot_skip_all_locks(tmp_path):
+    _, manifest = _candidate(tmp_path)
+    with pytest.raises(ValueError, match="tested lock"):
+        audit.audit((), manifest, lambda pairs: pytest.fail("Missing locks must not reach API"))
+
+
+def test_minimum_runtime_cannot_override_audited_product_versions():
+    minimum = audit._owned_versions((audit.ROOT / "tests/requirements-ha-min.txt",), audit.MANIFEST_PATH)
+    runtime = audit.ROOT / "tests/requirements-ha-min-runtime.txt"
+    for line in runtime.read_text().splitlines():
+        match = audit.PIN.fullmatch(line.strip())
+        if match and canonicalize_name(match.group(1)) in minimum:
+            assert match.group(2) in minimum[canonicalize_name(match.group(1))]
