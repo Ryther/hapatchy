@@ -15,6 +15,7 @@ from urllib.parse import urlencode, urlparse
 from urllib.request import Request, urlopen
 
 from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 from script.resolve_ha_locks import PIN, validate_lock
 
@@ -22,9 +23,10 @@ ROOT = Path(__file__).resolve().parents[1]
 LOCK_PATHS = (
     Path(".devcontainer/requirements-tools.txt"),
     Path(".devcontainer/requirements-ha.txt"),
+    Path("tests/requirements-ha-min.txt"),
 )
 MANIFEST_PATH = Path("custom_components/hapatchy/manifest.json")
-BATCH_SIZE = 20
+SHARED_MINIMUM = "watchdog>=6.0.0"
 MAX_PAGES = 10
 MAX_RESPONSE_BYTES = 4 * 1024 * 1024
 AdvisoryClient = Callable[[list[tuple[str, str]]], list[dict[str, Any]]]
@@ -48,35 +50,47 @@ class AuditResult:
         return bool(self.findings)
 
 
-def _owned_pins(lock_paths: tuple[Path, Path], manifest_path: Path) -> dict[str, str]:
-    """Use the product manifest as the ownership boundary, checking both locks."""
+def _owned_versions(lock_paths: tuple[Path, ...], manifest_path: Path) -> dict[str, frozenset[str]]:
+    """Resolve declared product requirements to every exact tested version."""
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if not isinstance(manifest, dict) or not isinstance(manifest.get("requirements"), list):
         raise ValueError("Invalid HAPatchY manifest requirements")
-    owned: dict[str, str] = {}
+    rules: dict[str, tuple[str, str]] = {}
     for requirement in manifest["requirements"]:
-        match = PIN.fullmatch(requirement) if isinstance(requirement, str) else None
-        if match is None:
-            raise ValueError("HAPatchY manifest requirements must be exact pins")
-        name = canonicalize_name(match.group(1))
-        if name in owned:
+        exact = PIN.fullmatch(requirement) if isinstance(requirement, str) else None
+        minimum = requirement == SHARED_MINIMUM
+        if exact is not None:
+            name, bound = canonicalize_name(exact.group(1)), exact.group(2)
+        elif minimum:
+            name, bound = "watchdog", "6.0.0"
+        else:
+            raise ValueError("HAPatchY manifest requirements need exact pins or a shared watchdog minimum")
+        if name in rules:
             raise ValueError(f"Duplicate HAPatchY manifest requirements: {name}")
-        owned[name] = match.group(2)
+        rules[name] = ("minimum" if minimum else "exact", bound)
+    if not lock_paths:
+        raise ValueError("Product requirements need at least one tested lock")
+    owned: dict[str, set[str]] = {name: set() for name in rules}
     for path in lock_paths:
         locked = validate_lock(path)
-        for name, version in owned.items():
-            if locked.get(name) != version:
+        for name, (kind, bound) in rules.items():
+            pin = locked.get(name)
+            if pin is None or (kind == "exact" and pin != bound) or (
+                kind == "minimum" and Version(pin) < Version(bound)
+            ):
                 raise ValueError(f"HAPatchY requirement {name} does not match {path.name}")
-    return owned
+            owned[name].add(pin)
+    return {name: frozenset(versions) for name, versions in owned.items()}
 
 
-def audit(lock_paths: tuple[Path, Path], manifest_path: Path, advisory_client: AdvisoryClient) -> AuditResult:
+def audit(lock_paths: tuple[Path, ...], manifest_path: Path, advisory_client: AdvisoryClient) -> AuditResult:
     """Scan product requirements regardless of the HA-only lock contents."""
-    pins = _owned_pins(lock_paths, manifest_path)
-    ordered = sorted(pins.items())
+    pins = _owned_versions(lock_paths, manifest_path)
+    ordered = sorted((name, pin) for name, versions in pins.items() for pin in versions)
     findings: set[Finding] = set()
-    for offset in range(0, len(ordered), BATCH_SIZE):
-        batch = ordered[offset : offset + BATCH_SIZE]
+    for pair in ordered:
+        # Query versions separately: a name-keyed batch would lose older lanes.
+        batch = [pair]
         returned = advisory_client(batch)
         if not isinstance(returned, list):
             raise ValueError("Malformed advisory API result")
@@ -109,7 +123,7 @@ def audit(lock_paths: tuple[Path, Path], manifest_path: Path, advisory_client: A
                     matched.add(name)
             for name in matched:
                 findings.add(Finding(name, batch_pins[name], advisory_id, severity))
-    return AuditResult(len(pins), tuple(sorted(findings, key=lambda finding: (finding.package, finding.advisory))))
+    return AuditResult(len(pins), tuple(sorted(findings, key=lambda finding: (finding.package, finding.version, finding.advisory))))
 
 
 def _request_page(url: str, token: str) -> tuple[list[dict[str, Any]], str | None]:
@@ -177,7 +191,7 @@ def main() -> int:
     parser.add_argument("--base-sha", help=argparse.SUPPRESS)
     parser.add_argument("--candidate-root", type=Path, default=ROOT)
     args = parser.parse_args()
-    paths = (args.candidate_root / LOCK_PATHS[0], args.candidate_root / LOCK_PATHS[1])
+    paths = tuple(args.candidate_root / path for path in LOCK_PATHS)
     result = audit(
         paths,
         args.candidate_root / MANIFEST_PATH,

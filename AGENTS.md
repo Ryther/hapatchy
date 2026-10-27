@@ -64,8 +64,11 @@ explicit in the inputs. A missing or inconsistent HA-owned pin is a stop, not a
 reason to guess or hard-code a version. The scheduled updater proposes a
 whole recent-lane PR and leaves the minimum lane untouched. Review generated
 Dependabot comment/exclusion changes against HA and plugin metadata. The PR
-advisory gate scans exact Python requirements declared by HAPatchY in its
-manifest on every PR and checks that both recent locks contain those pins.
+advisory gate scans the exact resolved versions of HAPatchY manifest packages
+in both recent locks and the minimum HA test lock on every PR. Product
+requirements remain exact, except the HA-shared `watchdog>=6.0.0` floor;
+its tested versions are all scanned separately and must satisfy that floor.
+The minimum runtime lock must not override its inherited product versions.
 High/critical advisories on those requirements block the PR even when their
 pins are unchanged; HA-only and tooling-only packages do not enter this gate.
 The test matrix checks that product requirements have no unscanned mandatory
@@ -113,8 +116,8 @@ Sonar sources and coverage, CodeQL Python, Ruff and mypy. Keep tests and CI
 tooling executable as verification, but outside product quality metrics.
 CodeQL separately checks our GitHub Actions workflows, and secret scanning
 still covers all tracked files and history because secrets can leak anywhere.
-The manifest requirements, not the HA test locks, define product dependency
-advisory ownership. Sonar SCA is disabled so it cannot reclassify HA test locks
+The manifest requirements define product dependency advisory ownership;
+the locks supply exact versions for both supported HA lanes. Sonar SCA is disabled so it cannot reclassify HA test locks
 as product dependencies. Recheck these boundaries when adding product paths or
 analysis tools.
 

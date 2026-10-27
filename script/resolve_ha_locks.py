@@ -22,6 +22,7 @@ LOCK_NAMES = ("requirements-tools", "requirements-ha")
 HA_OWNED_ROOTS = frozenset(
     {
         "uv",
+        "watchdog",
         "aiohasupervisor",
         "av",
         "gazetteer-matcher",

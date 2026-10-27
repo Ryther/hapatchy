@@ -92,11 +92,11 @@ The recent tool and runtime locks are generated together from
 Dependabot from parsing their unresolved version placeholders as pip requirements;
 the resolver renders valid temporary `.in` files before compiling. The `--check`
 command above verifies that the tracked locks reproduce exactly. HA-owned roots,
-including `uv` and the
+including `uv`, the HA-shared `watchdog`, and the
 optional integrations exercised by the boot smoke, get their exact versions from
 the candidate HA wheel on PyPI. The resolver checks the wheel's published size
-and SHA-256 and stops if any required pin is missing or inconsistent. HAPatchY's
-own requirements and independent tools remain pinned in the inputs. For an
+and SHA-256 and stops if any required pin is missing or inconsistent. Other roots
+remain explicitly pinned in the inputs. For an
 approved matching pair, set `CANDIDATE_HA` and `CANDIDATE_PLUGIN` to the verified
 versions, then run:
 

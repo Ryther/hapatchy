@@ -126,8 +126,11 @@ commits, advisory findings, altered SHAs or missing enforcement require human
 review. Use its dry-run mode before changing coordinator rules. Never broaden
 allowed paths or provenance checks merely to pass a proposal.
 
-The product advisory gate checks the exact manifest requirements and their pins
-in the recent locks on every PR. High/critical product advisories block even if
+The product advisory gate checks every exact resolved version of manifest
+packages in both recent locks and the minimum HA test lock on every PR.
+Requirements are exact except for the HA-shared `watchdog>=6.0.0` floor.
+The gate scans distinct tested versions separately, including an older version
+from the minimum lane; each must meet the declared requirement. High/critical product advisories block even if
 the pin is unchanged; an unavailable advisory API also blocks. HA-only and
 tooling-only lock packages are outside that product gate. Tests ensure no
 mandatory product transitive is left unscanned. Sonar dependency analysis is
