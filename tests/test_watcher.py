@@ -101,6 +101,10 @@ async def test_recovered_root_keeps_repair_until_patch_is_verified(
         if entity.config_subentry_id == pid and entity.domain == "binary_sensor"
     )
     owner = watcher(runtime)
+    # These checks drive refresh/reconcile explicitly. Suppress automatic event
+    # admission before writes; replacing debounce later leaves queued work alive.
+    monkeypatch.setattr(owner, "handle_event", lambda *_args: None)
+    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
     target = tmp_path / "scripts/a.py"
     await runtime.async_action(pid, "apply")
     target.unlink()
@@ -111,7 +115,6 @@ async def test_recovered_root_keeps_repair_until_patch_is_verified(
 
     target.parent.mkdir()
     target.write_bytes(restored)
-    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
     await owner.async_refresh()
     issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
     assert issue is not None and issue.translation_key == "watch_rechecking"
@@ -129,6 +132,10 @@ async def test_recovered_root_keeps_repair_until_patch_is_verified(
 async def test_recovered_root_keeps_repair_when_reconcile_conflicts(hass, tmp_path, monkeypatch):
     _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
     owner = watcher(runtime)
+    # These checks drive refresh/reconcile explicitly. Suppress automatic event
+    # admission before writes; replacing debounce later leaves queued work alive.
+    monkeypatch.setattr(owner, "handle_event", lambda *_args: None)
+    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
     target = tmp_path / "scripts/a.py"
     await runtime.async_action(pid, "apply")
     target.unlink()
@@ -137,7 +144,6 @@ async def test_recovered_root_keeps_repair_when_reconcile_conflicts(hass, tmp_pa
 
     target.parent.mkdir()
     target.write_bytes(b"unrelated upstream bytes\n")
-    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
     await owner.async_refresh()
     await runtime.async_action(pid, "reconcile")
 
@@ -153,6 +159,10 @@ async def test_action_during_missing_root_keeps_unavailable_repair(
 ):
     _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
     owner = watcher(runtime)
+    # These checks drive refresh/reconcile explicitly. Suppress automatic event
+    # admission before writes; replacing debounce later leaves queued work alive.
+    monkeypatch.setattr(owner, "handle_event", lambda *_args: None)
+    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
     target = tmp_path / "scripts/a.py"
     await runtime.async_action(pid, "apply")
     target.unlink()
@@ -166,7 +176,6 @@ async def test_action_during_missing_root_keeps_unavailable_repair(
 
     target.parent.mkdir()
     target.write_bytes(b"context\nold\n")
-    monkeypatch.setattr(owner, "_debounce", lambda _pid: None)
     await owner.async_refresh()
     issue = ir.async_get(hass).async_get_issue("hapatchy", f"patch_{pid}")
     assert issue is not None and issue.translation_key == "watch_rechecking"
