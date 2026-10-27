@@ -52,7 +52,7 @@ jobs:
       - name: Validate local integration
         run: >-
           docker run --rm -v "$GITHUB_WORKSPACE:/github/workspace:ro"
-          ghcr.io/home-assistant/hassfest@sha256:66b55a8ce14cdcf0c200dd4dab1f3228ac8d3f6e0404ec710a0d8a79b296eba4
+          ghcr.io/home-assistant/hassfest@sha256:e5828f7e305518506d8b4e8346411357d68358531b761bd118fe6a1631feff44
   hacs:
     if: ${{ github.event.repository.private == false }}
     runs-on: ubuntu-24.04
