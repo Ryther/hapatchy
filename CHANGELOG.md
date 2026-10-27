@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.0.3](https://github.com/Ryther/hapatchy/compare/v3.0.2...v3.0.3) (2026-10-27)
+
+
+### Bug Fixes
+
+* allow Home Assistant to update shared watchdog dependency ([31903d3](https://github.com/Ryther/hapatchy/commit/31903d3455082097b88c36484d7fda313ba841d4))
+
 ## [3.0.2](https://github.com/Ryther/hapatchy/compare/v3.0.1...v3.0.2) (2026-10-25)
 
 
