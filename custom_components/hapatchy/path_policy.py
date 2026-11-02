@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import Iterator, Protocol
 
-from .models import PatchDefinition, PatchError, Status, relative_parts
+from .models import PatchDefinition, PatchError, Status, check_non_yaml_file, relative_parts
 
 
 class SourceGraph(Protocol):
@@ -39,6 +39,8 @@ class PathPolicy:
 
     def _check_path(self, path: str, *, directory: bool) -> None:
         parts = relative_parts(path)
+        if not directory:
+            check_non_yaml_file(path)
         if (not directory and len(parts) == 1) or self.grants.graph.protects(path):
             raise PatchError("protected_path", Status.SECURITY_ERROR)
         if directory:

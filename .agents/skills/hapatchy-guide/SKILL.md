@@ -88,8 +88,18 @@ against that agent.
 Files directly in the configuration root cannot be patch targets. HAPatchY's
 own code, `.storage`, `.hapatchy`, HA YAML source files, discovered secrets and
 configuration include-directory subtrees are protected even if a grant names
-them. Another integration's eligible code/text file may be authorized exactly;
-do not claim all nested `.yaml`/`.yml` files are banned by extension.
+them. All `.yaml` and `.yml` files are refused, case-insensitively, as targets
+and local patch sources, even with exact grants. This includes blueprints,
+YAML dashboards, packages, loose YAML files and application configuration.
+There is no override. Another integration's eligible non-YAML code/text file
+may be authorized exactly.
+
+Existing YAML rules remain saved but report `security_error` / `protected_path`;
+Apply, automatic reapplication, editor reads and Revert are refused. Existing
+edits are not automatically undone. Have the operator inspect and, if needed,
+restore the file manually from a backup before removing the rule. An actual
+unified diff used as a local source may be saved as `.patch`/`.diff`; renaming
+a YAML target does not turn user configuration into a supported target.
 
 When upgrading from 2.x to 3.x, replace `hapatchy.allowed_directories` with exact
 `hapatchy.allowed_files` paths and restart HA. Old directory entries are accepted

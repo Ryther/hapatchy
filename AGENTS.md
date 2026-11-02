@@ -203,6 +203,12 @@ watcher reapplication, reconfiguration, Apply, Revert and Refresh source.
 - Redact secrets and raw contents from errors, logs and diagnostics. Never print
   credentials during discovery. Never copy local HA auth/state into public files.
 
+Reject all `.yaml`/`.yml` targets and local patch sources case-insensitively,
+even when explicitly granted or outside the loaded HA source graph. Keep this
+backend restriction in editor reads, direct actions and automatic reconciliation;
+never add a blueprint or application-configuration exception. Existing edits
+must not be automatically undone when a rule becomes forbidden.
+
 The current implementation requires operator-owned exact target paths in
 `hapatchy.allowed_files` in `configuration.yaml` plus HA's explicit directory
 `allowlist_external_dirs`. Legacy `hapatchy.allowed_directories` is accepted

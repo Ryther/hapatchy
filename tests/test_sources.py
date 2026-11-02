@@ -416,3 +416,32 @@ async def test_timeout_covers_post_download_hash_validation(tmp_path, monkeypatc
     with pytest.raises(ValueError, match="source_unavailable"):
         await asyncio.wait_for(pending_load, 1)
     assert target.read_bytes() == b"original\n"
+
+
+@pytest.mark.parametrize("suffix", ["yaml", "yml", "YAML", "YmL"])
+@pytest.mark.parametrize("source_exists", [True, False])
+async def test_local_yaml_source_is_denied_before_read(tmp_path, suffix, source_exists):
+    from custom_components.hapatchy.models import PatchError
+
+    folder = tmp_path / "patches"
+    folder.mkdir()
+    source = folder / f"source.{suffix}"
+    raw = b"--- a/scripts/a.py\n+++ b/scripts/a.py\n@@ -1 +1 @@\n-old\n+new\n"
+    if source_exists:
+        source.write_bytes(raw)
+    (tmp_path / "scripts").mkdir()
+    target = tmp_path / "scripts/a.py"
+    target.write_bytes(b"old\n")
+
+    async def run_io(fn):
+        return fn()
+
+    client = api()[1](tmp_path, run_io)
+    with pytest.raises(PatchError, match="protected_path") as caught:
+        await client.load(definition(source=f"patches/source.{suffix}"))
+    assert caught.value.status == "security_error"
+    if source_exists:
+        assert source.read_bytes() == raw
+    else:
+        assert not source.exists()
+    assert target.read_bytes() == b"old\n"

@@ -53,6 +53,11 @@ HA's loaded configuration and snapshots its bounded YAML source graph. It denies
 operations if a grant-bearing source or the include structure changes before the
 next restart. Content edits in unrelated includes, such as `automations.yaml`,
 do not change the frozen grants; all source paths stay protected from patching.
+The shared file-type guard rejects every `.yaml`/`.yml` target and local patch
+source, case-insensitively, independently of grants or the loaded source graph.
+Path policy enforces it for targets, including editor reads and reconciliation;
+the local source adapter enforces it before opening a source. Directory names
+ending in `.yaml`/`.yml` do not make an eligible non-YAML file inside forbidden.
 HA's live path check remains an
 independent condition. Revert persists auto-apply off after a non-security
 reconciliation; if that persistence fails, automatic reapplication is suppressed

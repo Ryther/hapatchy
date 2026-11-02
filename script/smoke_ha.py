@@ -46,6 +46,7 @@ def prepare_config(root: Path, port: int) -> None:
     (root / "scripts" / "failure.txt").write_text("safe\n")
     (root / "scripts" / "ambiguous.txt").write_text(BEFORE_TEXT)
     (root / "scripts" / "unlisted.txt").write_text("untouched\n")
+    (root / "scripts" / "refused.YaMl").write_text("untouched\n")
     (root / "www").mkdir()
     (root / "www" / "denied.txt").write_text("untouched\n")
     (root / "automations.yaml").write_text("[]\n")
@@ -65,6 +66,7 @@ def prepare_config(root: Path, port: int) -> None:
         "    - scripts/editor.txt\n"
         "    - scripts/failure.txt\n"
         "    - scripts/ambiguous.txt\n"
+        "    - scripts/refused.YaMl\n"
         "automation: !include automations.yaml\n"
         "http:\n"
         "  server_host: 127.0.0.1\n"
@@ -280,6 +282,7 @@ def _verify_denied_target(base: str, root: Path, token: str, entry: str) -> None
     for target_path, expected_error in (
         ("scripts/unlisted.txt", "hapatchy_file_not_allowed"),
         ("www/denied.txt", "hapatchy_file_not_allowed"),
+        ("scripts/refused.YaMl", "protected_path"),
     ):
         denied_flow = api_request(base, PATCH_FLOW_PATH, {"handler": [entry, "patch"]}, token=token)[
             "flow_id"
@@ -297,9 +300,9 @@ def _verify_denied_target(base: str, root: Path, token: str, entry: str) -> None
             token=token,
         )
         if denied.get("type") != "form" or denied.get("errors", {}).get("base") != expected_error:
-            raise RuntimeError("Unlisted target was not rejected by the native flow")
+            raise RuntimeError("Denied target was not rejected by the native flow")
         if (root / target_path).read_bytes() != b"untouched\n":
-            raise RuntimeError("Unlisted target changed")
+            raise RuntimeError("Denied target changed")
 
 
 def _verify_url_requires_hash(base: str, root: Path, token: str, entry: str) -> None:

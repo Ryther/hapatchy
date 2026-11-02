@@ -133,6 +133,14 @@ paths, so do not assume a just-published release will appear immediately. See
 To uninstall, use the [removal sequence](troubleshooting.md#remove-a-patch-or-uninstall-hapatchy)
 so you can Revert before removing the rule, grants or downloaded files.
 
+### Existing YAML patch rules
+
+All `.yaml`/`.yml` targets and local patch sources are refused, regardless of
+capitalization or grants. Saved rules remain but report `security_error` /
+`protected_path`; they cannot Apply or Revert. Previous edits are not undone.
+Inspect any affected file and recover manually before removing its rule; see
+[existing YAML patch rules](directory-permissions.md#existing-yaml-patch-rules).
+
 ### Upgrade from 2.x to 3.x
 
 When updating from 2.x with `hapatchy.allowed_directories`, replace those

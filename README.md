@@ -26,8 +26,11 @@ installation. It does not indicate inclusion in HACS's default catalog.
 HAPatchY is a Home Assistant custom integration that keeps a deliberate edit to
 **one authorized text or code file** when an update replaces it, for example
 `custom_components/huawei_solar/const.py`. Targets live in eligible subfolders
-of HA's configuration directory. Files directly in that directory, HA's YAML
-configuration sources and HAPatchY's own code are protected. You can edit an authorized
+of HA's configuration directory. Files directly in that directory and HAPatchY's
+own code are protected.
+**All `.yaml` and `.yml` targets and local patch sources are refused, regardless
+of capitalization or file grants.** This includes blueprints, YAML dashboards,
+packages and another application's YAML configuration. You can edit an authorized
 file in Home Assistant's native form and let HAPatchY generate a unified diff,
 or supply a `.patch`/`.diff` yourself. When automatic application is enabled
 and the file changes, HAPatchY checks the diff against its contents and applies

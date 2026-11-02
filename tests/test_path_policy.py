@@ -271,3 +271,41 @@ async def test_revert_metadata_failure_suppresses_watcher_reapply(hass, tmp_path
     with pytest.raises(PatchError, match="revert_metadata_unavailable"):
         await runtime.async_action(pid, "reconcile")
     assert (tmp_path / "scripts/a.py").read_bytes() == b"context\nold\n"
+
+
+@pytest.mark.parametrize("suffix", ["yaml", "yml", "YAML", "YmL"])
+@pytest.mark.parametrize("action", ["apply", "revert", "reconcile", "refresh_source"])
+def test_yaml_target_denied_even_with_exact_grant(tmp_path, suffix, action):
+    from custom_components.hapatchy.reconciler import Reconciler
+    from custom_components.hapatchy.target_picker import list_targets
+    from custom_components.hapatchy.validation import read_editable_target
+    from tests.test_sources import definition
+
+    folder = tmp_path / "blueprints"
+    folder.mkdir()
+    target = folder / f"example.{suffix}"
+    before = b"context\nnew\n" if action == "revert" else b"context\nold\n"
+    target.write_bytes(before)
+    path = target.relative_to(tmp_path).as_posix()
+    gate = grant_directories(tmp_path, ("blueprints",), files=(path,))
+    rule = definition(target_path=path, watch_root="blueprints")
+    raw = f"--- a/{path}\n+++ b/{path}\n@@ -1,2 +1,2 @@\n context\n-old\n+new\n".encode()
+
+    result = Reconciler(tmp_path, gate).run(rule, raw, action, 10, False)
+    assert result.inspection.status == "security_error"
+    assert result.inspection.reason == "protected_path"
+    assert not result.mutated
+    assert target.read_bytes() == before
+    assert not (tmp_path / ".hapatchy").exists()
+    assert list_targets(tmp_path, gate) == []
+    with pytest.raises(PatchError, match="protected_path"):
+        read_editable_target(tmp_path, rule, gate)
+
+
+def test_yaml_named_directory_is_not_a_yaml_file(tmp_path):
+    folder = tmp_path / "integration.yaml"
+    folder.mkdir()
+    (folder / "const.py").write_text("value = 1\n")
+    gate = grant_directories(tmp_path, ("integration.yaml",))
+    gate.check_path("integration.yaml", directory=True)
+    gate.check_path("integration.yaml/const.py")

@@ -108,7 +108,7 @@
         "unsafe_directory": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "size_limit": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "no_change": "The patch or configuration is invalid. Check paths, patch contents and context.",
-        "protected_path": "The patch or configuration is invalid. Check paths, patch contents and context.",
+        "protected_path": "This path is protected. YAML files (.yaml/.yml), HA configuration sources and internal HAPatchY files are not allowed.",
         "parser_mismatch": "The patch or configuration is invalid. Check paths, patch contents and context.",
         "unsafe_path": "Use relative paths without traversal or symbolic links.",
         "backup_prune_failed": "The patch or configuration is invalid. Check paths, patch contents and context.",
@@ -320,7 +320,7 @@
       "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
     },
     "protected_path": {
-      "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
+      "message": "This path is protected. YAML files (.yaml/.yml), HA configuration sources and internal HAPatchY files are not allowed."
     },
     "parser_mismatch": {
       "message": "Action failed. Check the patch status and Repairs; conflicts are never forced."
