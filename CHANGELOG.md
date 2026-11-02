@@ -1,5 +1,16 @@
 # Changelog
 
+## [4.0.0](https://github.com/Ryther/hapatchy/compare/v3.0.3...v4.0.0) (2026-11-02)
+
+
+### ⚠ BREAKING CHANGES
+
+* All .yaml and .yml targets and local patch sources are now refused, including previously saved rules and explicitly granted files. Affected rules cannot Apply or Revert; operators must inspect and restore previous edits manually when needed.
+
+### Bug Fixes
+
+* refuse YAML targets and local patch sources ([2e91d4b](https://github.com/Ryther/hapatchy/commit/2e91d4b363ee3c72fa72d14f41885c50acae0554))
+
 ## [3.0.3](https://github.com/Ryther/hapatchy/compare/v3.0.2...v3.0.3) (2026-10-27)
 
 
