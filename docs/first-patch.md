@@ -20,7 +20,9 @@ interval = 30
 
 Use a plain-text UTF-8 editor, or download [settings.txt](examples/settings.txt).
 The configuration folder is the one containing `configuration.yaml`; the file
-picker selects files on **HA's server**, not your computer.
+picker selects files on **HA's server**, not your computer. Do not substitute a
+`.yaml` or `.yml` file: HAPatchY refuses those extensions, including blueprints,
+even when explicitly authorized.
 
 Allow the `hapatchy_ui_demo` folder in HA and name
 `hapatchy_ui_demo/settings.txt` in `hapatchy.allowed_files`; restart HA as shown

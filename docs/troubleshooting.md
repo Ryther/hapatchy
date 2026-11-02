@@ -202,6 +202,15 @@ symlinks, hard-linked files, special files and protected internal directories ar
 not supported. Use a normal file under a normal subdirectory. HAPatchY's own code,
 `.storage` and `.hapatchy` are deliberately protected from patch rules.
 
+`protected_path` also means that every `.yaml`/`.yml` target or local patch
+source is refused, case-insensitively. Grants cannot override this, including
+for blueprints, packages, YAML dashboards or another application's settings.
+Saved rules remain but cannot Apply or Revert, and existing edits are not
+automatically undone. Inspect the file and, if needed, restore it manually from
+a backup before removing the rule. If only the **local patch source** has a
+YAML extension, save the actual unified diff as `.patch` or `.diff`; the target
+must still be an eligible non-YAML file.
+
 ## Apply error or durability unconfirmed
 
 Check available disk space, file/directory ownership and permissions. If creating

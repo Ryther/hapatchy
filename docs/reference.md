@@ -127,7 +127,13 @@ mandatory.** Previous managed revisions are retained.
 Local paths always use `/` separators and start inside the HA configuration
 folder. Absolute paths, `..`, symlinks, hard links and special files are rejected.
 Files directly in that configuration folder cannot be patch targets; an exact
-grant does not override this restriction. Files in authorized subfolders can be.
+grant does not override this restriction. Eligible non-YAML files in authorized
+subfolders can be.
+**All `.yaml` and `.yml` targets and local patch sources are refused,
+case-insensitively**, including blueprints, YAML dashboards, packages and
+application configuration. An exact grant cannot override this rule. The check
+returns `protected_path` / `security_error`, including for previously saved
+rules; Revert is also refused and existing edits are not automatically undone.
 `.storage`, `.hapatchy` and HAPatchY's own integration files are protected.
 HA configuration sources and included-directory scopes are also protected;
 see [eligible targets](directory-permissions.md#eligible-and-protected-targets).

@@ -30,7 +30,7 @@ file. The example authorizes only `settings.txt`, not another file in the same
 folder. Glob patterns, directory names, absolute paths, `..`, links, protected
 paths and files directly in the configuration root are not valid file grants.
 The backend also refuses a root-level target even if a stored definition or
-direct API request names it. Authorized files in subfolders remain eligible.
+direct API request names it. Eligible non-YAML files in subfolders can be authorized.
 An entry in `allowed_files` can name a file that is temporarily missing; it
 never authorizes a different file that later appears beside it.
 
@@ -63,10 +63,34 @@ For example, granting `packages/example.yaml` does not permit a patch if HA
 loads that path through an include-directory directive. Editing an unrelated
 include manually may leave grants valid; that does not make it patchable.
 
-Eligible files in other subfolders can be authorized individually, including
-code in another custom integration. There is no blanket extension-based YAML
-ban: the path/source rules above determine eligibility. Authorizing executable
-code does not sandbox what HA may later execute.
+**Every `.yaml` and `.yml` file is refused, case-insensitively**, both as a
+patch target and as a local patch source. This includes blueprints, YAML
+dashboards, packages, loose YAML files and another application's YAML
+configuration, even if HA does not load the file and an exact grant names it.
+There is no setting to override this restriction. Use the application's own
+editor or edit a separate copy manually instead.
+
+![The native form refuses an explicitly granted mixed-case YAML target](images/yaml-file-refused.png)
+
+This refusal was checked in Chromium on disposable HA 2026.7.4. The same
+browser session verified a refused local `.YML` patch source and an allowed
+text-file edit with backed-up Apply and Revert; target bytes were checked
+separately. The screenshot shows the current native error wording.
+
+Eligible non-YAML files in other subfolders can be authorized individually,
+including code in another custom integration. Authorizing executable code does
+not sandbox what HA may later execute.
+
+### Existing YAML patch rules
+
+Saved rules targeting `.yaml`/`.yml` files or reading a local patch source with
+one of those extensions remain saved but fail with `security_error` /
+`protected_path`. Apply, automatic reapplication, editor reads and Revert are
+refused; HAPatchY does not automatically undo previous edits. Inspect the file
+and restore it manually from an independent backup if needed, then remove
+the rule. A local file containing an actual unified diff may be saved
+as `.patch` or `.diff` instead; changing its name does not make a YAML target
+eligible.
 
 <span id="existing-installations"></span>
 

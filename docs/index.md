@@ -6,8 +6,9 @@ HAPatchY keeps a deliberate change to one authorized text or code file in an
 eligible subfolder of Home Assistant's configuration directory, for example
 `custom_components/huawei_solar/const.py`. It applies a patch only when the surrounding
 text still matches unambiguously. Start with an unused text file before changing
-an integration. Files directly in the configuration root and HA's YAML
-configuration sources remain protected even when a grant names them.
+an integration. Files directly in the configuration root and all `.yaml`/`.yml`
+files remain protected even when a grant names them. YAML blueprints, dashboards
+and packages cannot be patched.
 
 ## What do you want to do?
 

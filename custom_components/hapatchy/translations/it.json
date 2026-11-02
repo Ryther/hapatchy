@@ -108,7 +108,7 @@
         "unsafe_directory": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "size_limit": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "no_change": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
-        "protected_path": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
+        "protected_path": "Il percorso è protetto. I file YAML (.yaml/.yml), le sorgenti della configurazione HA e i file interni di HAPatchY non sono consentiti.",
         "parser_mismatch": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
         "unsafe_path": "Usa percorsi relativi senza risalite o link simbolici.",
         "backup_prune_failed": "La patch o la configurazione non è valida. Verifica percorsi, contenuto e contesto della patch.",
@@ -320,7 +320,7 @@
       "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
     },
     "protected_path": {
-      "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."
+      "message": "Il percorso è protetto. I file YAML (.yaml/.yml), le sorgenti della configurazione HA e i file interni di HAPatchY non sono consentiti."
     },
     "parser_mismatch": {
       "message": "Operazione non riuscita. Controlla lo stato della patch e le Riparazioni; nessun conflitto viene forzato."

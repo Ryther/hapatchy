@@ -10,7 +10,7 @@ import aiohttp
 
 from .const import MAX_PATCH_BYTES
 from .managed_source import ManagedPatchStore
-from .models import PatchDefinition, PatchError, Status
+from .models import PatchDefinition, PatchError, Status, check_non_yaml_file
 from .network_policy import PublicDNSResolver, checked_url
 from .safe_io import GuardedFile
 
@@ -18,6 +18,7 @@ HTTPS_TIMEOUT_SECONDS = 30
 
 
 def _local(root: Path, definition: PatchDefinition) -> bytes:
+    check_non_yaml_file(definition.source)
     with GuardedFile(root, definition.source) as source:
         snapshot = source.read(MAX_PATCH_BYTES)
         # Same-inode aliases are also rejected by the single-hardlink requirement.

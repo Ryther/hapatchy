@@ -54,6 +54,12 @@ def relative_parts(path: str, *, internal: bool = False) -> tuple[str, ...]:
     return parts
 
 
+def check_non_yaml_file(path: str) -> None:
+    """Keep user YAML configuration outside patch targets and local sources."""
+    if path.lower().endswith((".yaml", ".yml")):
+        raise PatchError("protected_path", Status.SECURITY_ERROR)
+
+
 @dataclass(frozen=True)
 class PatchDefinition:
     patch_id: str
