@@ -77,7 +77,7 @@ mashumaro==3.22
 mdurl==0.1.2
 mock-open==1.4.0
 multidict==6.9.1
-mypy==2.4.0
+mypy==2.4.1
 mypy-extensions==1.1.0
 nab==0.0.18
 nab-index==0.0.18
