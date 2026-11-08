@@ -13,6 +13,7 @@ from pathlib import Path
 
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
+from packaging.version import Version
 
 from script.ha_distribution import load_ha_constraints
 
@@ -57,13 +58,25 @@ def validate_lock(path: Path) -> dict[str, str]:
         stripped = line.strip()
         if not stripped or stripped.startswith("#"):
             continue
-        match = PIN.fullmatch(stripped)
-        if match is None:
-            raise ValueError(f"Unpinned requirement in {path.name}")
-        name = canonicalize_name(match.group(1))
+        try:
+            requirement = Requirement(stripped)
+            specifiers = tuple(requirement.specifier)
+            if (
+                requirement.url
+                or requirement.marker
+                or len(specifiers) != 1
+                or specifiers[0].operator != "=="
+                or "*" in specifiers[0].version
+            ):
+                raise ValueError("Requirement is not an unconditional exact pin")
+            version = specifiers[0].version
+            Version(version)
+        except ValueError as error:
+            raise ValueError(f"Unpinned requirement in {path.name}") from error
+        name = canonicalize_name(requirement.name)
         if name in pins:
             raise ValueError(f"Duplicate requirement in {path.name}: {name}")
-        pins[name] = match.group(2)
+        pins[name] = version
     if "homeassistant" not in pins:
         raise ValueError(f"Missing Home Assistant in {path.name}")
     return pins

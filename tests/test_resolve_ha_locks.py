@@ -32,6 +32,58 @@ def test_validate_lock_rejects_duplicate_and_unpinned_packages(tmp_path):
         resolve_ha_locks.validate_lock(lock)
 
 
+def test_validate_lock_accepts_extras_and_canonicalizes_distribution_names(tmp_path):
+    lock = tmp_path / "requirements.txt"
+    lock.write_text(
+        "homeassistant==2026.10.4\n"
+        "coverage[toml]==7.14.1\n"
+        "PyJWT[crypto]==2.12.1\n"
+        "example_package[one,two]==1.0rc1+local\n"
+    )
+    assert resolve_ha_locks.validate_lock(lock) == {
+        "homeassistant": "2026.10.4",
+        "coverage": "7.14.1",
+        "pyjwt": "2.12.1",
+        "example-package": "1.0rc1+local",
+    }
+
+
+@pytest.mark.parametrize(
+    "requirement",
+    [
+        "coverage[toml]>=7.14.1",
+        "coverage[toml]==7.*",
+        "coverage[toml]===7.14.1",
+        "coverage[toml]==7.14.1,!=7.14.0",
+        "coverage[toml] @ https://example.test/coverage.whl",
+        'coverage[toml]==7.14.1; python_version >= "3.14"',
+        "coverage[toml]==invalid-version",
+        "coverage[broken!]==7.14.1",
+    ],
+)
+def test_validate_lock_rejects_non_exact_or_invalid_requirements(tmp_path, requirement):
+    lock = tmp_path / "requirements.txt"
+    lock.write_text(f"homeassistant==2026.10.4\n{requirement}\n")
+    with pytest.raises(ValueError, match="Unpinned"):
+        resolve_ha_locks.validate_lock(lock)
+
+
+@pytest.mark.parametrize(
+    "requirements",
+    [
+        "PyJWT==2.12.1\npyjwt[crypto]==2.12.1\n",
+        "example_package[one]==1.0\nexample-package[two]==1.0\n",
+    ],
+)
+def test_validate_lock_rejects_duplicate_distributions_with_different_extras(
+    tmp_path, requirements
+):
+    lock = tmp_path / "requirements.txt"
+    lock.write_text(f"homeassistant==2026.10.4\n{requirements}")
+    with pytest.raises(ValueError, match="Duplicate"):
+        resolve_ha_locks.validate_lock(lock)
+
+
 def test_render_keeps_existing_pair_when_second_resolution_fails(tmp_path, monkeypatch):
     source = tmp_path / "source"
     target = tmp_path / "target"
