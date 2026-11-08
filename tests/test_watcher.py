@@ -327,9 +327,14 @@ async def test_two_roots_reload_and_reconcile_independently(hass, tmp_path):
 
 async def test_periodic_recovery_after_root_event_is_lost(hass, tmp_path, monkeypatch):
     from datetime import timedelta
+    from importlib.util import find_spec
 
     from homeassistant.util import dt as dt_util
-    from pytest_homeassistant_custom_component.common import async_fire_time_changed
+
+    if find_spec("pytest_homeassistant") is not None:
+        from pytest_homeassistant.common import async_fire_time_changed
+    else:
+        from pytest_homeassistant_custom_component.common import async_fire_time_changed
 
     _, runtime, pid = await setup(hass, tmp_path, {"debounce_seconds": 0.1})
     owner = watcher(runtime)

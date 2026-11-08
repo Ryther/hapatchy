@@ -30,8 +30,15 @@ Use the repository's Dev Container. It starts disposable HA without household
 configuration. Discover the current container and forwarded port; do not hardcode
 another session's container ID, port, author identity or credentials.
 
-The Dev Container runs HA 2026.10.4 / Python 3.14.7. CI also tests HA 2026.7.4 /
+The Dev Container runs HA 2026.11.0 / Python 3.14.7. CI also tests HA 2026.7.4 /
 Python 3.14.7. The authoritative locks and commands are in `.github/workflows/tests.yaml`.
+The recent lane uses official `pytest-homeassistant`; the historical minimum
+lane retains `pytest-homeassistant-custom-component`. Keep their namespaces and
+fixtures compatible in shared tests, never install both in one environment,
+and keep the explicit coverage tool root and `-p no:respx` pytest option.
+A missing matching stable pytest package is an updater waiting state with no
+baseline edits or publication; malformed metadata and incompatible releases
+remain failures.
 HACS uses the installed HA interpreter; it does not create a private interpreter
 or virtual environment for this integration. Do not raise the product minimum
 simply because development uses a newer Python.
@@ -48,7 +55,10 @@ advisory affects it. Whenever an HA/Python baseline, test plugin, or lock change
 compare the allowlist and each exclusion with package metadata and integration
 manifests, remove obsolete entries, regenerate the affected lock, and run its full
 CI test and HA boot-smoke lane. Review new Dependabot proposals against both HA
-baselines before changing a pinned transitive dependency. If a security fix needs
+baselines before changing a pinned transitive dependency. Standalone tool PRs
+must update the corresponding input template and regenerate affected locks,
+including newly required transitive tool dependencies; a lock-only pin change
+is incomplete even if its package installs. If a security fix needs
 a newer pinned dependency, evaluate an HA baseline update instead of overriding
 HA's requirement in one lock.
 

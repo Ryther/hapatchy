@@ -56,3 +56,22 @@ def test_ha_environment_locks_use_updated_certificate_and_tls_helpers(tmp_path):
         pins = _lock_pins(name, tmp_path)
         assert Version(pins["certifi"]) >= Version("2026.10.19"), name
         assert Version(pins["anyio"]) >= Version("4.14.2"), name
+
+
+def test_recent_direct_tool_inputs_match_resolved_versions():
+    from script.ha_release_catalog import plugin_package
+    from script.resolve_ha_locks import render_input
+
+    tools = validate_lock(ROOT / ".devcontainer/requirements-tools.txt")
+    ha = tools["homeassistant"]
+    template = (ROOT / ".devcontainer/requirements-tools.in.template").read_text()
+    rendered = render_input(template, ha, tools[plugin_package(ha)])
+    from packaging.requirements import Requirement
+
+    for line in rendered.splitlines():
+        if not line.strip() or line.startswith("#"):
+            continue
+        requirement = Requirement(line)
+        if requirement.specifier:
+            assert str(requirement.specifier) == "==" + tools[requirement.name], requirement.name
+    assert ("pytest-homeassistant" in tools) != ("pytest-homeassistant-custom-component" in tools)

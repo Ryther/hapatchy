@@ -1,12 +1,17 @@
 """Native entry, subentry and retention UI behavior."""
 
+import importlib.util
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResultType, InvalidData
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+if importlib.util.find_spec("pytest_homeassistant") is not None:
+    from pytest_homeassistant.common import MockConfigEntry
+else:
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from tests.policy_helpers import grant_directories
 

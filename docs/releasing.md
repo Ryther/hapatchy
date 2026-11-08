@@ -98,12 +98,19 @@ and credential-bearing publishing jobs. See
 
 [Update HA baseline](https://github.com/Ryther/hapatchy/actions/workflows/update-ha-baseline.yaml)
 looks for the latest stable HA release with an exactly matching published pytest
-plugin. It verifies the candidate wheel's size/hash, reads HA-owned dependency
+plugin. HA 2026.11 and later use the official `pytest-homeassistant` package;
+older baselines use the historical community plugin. If the matching stable
+test package has not been published, the run succeeds with an explicit waiting
+summary, leaves the baseline unchanged and creates no PR or release. Later
+scheduled runs retry discovery. Malformed metadata, incompatible Python,
+resolution failures and failed validation still fail the run.
+
+It verifies the candidate wheel's size/hash, reads HA-owned dependency
 pins and resolves both recent locks together from the tracked inputs. Missing or
 conflicting required pins stop the proposal. HAPatchY and independent-tool pins
 remain explicit; the minimum lane is unchanged.
 
-The current recent baseline is **HA 2026.10.4**. Read the matching pytest plugin
+The current recent baseline is **HA 2026.11.0**. Read the matching pytest plugin
 and resolver versions from `.devcontainer/requirements-tools.txt`, rather than
 copying them from prose. The minimum lane's inputs and test/runtime locks are in
 `tests/requirements-ha-min*`. Optional boot-smoke additions must match that HA
