@@ -35,7 +35,7 @@ charset-normalizer==3.4.3
 ciso8601==2.3.3
 colorama==0.4.6
 commitizen==4.19.3
-coverage==7.16.2
+coverage==7.17.2
 cronsim==2.7
 cryptography==50.0.2
 dbus-fast==5.0.22
