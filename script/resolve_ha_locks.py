@@ -16,6 +16,7 @@ from packaging.utils import canonicalize_name
 from packaging.version import Version
 
 from script.ha_distribution import load_ha_constraints
+from script.ha_release_catalog import plugin_package
 
 INPUT_DIR = Path(__file__).resolve().parents[1] / ".devcontainer"
 ROOT = INPUT_DIR.parent
@@ -48,7 +49,11 @@ def render_input(template: str, ha_version: str, plugin_version: str) -> str:
         raise ValueError("Invalid Home Assistant version")
     if not VERSION.fullmatch(plugin_version):
         raise ValueError("Invalid pytest plugin version")
-    return template.format(ha_version=ha_version, plugin_version=plugin_version)
+    return template.format(
+        ha_version=ha_version,
+        plugin_version=plugin_version,
+        pytest_plugin=plugin_package(ha_version),
+    )
 
 
 def validate_lock(path: Path) -> dict[str, str]:
@@ -154,7 +159,10 @@ def render(
             pins = validate_lock(output_path)
             if pins["homeassistant"] != ha_version:
                 raise ValueError(f"Resolver returned the wrong HA version in {name}")
-            if name == "requirements-tools" and pins.get("pytest-homeassistant-custom-component") != plugin_version:
+            if (
+                name == "requirements-tools"
+                and pins.get(plugin_package(ha_version)) != plugin_version
+            ):
                 raise ValueError("Resolver returned the wrong pytest plugin version")
         paths = (output_dir / "requirements-tools.txt", output_dir / "requirements-ha.txt")
         for name, destination in zip(LOCK_NAMES, paths, strict=True):
@@ -168,13 +176,10 @@ def check_current() -> bool:
     with tempfile.TemporaryDirectory(prefix="hapatchy-lock-check-") as temporary:
         paths = render(
             tools["homeassistant"],
-            tools["pytest-homeassistant-custom-component"],
+            tools[plugin_package(tools["homeassistant"])],
             Path(temporary),
         )
-        return all(
-            path.read_bytes() == (INPUT_DIR / path.name).read_bytes()
-            for path in paths
-        )
+        return all(path.read_bytes() == (INPUT_DIR / path.name).read_bytes() for path in paths)
 
 
 def main() -> int:

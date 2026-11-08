@@ -10,7 +10,12 @@ from pathlib import Path
 
 from packaging.version import Version
 
-from script.ha_release_catalog import fetch_pypi_json, latest_pair
+from script.ha_release_catalog import (
+    PluginUnavailable,
+    fetch_pypi_json,
+    latest_pair,
+    plugin_package,
+)
 from script.resolve_ha_locks import render, render_input, validate_lock
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,7 +62,7 @@ def plan(repo_root: Path, ha: str, plugin: str) -> BaselineChange:
     tools = validate_lock(repo_root / TOOLS)
     runtime = validate_lock(repo_root / RUNTIME)
     old_ha = tools["homeassistant"]
-    old_plugin = tools["pytest-homeassistant-custom-component"]
+    old_plugin = tools[plugin_package(old_ha)]
     if runtime["homeassistant"] != old_ha:
         raise ValueError("Recent HA locks disagree")
     originals = {path: (repo_root / path).read_bytes() for path in EDITABLE_PATHS}
@@ -73,11 +78,17 @@ def plan(repo_root: Path, ha: str, plugin: str) -> BaselineChange:
         edits = {TOOLS: generated[0].read_bytes(), RUNTIME: generated[1].read_bytes()}
     for path in TEXT_PATHS:
         content = originals[path]
-        content = _replace_counted(content, old_ha, ha, HA_REFERENCES[path], path)
         if path in PLUGIN_REFERENCES:
             content = _replace_counted(
-                content, old_plugin, plugin, PLUGIN_REFERENCES[path], path
+                content,
+                f"pytest plugin **{old_plugin}**",
+                "pytest plugin **{pytest_plugin}**",
+                PLUGIN_REFERENCES[path],
+                path,
             )
+        content = _replace_counted(content, old_ha, ha, HA_REFERENCES[path], path)
+        if path in PLUGIN_REFERENCES:
+            content = content.replace(b"{pytest_plugin}", plugin.encode())
         edits[path] = content
     if set(edits) != set(EDITABLE_PATHS):
         raise ValueError("Unexpected baseline edit set")
@@ -123,7 +134,17 @@ def main() -> int:
     parser.add_argument("--dry-run", action="store_true")
     args = parser.parse_args()
     current = validate_lock(ROOT / TOOLS)["homeassistant"]
-    pair = latest_pair(fetch_pypi_json, current, "3.14.7")
+    try:
+        pair = latest_pair(fetch_pypi_json, current, "3.14.7")
+    except PluginUnavailable as error:
+        with args.output.open("a") as output:
+            output.write("changed=false\nwaiting=true\n")
+        message = f"Waiting for the matching stable HA test package: {error}"
+        print(message)
+        if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+            with Path(summary).open("a") as output:
+                output.write(message + "\n")
+        return 0
     if pair is None:
         with args.output.open("a") as output:
             output.write("changed=false\n")

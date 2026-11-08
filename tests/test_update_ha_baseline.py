@@ -22,7 +22,7 @@ def _workspace(tmp_path: Path) -> Path:
 
 def _versions(root: Path) -> tuple[str, str]:
     pins = updater.validate_lock(root / updater.TOOLS)
-    return pins["homeassistant"], pins["pytest-homeassistant-custom-component"]
+    return pins["homeassistant"], pins[updater.plugin_package(pins["homeassistant"])]
 
 
 def _next(version: str) -> str:
@@ -44,7 +44,7 @@ def test_candidate_changes_only_allowlisted_paths_and_preserves_minimum(tmp_path
     def fake_render(ha, plugin, output_dir):
         tools = output_dir / "requirements-tools.txt"
         runtime = output_dir / "requirements-ha.txt"
-        tools.write_text(f"homeassistant=={ha}\npytest-homeassistant-custom-component=={plugin}\n")
+        tools.write_text(f"homeassistant=={ha}\n{updater.plugin_package(ha)}=={plugin}\n")
         runtime.write_text(f"homeassistant=={ha}\n")
         return tools, runtime
 
@@ -85,7 +85,7 @@ def test_cli_dry_run_reports_candidate_without_writing_and_then_applies(tmp_path
 
     def fake_render(ha, plugin, output_dir):
         paths = (output_dir / "requirements-tools.txt", output_dir / "requirements-ha.txt")
-        paths[0].write_text(f"homeassistant=={ha}\npytest-homeassistant-custom-component=={plugin}\n")
+        paths[0].write_text(f"homeassistant=={ha}\n{updater.plugin_package(ha)}=={plugin}\n")
         paths[1].write_text(f"homeassistant=={ha}\n")
         return paths
 
@@ -103,3 +103,65 @@ def test_cli_dry_run_reports_candidate_without_writing_and_then_applies(tmp_path
     monkeypatch.setattr(sys, "argv", argv)
     assert updater.main() == 0
     assert f"homeassistant=={ha}".encode() in (root / updater.TOOLS).read_bytes()
+
+
+def test_cli_missing_plugin_is_waiting_without_edits(tmp_path, monkeypatch):
+    from script.ha_release_catalog import PluginUnavailable
+
+    root = _workspace(tmp_path)
+    before = {path: (root / path).read_bytes() for path in updater.EDITABLE_PATHS}
+
+    def unavailable(*args):
+        raise PluginUnavailable(
+            "No published pytest-homeassistant release for Home Assistant 2026.11.1"
+        )
+
+    monkeypatch.setattr(updater, "ROOT", root)
+    monkeypatch.setattr(updater, "latest_pair", unavailable)
+    output = tmp_path / "output"
+    summary = tmp_path / "summary"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    monkeypatch.setattr(sys, "argv", ["update_ha_baseline.py", "--output", str(output)])
+    assert updater.main() == 0
+    assert "changed=false" in output.read_text()
+    assert "waiting=true" in output.read_text()
+    assert "2026.11.1" in summary.read_text()
+    assert all((root / path).read_bytes() == content for path, content in before.items())
+
+
+def test_cli_metadata_failures_still_fail(tmp_path, monkeypatch):
+    from script.ha_release_catalog import ReviewNeeded
+
+    root = _workspace(tmp_path)
+
+    def broken(*args):
+        raise ReviewNeeded("Malformed PyPI metadata")
+
+    monkeypatch.setattr(updater, "ROOT", root)
+    monkeypatch.setattr(updater, "latest_pair", broken)
+    monkeypatch.setattr(
+        sys, "argv", ["update_ha_baseline.py", "--output", str(tmp_path / "output")]
+    )
+    with pytest.raises(ReviewNeeded, match="Malformed"):
+        updater.main()
+
+
+def test_next_official_release_updates_independent_ha_and_plugin_references(tmp_path, monkeypatch):
+    root = _workspace(tmp_path)
+    ha, plugin = _versions(root)
+    assert ha == plugin
+    next_ha = _next(ha)
+
+    def fake_render(ha, plugin, output_dir):
+        tools = output_dir / "requirements-tools.txt"
+        runtime = output_dir / "requirements-ha.txt"
+        tools.write_text(f"homeassistant=={ha}\npytest-homeassistant=={plugin}\n")
+        runtime.write_text(f"homeassistant=={ha}\n")
+        return tools, runtime
+
+    monkeypatch.setattr(updater, "render", fake_render)
+    change = updater.plan(root, next_ha, next_ha)
+    text = change.edits[Path(".devcontainer/README.md")].decode()
+    assert f"pytest plugin **{next_ha}**" in text
+    assert f"HA {next_ha} / Python" in text
+    assert "{pytest_plugin}" not in text

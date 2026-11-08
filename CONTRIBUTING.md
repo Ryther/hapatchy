@@ -28,6 +28,12 @@ This also applies when the failure appears to be a tooling or dependency issue.
    environment with the container/CI versions. Do not treat a host-only failure
    as sufficient evidence that the contribution is broken.
 
+The recent lane uses the official `pytest-homeassistant` package. The historical
+minimum lane uses `pytest-homeassistant-custom-component`; install only the
+package selected by that lane's lock. Shared tests support both namespaces.
+For standalone tool updates, align the direct input/template and regenerate
+its complete lock so transitive requirements remain consistent.
+
 The container uses the **recent** HA/Python baseline. A failure specific to the
 minimum baseline still needs that exact CI lane; success on the recent baseline
 alone does not dismiss it. Both lanes and their locks are in

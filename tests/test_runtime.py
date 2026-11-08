@@ -1,13 +1,18 @@
 """Native HA lifecycle with temporary configuration and real file transactions."""
 
 import asyncio
+import importlib.util
 import threading
 from pathlib import Path
 from unittest.mock import AsyncMock, patch
 
 import pytest
 from homeassistant.helpers import issue_registry as ir
-from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+if importlib.util.find_spec("pytest_homeassistant") is not None:
+    from pytest_homeassistant.common import MockConfigEntry
+else:
+    from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.hapatchy.models import Status
 from tests.policy_helpers import grant_directories

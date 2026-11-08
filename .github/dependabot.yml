@@ -25,6 +25,7 @@ updates:
     # move alone; update the HA dependency graph as a unit with its baseline.
     allow:
       - dependency-name: commitizen
+      - dependency-name: coverage
       - dependency-name: mypy
       - dependency-name: ruff
       - dependency-name: supervisor

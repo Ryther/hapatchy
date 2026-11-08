@@ -38,9 +38,9 @@ packages into the running container's managed virtual environments.
 | --- | --- |
 | Git, Bash and native build dependencies | Source control, scripts and Python package installation |
 | Python Commitizen **4.19.3** (`cz`) | Guided Conventional Commits and message validation; same version as commit-message CI |
-| pytest **9.0.3** and HA pytest plugin **0.13.375** | Isolated integration/unit tests |
-| Ruff **0.17.2** | Python linting and formatting |
-| mypy **2.4.0** | Type checking |
+| pytest and HA pytest plugin **2026.11.0** | Isolated integration/unit tests |
+| Ruff **0.17.3** | Python linting and formatting |
+| mypy **2.4.1** | Type checking |
 | uv (exact version in the tool lock) | Resolve the two complete recent HA locks from tracked inputs |
 | Supervisor **4.3.0** | Manage the separate browser HA process |
 | Python standard library | Version validation and release ZIP/checksum generation |
@@ -53,7 +53,7 @@ GitHub CLI on GitHub's runner; local development checks never require publicatio
 credentials or the `gh` executable.
 
 The lock is authoritative for exact versions. Inspect the installed environment
-with `.venv/bin/python -m pip show uv pytest-homeassistant-custom-component`
+with `.venv/bin/python -m pip show uv pytest-homeassistant`
 and compare it with the lock before diagnosing a version mismatch.
 
 The editor/Dev Containers CLI remote PATH starts with `.venv/bin`. Run `cz version`
@@ -82,9 +82,15 @@ VS Code's **Tasks: Run Task** offers each check, **Checks: all** (sequential) an
 
 Tests create temporary HA objects/configuration directories. They do not make
 requests to the browser HA or to a household installation. The container runs
-the recent baseline, **HA 2026.10.4 / Python 3.14.7**. CI also tests
+the recent baseline, **HA 2026.11.0 / Python 3.14.7**. CI also tests
 **HA 2026.7.4 / Python 3.14.7** with its separate lock. Passing this container's
 checks is not proof that a minimum-lane-specific failure is fixed.
+
+The recent lane uses Home Assistant's official `pytest-homeassistant`, whose
+version matches HA. The minimum lane retains `pytest-homeassistant-custom-component`.
+Do not install both in the same environment. Pytest disables the auto-loaded
+`respx` plugin so HA can initialize its HTTP client aliases before test imports;
+`coverage` is an explicit tool root because the official plugin does not supply it.
 
 The recent tool and runtime locks are generated together from
 [`requirements-tools.in.template`](requirements-tools.in.template) and

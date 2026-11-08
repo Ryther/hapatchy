@@ -10,13 +10,17 @@ from script import resolve_ha_locks
 
 
 def test_render_input_rejects_invalid_version_text():
-    template = "homeassistant=={ha_version}\npytest-homeassistant-custom-component=={plugin_version}\n"
+    template = (
+        "homeassistant=={ha_version}\npytest-homeassistant-custom-component=={plugin_version}\n"
+    )
     with pytest.raises(ValueError, match="Invalid Home Assistant version"):
         resolve_ha_locks.render_input(template, "2026.9.4; echo unsafe", "0.13.367")
 
 
 def test_render_input_pairs_exact_versions():
-    template = "homeassistant=={ha_version}\npytest-homeassistant-custom-component=={plugin_version}\n"
+    template = (
+        "homeassistant=={ha_version}\npytest-homeassistant-custom-component=={plugin_version}\n"
+    )
     assert resolve_ha_locks.render_input(template, "2026.9.4", "0.13.367") == (
         "homeassistant==2026.9.4\npytest-homeassistant-custom-component==0.13.367\n"
     )
@@ -100,8 +104,7 @@ def test_render_keeps_existing_pair_when_second_resolution_fails(tmp_path, monke
         if "requirements-ha" in output.name:
             raise RuntimeError("resolver failed")
         output.write_text(
-            "homeassistant==2026.9.4\n"
-            "pytest-homeassistant-custom-component==0.13.367\n"
+            "homeassistant==2026.9.4\npytest-homeassistant-custom-component==0.13.367\n"
         )
         return CompletedProcess(command, 0)
 
@@ -146,7 +149,11 @@ def test_render_uses_candidate_wheel_constraints_for_unpinned_ha_roots(tmp_path,
     for name in ("requirements-tools", "requirements-ha"):
         (source / f"{name}.in.template").write_text(
             "homeassistant=={ha_version}\nuv\n"
-            + ("pytest-homeassistant-custom-component=={plugin_version}\n" if name == "requirements-tools" else "")
+            + (
+                "pytest-homeassistant-custom-component=={plugin_version}\n"
+                if name == "requirements-tools"
+                else ""
+            )
         )
         (source / f"{name}.txt").write_text("homeassistant==2026.9.4\nuv==0.12.5\n")
     monkeypatch.setattr(resolve_ha_locks, "INPUT_DIR", source)
@@ -190,3 +197,15 @@ def test_check_current_detects_drift_and_cli_returns_failure(tmp_path, monkeypat
     monkeypatch.setattr(resolve_ha_locks, "render", changed)
     monkeypatch.setattr(sys, "argv", ["resolve_ha_locks.py", "--check"])
     assert resolve_ha_locks.main() == 1
+
+
+def test_render_input_uses_matching_pytest_distribution_for_each_lane():
+    template = "{pytest_plugin}=={plugin_version}\n"
+    assert (
+        resolve_ha_locks.render_input(template, "2026.10.4", "0.13.375")
+        == "pytest-homeassistant-custom-component==0.13.375\n"
+    )
+    assert (
+        resolve_ha_locks.render_input(template, "2026.11.0", "2026.11.0")
+        == "pytest-homeassistant==2026.11.0\n"
+    )
