@@ -53,7 +53,7 @@ h11==0.16.0
 habluetooth==6.26.11
 hass-nabucasa==2.8.1
 home-assistant-bluetooth==2.0.0
-homeassistant==2026.11.0
+homeassistant==2026.11.1
 httpcore==1.0.9
 httpcore2==2.14.0
 httpx==0.28.1
@@ -98,7 +98,7 @@ pytest==9.0.3
 pytest-aiohttp==1.1.1
 pytest-asyncio==1.4.0
 pytest-freezer==0.4.9
-pytest-homeassistant==2026.11.0
+pytest-homeassistant==2026.11.1
 pytest-socket==0.8.1
 pytest-xdist==3.8.0
 python-dateutil==2.9.0.post0

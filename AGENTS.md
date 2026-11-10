@@ -30,7 +30,7 @@ Use the repository's Dev Container. It starts disposable HA without household
 configuration. Discover the current container and forwarded port; do not hardcode
 another session's container ID, port, author identity or credentials.
 
-The Dev Container runs HA 2026.11.0 / Python 3.14.7. CI also tests HA 2026.7.4 /
+The Dev Container runs HA 2026.11.1 / Python 3.14.7. CI also tests HA 2026.7.4 /
 Python 3.14.7. The authoritative locks and commands are in `.github/workflows/tests.yaml`.
 The recent lane uses official `pytest-homeassistant`; the historical minimum
 lane retains `pytest-homeassistant-custom-component`. Keep their namespaces and
